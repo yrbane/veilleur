@@ -1,0 +1,140 @@
+# Veilleur - Docker Compose Production
+# Configuration optimisée pour la production
+
+services:
+  # ===========================================================================
+  # Application Node.js (Production)
+  # ===========================================================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: veilleur-app
+    restart: always
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: mysql://veilleur:${MARIADB_PASSWORD}@mariadb:3306/veilleur
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      PORT: 3000
+      SCRAPING_USER_AGENT: ${SCRAPING_USER_AGENT:-Veilleur/1.0}
+      SCRAPING_RATE_LIMIT_MS: ${SCRAPING_RATE_LIMIT_MS:-5000}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - veilleur-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================================================
+  # Base de données MariaDB (Production)
+  # ===========================================================================
+  mariadb:
+    image: mariadb:11
+    container_name: veilleur-mariadb
+    restart: always
+    volumes:
+      - mariadb-data:/var/lib/mysql
+      - ./docker/mariadb/init:/docker-entrypoint-initdb.d:ro
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: veilleur
+      MARIADB_USER: veilleur
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+      MARIADB_CHARACTER_SET: utf8mb4
+      MARIADB_COLLATE: utf8mb4_unicode_ci
+    networks:
+      - veilleur-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================================================
+  # Cache Redis (Production)
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: veilleur-redis
+    restart: always
+    volumes:
+      - redis-data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - veilleur-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# =============================================================================
+# Volumes persistants
+# =============================================================================
+volumes:
+  mariadb-data:
+    name: veilleur-mariadb-data
+  redis-data:
+    name: veilleur-redis-data
+
+# =============================================================================
+# Réseau
+# =============================================================================
+networks:
+  veilleur-network:
+    name: veilleur-network
+    driver: bridge

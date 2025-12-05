@@ -4,7 +4,71 @@
 **Repository** : https://github.com/yrbane/veilleur
 **Date** : 2025-12-05
 
-## Prérequis
+---
+
+## Option 1 : Démarrage avec Docker (Recommandé)
+
+La méthode la plus simple pour démarrer !
+
+### Prérequis Docker
+
+| Outil | Version | Vérification |
+|-------|---------|--------------|
+| Docker | 24+ | `docker --version` |
+| Docker Compose | 2.20+ | `docker compose version` |
+| Make (optionnel) | - | `make --version` |
+
+### Installation Docker
+
+```bash
+# 1. Cloner le projet
+git clone https://github.com/yrbane/veilleur.git
+cd veilleur
+
+# 2. Configurer l'environnement
+cp .env.example .env
+
+# 3. Démarrer l'environnement complet
+make dev
+# ou sans Make :
+docker compose up -d
+```
+
+C'est tout ! L'application est disponible sur `http://localhost:3000`
+
+### Commandes Docker utiles
+
+| Commande | Description |
+|----------|-------------|
+| `make dev` | Démarrer l'environnement |
+| `make down` | Arrêter les conteneurs |
+| `make logs` | Voir les logs |
+| `make shell` | Shell dans le conteneur app |
+| `make db-shell` | Shell MariaDB |
+| `make redis-shell` | Shell Redis |
+| `make migrate` | Appliquer les migrations |
+| `make test` | Lancer les tests |
+| `make debug` | Démarrer avec Adminer + Redis UI |
+| `make help` | Voir toutes les commandes |
+
+### Outils de debug
+
+```bash
+# Démarrer avec les interfaces d'admin
+make debug
+```
+
+- **Adminer** (BDD) : http://localhost:8080
+  - Serveur : `mariadb`
+  - User : `veilleur`
+  - Password : `veilleur_secret`
+- **Redis Commander** : http://localhost:8081
+
+---
+
+## Option 2 : Installation Manuelle
+
+### Prérequis
 
 | Outil | Version | Vérification |
 |-------|---------|--------------|
@@ -13,83 +77,45 @@
 | MariaDB | 11.x | `mariadb --version` |
 | Redis | 7.x | `redis-cli --version` |
 
-## Installation
-
-### 1. Cloner le projet
+### Installation
 
 ```bash
+# 1. Cloner le projet
 git clone https://github.com/yrbane/veilleur.git
 cd veilleur
-git checkout 001-agregateur-actualites
-```
 
-### 2. Installer les dépendances
-
-```bash
+# 2. Installer les dépendances
 npm install
-```
 
-### 3. Configurer l'environnement
-
-```bash
+# 3. Configurer l'environnement
 cp .env.example .env
+# Modifier .env avec vos paramètres locaux
 ```
 
-Modifier `.env` :
-
-```env
-# Base de données
-DATABASE_URL=mysql://utilisateur:motdepasse@localhost:3306/news
-
-# Redis
-REDIS_URL=redis://localhost:6379
-
-# JWT
-JWT_SECRET=votre-secret-tres-long-et-aleatoire
-JWT_REFRESH_SECRET=autre-secret-pour-refresh-tokens
-
-# Serveur
-PORT=3000
-NODE_ENV=development
-
-# Scraping
-SCRAPING_USER_AGENT=NewsAggregator/1.0 (+https://github.com/votre-repo)
-SCRAPING_RATE_LIMIT_MS=5000
-```
-
-### 4. Créer la base de données
+### Configurer MariaDB
 
 ```bash
 # Se connecter à MariaDB
 mariadb -u root -p
 
 # Créer la base et l'utilisateur
-CREATE DATABASE news CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'news'@'localhost' IDENTIFIED BY 'motdepasse';
-GRANT ALL PRIVILEGES ON news.* TO 'news'@'localhost';
+CREATE DATABASE veilleur CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'veilleur'@'localhost' IDENTIFIED BY 'motdepasse';
+GRANT ALL PRIVILEGES ON veilleur.* TO 'veilleur'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
 ```
 
-### 5. Appliquer les migrations
+### Démarrer Redis
+
+```bash
+redis-server
+```
+
+### Appliquer les migrations et démarrer
 
 ```bash
 npm run db:migrate
-```
-
-### 6. Démarrer Redis
-
-```bash
-# Linux/macOS
-redis-server
-
-# Ou avec Docker
-docker run -d -p 6379:6379 redis:7-alpine
-```
-
-### 7. Lancer le serveur de développement
-
-```bash
 npm run dev
 ```
 

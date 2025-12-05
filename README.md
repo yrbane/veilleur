@@ -30,21 +30,39 @@ Agrégateur d'actualités libre et open source. Ajoutez vos sources RSS et sites
 
 ## Démarrage Rapide
 
+### Avec Docker (Recommandé)
+
 ```bash
 # Cloner le projet
 git clone https://github.com/yrbane/veilleur.git
 cd veilleur
 
-# Installer les dépendances
-npm install
-
-# Configurer l'environnement
+# Configurer et démarrer
 cp .env.example .env
+make dev
+```
 
-# Appliquer les migrations
+L'application est disponible sur http://localhost:3000
+
+### Commandes utiles
+
+```bash
+make help      # Voir toutes les commandes
+make logs      # Voir les logs
+make test      # Lancer les tests
+make debug     # Démarrer avec Adminer + Redis UI
+make down      # Arrêter les conteneurs
+```
+
+### Sans Docker
+
+```bash
+git clone https://github.com/yrbane/veilleur.git
+cd veilleur
+npm install
+cp .env.example .env
+# Configurer MariaDB et Redis localement
 npm run db:migrate
-
-# Lancer le serveur de développement
 npm run dev
 ```
 

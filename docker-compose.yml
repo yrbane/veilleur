@@ -1,0 +1,151 @@
+# Veilleur - Docker Compose
+# Environnement de développement complet
+
+services:
+  # ===========================================================================
+  # Application Node.js
+  # ===========================================================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: veilleur-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      # Code source monté pour hot reload
+      - .:/app
+      # Éviter d'écraser node_modules du conteneur
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: mysql://veilleur:veilleur_secret@mariadb:3306/veilleur
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-refresh-secret-change-in-production}
+      PORT: 3000
+      SCRAPING_USER_AGENT: Veilleur/1.0 (+https://github.com/yrbane/veilleur)
+      SCRAPING_RATE_LIMIT_MS: 5000
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - veilleur-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ===========================================================================
+  # Base de données MariaDB
+  # ===========================================================================
+  mariadb:
+    image: mariadb:11
+    container_name: veilleur-mariadb
+    restart: unless-stopped
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      # Persistance des données
+      - mariadb-data:/var/lib/mysql
+      # Scripts d'initialisation
+      - ./docker/mariadb/init:/docker-entrypoint-initdb.d:ro
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-root_secret}
+      MARIADB_DATABASE: veilleur
+      MARIADB_USER: veilleur
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-veilleur_secret}
+      MARIADB_CHARACTER_SET: utf8mb4
+      MARIADB_COLLATE: utf8mb4_unicode_ci
+    networks:
+      - veilleur-network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ===========================================================================
+  # Cache Redis
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: veilleur-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      # Persistance des données Redis
+      - redis-data:/data
+      # Configuration personnalisée
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - veilleur-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ===========================================================================
+  # Interface Redis (optionnel - dev only)
+  # ===========================================================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: veilleur-redis-ui
+    restart: unless-stopped
+    ports:
+      - "${REDIS_UI_PORT:-8081}:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    depends_on:
+      - redis
+    networks:
+      - veilleur-network
+    profiles:
+      - debug
+
+  # ===========================================================================
+  # Interface BDD Adminer (optionnel - dev only)
+  # ===========================================================================
+  adminer:
+    image: adminer:latest
+    container_name: veilleur-adminer
+    restart: unless-stopped
+    ports:
+      - "${ADMINER_PORT:-8080}:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: mariadb
+      ADMINER_DESIGN: dracula
+    depends_on:
+      - mariadb
+    networks:
+      - veilleur-network
+    profiles:
+      - debug
+
+# =============================================================================
+# Volumes persistants
+# =============================================================================
+volumes:
+  mariadb-data:
+    name: veilleur-mariadb-data
+  redis-data:
+    name: veilleur-redis-data
+
+# =============================================================================
+# Réseau
+# =============================================================================
+networks:
+  veilleur-network:
+    name: veilleur-network
+    driver: bridge
