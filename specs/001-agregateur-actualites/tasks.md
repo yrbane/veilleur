@@ -27,15 +27,15 @@ Structure web app selon plan.md :
 
 **Objectif** : Initialisation du projet et structure de base
 
-- [ ] T001 Créer la structure de dossiers selon le plan d'implémentation
-- [ ] T002 Initialiser le projet Node.js avec package.json et dépendances (fastify, drizzle-orm, ioredis, cheerio, rss-parser, vitest, playwright)
-- [ ] T003 [P] Configurer TypeScript avec tsconfig.json
-- [ ] T004 [P] Configurer ESLint et Prettier pour le formatage en français
-- [ ] T005 [P] Configurer Vitest avec vitest.config.ts
-- [ ] T006 [P] Configurer Playwright avec playwright.config.ts
-- [ ] T007 [P] Configurer Vite pour le frontend avec vite.config.ts
-- [ ] T008 Créer le fichier .env.example avec toutes les variables d'environnement
-- [ ] T009 [P] Configurer Drizzle avec drizzle.config.ts pour MariaDB
+- [x] T001 Créer la structure de dossiers selon le plan d'implémentation
+- [x] T002 Initialiser le projet Node.js avec package.json et dépendances (fastify, drizzle-orm, ioredis, cheerio, rss-parser, vitest, playwright)
+- [x] T003 [P] Configurer TypeScript avec tsconfig.json
+- [x] T004 [P] Configurer ESLint et Prettier pour le formatage en français
+- [x] T005 [P] Configurer Vitest avec vitest.config.ts
+- [x] T006 [P] Configurer Playwright avec playwright.config.ts
+- [x] T007 [P] Configurer Vite pour le frontend avec vite.config.ts
+- [x] T008 Créer le fichier .env.example avec toutes les variables d'environnement
+- [x] T009 [P] Configurer Drizzle avec drizzle.config.ts pour MariaDB
 
 ---
 
