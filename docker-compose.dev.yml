@@ -1,0 +1,55 @@
+# =============================================================================
+# Veilleur - Docker Compose pour développement
+# =============================================================================
+# Surcharge docker-compose.yml pour le développement local
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Application en mode développement (hot reload)
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+    command: npm run dev
+
+  # ---------------------------------------------------------------------------
+  # Adminer - Interface web pour MariaDB
+  # ---------------------------------------------------------------------------
+  adminer:
+    image: adminer:latest
+    container_name: veilleur-adminer
+    restart: unless-stopped
+    ports:
+      - "${ADMINER_PORT:-8080}:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=mariadb
+      - ADMINER_DESIGN=hydra
+    depends_on:
+      - mariadb
+    networks:
+      - veilleur-network
+
+  # ---------------------------------------------------------------------------
+  # Redis Commander - Interface web pour Redis
+  # ---------------------------------------------------------------------------
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: veilleur-redis-commander
+    restart: unless-stopped
+    ports:
+      - "${REDIS_UI_PORT:-8081}:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    depends_on:
+      - redis
+    networks:
+      - veilleur-network

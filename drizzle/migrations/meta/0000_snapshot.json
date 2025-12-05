@@ -1,0 +1,799 @@
+{
+  "version": "5",
+  "dialect": "mysql",
+  "id": "3bc1217c-e581-4dbc-9409-f86e0f260d94",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "articles": {
+      "name": "articles",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "titre": {
+          "name": "titre",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lien": {
+          "name": "lien",
+          "type": "varchar(2048)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "date_publication": {
+          "name": "date_publication",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "resume": {
+          "name": "resume",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "url_image": {
+          "name": "url_image",
+          "type": "varchar(2048)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "auteur": {
+          "name": "auteur",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "meta_open_graph": {
+          "name": "meta_open_graph",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "('{}')"
+        },
+        "meta_twitter": {
+          "name": "meta_twitter",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "('{}')"
+        },
+        "hash_contenu": {
+          "name": "hash_contenu",
+          "type": "char(32)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "date_extraction": {
+          "name": "date_extraction",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {
+        "idx_article_source_date": {
+          "name": "idx_article_source_date",
+          "columns": [
+            "source_id",
+            "date_publication"
+          ],
+          "isUnique": false
+        },
+        "idx_article_hash": {
+          "name": "idx_article_hash",
+          "columns": [
+            "hash_contenu"
+          ],
+          "isUnique": false
+        },
+        "idx_article_date": {
+          "name": "idx_article_date",
+          "columns": [
+            "date_publication"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "articles_id": {
+          "name": "articles_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "articles_hash_contenu_unique": {
+          "name": "articles_hash_contenu_unique",
+          "columns": [
+            "hash_contenu"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "caches_sources": {
+      "name": "caches_sources",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "donnees_json": {
+          "name": "donnees_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "date_expiration": {
+          "name": "date_expiration",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "caches_sources_id": {
+          "name": "caches_sources_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "caches_sources_source_id_unique": {
+          "name": "caches_sources_source_id_unique",
+          "columns": [
+            "source_id"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "parametres_sources": {
+      "name": "parametres_sources",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "utilisateur_source_id": {
+          "name": "utilisateur_source_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "nombre_max_articles": {
+          "name": "nombre_max_articles",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 20
+        },
+        "frequence_minutes": {
+          "name": "frequence_minutes",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 30
+        },
+        "retention_jours": {
+          "name": "retention_jours",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 30
+        },
+        "priorite": {
+          "name": "priorite",
+          "type": "enum('haute','normale','basse')",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'normale'"
+        },
+        "mode_extraction": {
+          "name": "mode_extraction",
+          "type": "enum('rss','scraping','auto')",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'auto'"
+        },
+        "filtres_mots_cles": {
+          "name": "filtres_mots_cles",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "('{}')"
+        },
+        "notifications": {
+          "name": "notifications",
+          "type": "enum('aucune','nouveaux','tous')",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'nouveaux'"
+        },
+        "plage_horaire": {
+          "name": "plage_horaire",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "parametres_sources_id": {
+          "name": "parametres_sources_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "parametres_sources_utilisateur_source_id_unique": {
+          "name": "parametres_sources_utilisateur_source_id_unique",
+          "columns": [
+            "utilisateur_source_id"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "refresh_tokens": {
+      "name": "refresh_tokens",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "utilisateur_id": {
+          "name": "utilisateur_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "token": {
+          "name": "token",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "date_expiration": {
+          "name": "date_expiration",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "est_revoque": {
+          "name": "est_revoque",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        }
+      },
+      "indexes": {
+        "idx_refresh_token": {
+          "name": "idx_refresh_token",
+          "columns": [
+            "token"
+          ],
+          "isUnique": false
+        },
+        "idx_refresh_utilisateur": {
+          "name": "idx_refresh_utilisateur",
+          "columns": [
+            "utilisateur_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "refresh_tokens_id": {
+          "name": "refresh_tokens_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "refresh_tokens_token_unique": {
+          "name": "refresh_tokens_token_unique",
+          "columns": [
+            "token"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "sources": {
+      "name": "sources",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "url": {
+          "name": "url",
+          "type": "varchar(2048)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "type_source": {
+          "name": "type_source",
+          "type": "enum('rss','atom','html')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "statut": {
+          "name": "statut",
+          "type": "enum('active','inactive','erreur')",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'active'"
+        },
+        "url_favicon": {
+          "name": "url_favicon",
+          "type": "varchar(2048)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "date_derniere_synchro": {
+          "name": "date_derniere_synchro",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "hash_url_normalise": {
+          "name": "hash_url_normalise",
+          "type": "char(32)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "nombre_echecs": {
+          "name": "nombre_echecs",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 0
+        }
+      },
+      "indexes": {
+        "idx_source_hash": {
+          "name": "idx_source_hash",
+          "columns": [
+            "hash_url_normalise"
+          ],
+          "isUnique": false
+        },
+        "idx_source_statut": {
+          "name": "idx_source_statut",
+          "columns": [
+            "statut"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "sources_id": {
+          "name": "sources_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "sources_hash_url_normalise_unique": {
+          "name": "sources_hash_url_normalise_unique",
+          "columns": [
+            "hash_url_normalise"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "tags": {
+      "name": "tags",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {
+        "idx_tag_slug": {
+          "name": "idx_tag_slug",
+          "columns": [
+            "slug"
+          ],
+          "isUnique": false
+        },
+        "idx_tag_nom": {
+          "name": "idx_tag_nom",
+          "columns": [
+            "nom"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "tags_id": {
+          "name": "tags_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "tags_slug_unique": {
+          "name": "tags_slug_unique",
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "utilisateurs": {
+      "name": "utilisateurs",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "mot_de_passe_hash": {
+          "name": "mot_de_passe_hash",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "date_derniere_connexion": {
+          "name": "date_derniere_connexion",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "preferences": {
+          "name": "preferences",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "('{}')"
+        },
+        "est_actif": {
+          "name": "est_actif",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": true
+        }
+      },
+      "indexes": {
+        "idx_utilisateur_email": {
+          "name": "idx_utilisateur_email",
+          "columns": [
+            "email"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "utilisateurs_id": {
+          "name": "utilisateurs_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "utilisateurs_email_unique": {
+          "name": "utilisateurs_email_unique",
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "utilisateurs_sources": {
+      "name": "utilisateurs_sources",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "utilisateur_id": {
+          "name": "utilisateur_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "date_ajout": {
+          "name": "date_ajout",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "note": {
+          "name": "note",
+          "type": "tinyint",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "est_en_pause": {
+          "name": "est_en_pause",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        }
+      },
+      "indexes": {
+        "idx_utilisateur_source_unique": {
+          "name": "idx_utilisateur_source_unique",
+          "columns": [
+            "utilisateur_id",
+            "source_id"
+          ],
+          "isUnique": true
+        },
+        "idx_utilisateur_source_utilisateur": {
+          "name": "idx_utilisateur_source_utilisateur",
+          "columns": [
+            "utilisateur_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "utilisateurs_sources_id": {
+          "name": "utilisateurs_sources_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "utilisateurs_sources_tags": {
+      "name": "utilisateurs_sources_tags",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "utilisateur_source_id": {
+          "name": "utilisateur_source_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tag_id": {
+          "name": "tag_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {
+        "idx_ust_unique": {
+          "name": "idx_ust_unique",
+          "columns": [
+            "utilisateur_source_id",
+            "tag_id"
+          ],
+          "isUnique": true
+        },
+        "idx_ust_tag": {
+          "name": "idx_ust_tag",
+          "columns": [
+            "tag_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "utilisateurs_sources_tags_id": {
+          "name": "utilisateurs_sources_tags_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    }
+  },
+  "views": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "tables": {},
+    "indexes": {}
+  }
+}
