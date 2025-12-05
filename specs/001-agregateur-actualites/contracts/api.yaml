@@ -1,0 +1,1092 @@
+openapi: 3.1.0
+info:
+  title: API Agrégateur d'Actualités
+  description: API REST pour l'agrégateur d'actualités libre
+  version: 1.0.0
+  contact:
+    name: Équipe News
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Serveur de développement
+  - url: https://api.news.example.com/v1
+    description: Serveur de production
+
+tags:
+  - name: Authentification
+    description: Gestion des comptes et sessions
+  - name: Sources
+    description: Gestion des sources d'actualités
+  - name: Articles
+    description: Consultation des articles
+  - name: Tags
+    description: Gestion des tags
+  - name: Communauté
+    description: Découverte et partage
+
+paths:
+  # ==================== AUTHENTIFICATION ====================
+
+  /auth/inscription:
+    post:
+      tags: [Authentification]
+      summary: Créer un nouveau compte
+      operationId: creerCompte
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InscriptionRequete'
+      responses:
+        '201':
+          description: Compte créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthReponse'
+        '400':
+          $ref: '#/components/responses/ErreurValidation'
+        '409':
+          description: Email déjà utilisé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+
+  /auth/connexion:
+    post:
+      tags: [Authentification]
+      summary: Se connecter
+      operationId: seConnecter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnexionRequete'
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthReponse'
+        '401':
+          description: Identifiants invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+
+  /auth/rafraichir:
+    post:
+      tags: [Authentification]
+      summary: Rafraîchir le token d'accès
+      operationId: rafraichirToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Nouveau token généré
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthReponse'
+        '401':
+          description: Token invalide ou expiré
+
+  /auth/deconnexion:
+    post:
+      tags: [Authentification]
+      summary: Se déconnecter
+      operationId: seDeconnecter
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Déconnexion réussie
+
+  /auth/profil:
+    get:
+      tags: [Authentification]
+      summary: Obtenir le profil utilisateur
+      operationId: obtenirProfil
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profil utilisateur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilisateur'
+    patch:
+      tags: [Authentification]
+      summary: Mettre à jour le profil
+      operationId: mettreAJourProfil
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MiseAJourProfil'
+      responses:
+        '200':
+          description: Profil mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilisateur'
+
+  # ==================== SOURCES ====================
+
+  /sources:
+    get:
+      tags: [Sources]
+      summary: Lister mes sources
+      operationId: listerSources
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limite'
+        - name: statut
+          in: query
+          schema:
+            type: string
+            enum: [active, pause, toutes]
+            default: toutes
+        - name: tag
+          in: query
+          schema:
+            type: string
+          description: Filtrer par slug de tag
+      responses:
+        '200':
+          description: Liste des sources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListeSources'
+
+    post:
+      tags: [Sources]
+      summary: Ajouter une source
+      operationId: ajouterSource
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AjoutSourceRequete'
+      responses:
+        '201':
+          description: Source ajoutée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceUtilisateur'
+        '400':
+          $ref: '#/components/responses/ErreurValidation'
+        '409':
+          description: Source déjà ajoutée
+
+  /sources/{sourceId}:
+    parameters:
+      - $ref: '#/components/parameters/SourceId'
+
+    get:
+      tags: [Sources]
+      summary: Obtenir une source
+      operationId: obtenirSource
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Détails de la source
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceUtilisateur'
+        '404':
+          $ref: '#/components/responses/NonTrouve'
+
+    delete:
+      tags: [Sources]
+      summary: Supprimer une source
+      operationId: supprimerSource
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Source supprimée
+        '404':
+          $ref: '#/components/responses/NonTrouve'
+
+  /sources/{sourceId}/note:
+    parameters:
+      - $ref: '#/components/parameters/SourceId'
+
+    put:
+      tags: [Sources]
+      summary: Noter une source
+      operationId: noterSource
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [note]
+              properties:
+                note:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+      responses:
+        '200':
+          description: Note enregistrée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceUtilisateur'
+
+    delete:
+      tags: [Sources]
+      summary: Supprimer la note
+      operationId: supprimerNote
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Note supprimée
+
+  /sources/{sourceId}/pause:
+    parameters:
+      - $ref: '#/components/parameters/SourceId'
+
+    post:
+      tags: [Sources]
+      summary: Mettre en pause une source
+      operationId: pauserSource
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Source mise en pause
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceUtilisateur'
+
+    delete:
+      tags: [Sources]
+      summary: Réactiver une source
+      operationId: reactiverSource
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Source réactivée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceUtilisateur'
+
+  /sources/{sourceId}/parametres:
+    parameters:
+      - $ref: '#/components/parameters/SourceId'
+
+    get:
+      tags: [Sources]
+      summary: Obtenir les paramètres d'une source
+      operationId: obtenirParametresSource
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Paramètres de la source
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParametresSource'
+
+    patch:
+      tags: [Sources]
+      summary: Modifier les paramètres d'une source
+      operationId: modifierParametresSource
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParametresSourceMiseAJour'
+      responses:
+        '200':
+          description: Paramètres mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParametresSource'
+
+    delete:
+      tags: [Sources]
+      summary: Réinitialiser les paramètres
+      operationId: reinitialiserParametresSource
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Paramètres réinitialisés
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParametresSource'
+
+  /sources/{sourceId}/tags:
+    parameters:
+      - $ref: '#/components/parameters/SourceId'
+
+    get:
+      tags: [Sources, Tags]
+      summary: Lister les tags d'une source
+      operationId: listerTagsSource
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Tags de la source
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
+
+    post:
+      tags: [Sources, Tags]
+      summary: Ajouter un tag à une source
+      operationId: ajouterTagSource
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tagId]
+              properties:
+                tagId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Tag ajouté
+        '409':
+          description: Tag déjà associé
+
+  /sources/{sourceId}/tags/{tagId}:
+    parameters:
+      - $ref: '#/components/parameters/SourceId'
+      - $ref: '#/components/parameters/TagId'
+
+    delete:
+      tags: [Sources, Tags]
+      summary: Retirer un tag d'une source
+      operationId: retirerTagSource
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Tag retiré
+
+  # ==================== ARTICLES ====================
+
+  /articles:
+    get:
+      tags: [Articles]
+      summary: Obtenir le fil d'actualités
+      operationId: obtenirFil
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limite'
+        - name: sourceId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filtrer par source
+        - name: tag
+          in: query
+          schema:
+            type: string
+          description: Filtrer par tag
+        - name: depuis
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Articles depuis cette date
+      responses:
+        '200':
+          description: Fil d'actualités
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListeArticles'
+
+  /articles/{articleId}:
+    parameters:
+      - name: articleId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      tags: [Articles]
+      summary: Obtenir un article
+      operationId: obtenirArticle
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Détails de l'article
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+        '404':
+          $ref: '#/components/responses/NonTrouve'
+
+  # ==================== TAGS ====================
+
+  /tags:
+    get:
+      tags: [Tags]
+      summary: Lister mes tags
+      operationId: listerTags
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Liste des tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TagAvecStats'
+
+    post:
+      tags: [Tags]
+      summary: Créer un tag
+      operationId: creerTag
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nom]
+              properties:
+                nom:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+      responses:
+        '201':
+          description: Tag créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '409':
+          description: Tag déjà existant
+
+  /tags/{tagId}:
+    parameters:
+      - $ref: '#/components/parameters/TagId'
+
+    patch:
+      tags: [Tags]
+      summary: Renommer un tag
+      operationId: renommerTag
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nom]
+              properties:
+                nom:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+      responses:
+        '200':
+          description: Tag renommé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+
+    delete:
+      tags: [Tags]
+      summary: Supprimer un tag
+      operationId: supprimerTag
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Tag supprimé
+
+  # ==================== COMMUNAUTÉ ====================
+
+  /communaute/sources:
+    get:
+      tags: [Communauté]
+      summary: Découvrir des sources populaires
+      operationId: decouvrirSources
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limite'
+        - name: tag
+          in: query
+          schema:
+            type: string
+          description: Filtrer par tag
+        - name: tri
+          in: query
+          schema:
+            type: string
+            enum: [popularite, note, recent]
+            default: popularite
+      responses:
+        '200':
+          description: Sources populaires
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListeSourcesCommunaute'
+
+  /communaute/tags:
+    get:
+      tags: [Communauté]
+      summary: Tags populaires
+      operationId: tagsPopulaires
+      parameters:
+        - name: limite
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Tags populaires
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TagPopulaire'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    Limite:
+      name: limite
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    SourceId:
+      name: sourceId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    TagId:
+      name: tagId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    ErreurValidation:
+      description: Erreur de validation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErreurValidation'
+
+    NonTrouve:
+      description: Ressource non trouvée
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erreur'
+
+  schemas:
+    # ===== Auth =====
+
+    InscriptionRequete:
+      type: object
+      required: [email, motDePasse]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        motDePasse:
+          type: string
+          minLength: 8
+          maxLength: 128
+
+    ConnexionRequete:
+      type: object
+      required: [email, motDePasse]
+      properties:
+        email:
+          type: string
+          format: email
+        motDePasse:
+          type: string
+
+    AuthReponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+          description: Durée de validité en secondes
+        utilisateur:
+          $ref: '#/components/schemas/Utilisateur'
+
+    Utilisateur:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        dateCreation:
+          type: string
+          format: date-time
+        preferences:
+          $ref: '#/components/schemas/Preferences'
+
+    Preferences:
+      type: object
+      properties:
+        langue:
+          type: string
+          default: fr
+        theme:
+          type: string
+          enum: [clair, sombre, auto]
+          default: auto
+        frequenceRafraichissement:
+          type: integer
+          description: Fréquence par défaut en minutes
+          default: 30
+
+    MiseAJourProfil:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        motDePasseActuel:
+          type: string
+        nouveauMotDePasse:
+          type: string
+          minLength: 8
+        preferences:
+          $ref: '#/components/schemas/Preferences'
+
+    # ===== Sources =====
+
+    AjoutSourceRequete:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          format: uri
+          maxLength: 2048
+        nom:
+          type: string
+          maxLength: 255
+          description: Nom personnalisé (optionnel, auto-détecté sinon)
+
+    Source:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        nom:
+          type: string
+        typeSource:
+          type: string
+          enum: [rss, atom, html]
+        statut:
+          type: string
+          enum: [active, inactive, erreur]
+        urlFavicon:
+          type: string
+          format: uri
+        dateCreation:
+          type: string
+          format: date-time
+        dateDerniereSynchro:
+          type: string
+          format: date-time
+
+    SourceUtilisateur:
+      allOf:
+        - $ref: '#/components/schemas/Source'
+        - type: object
+          properties:
+            dateAjout:
+              type: string
+              format: date-time
+            note:
+              type: integer
+              minimum: 1
+              maximum: 5
+              nullable: true
+            estEnPause:
+              type: boolean
+            tags:
+              type: array
+              items:
+                $ref: '#/components/schemas/Tag'
+            parametres:
+              $ref: '#/components/schemas/ParametresSource'
+
+    ListeSources:
+      type: object
+      properties:
+        donnees:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceUtilisateur'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ParametresSource:
+      type: object
+      properties:
+        nombreMaxArticles:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        frequenceMinutes:
+          type: integer
+          minimum: 5
+          maximum: 1440
+          default: 30
+        retentionJours:
+          type: integer
+          minimum: 1
+          maximum: 365
+          default: 30
+        priorite:
+          type: string
+          enum: [haute, normale, basse]
+          default: normale
+        modeExtraction:
+          type: string
+          enum: [rss, scraping, auto]
+          default: auto
+        filtresMotsCles:
+          type: object
+          properties:
+            inclure:
+              type: array
+              items:
+                type: string
+            exclure:
+              type: array
+              items:
+                type: string
+        notifications:
+          type: string
+          enum: [aucune, nouveaux, tous]
+          default: nouveaux
+        plageHoraire:
+          type: object
+          nullable: true
+          properties:
+            debut:
+              type: string
+              pattern: '^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+            fin:
+              type: string
+              pattern: '^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+            joursActifs:
+              type: array
+              items:
+                type: integer
+                minimum: 0
+                maximum: 6
+
+    ParametresSourceMiseAJour:
+      type: object
+      properties:
+        nombreMaxArticles:
+          type: integer
+          minimum: 1
+          maximum: 100
+        frequenceMinutes:
+          type: integer
+          minimum: 5
+          maximum: 1440
+        retentionJours:
+          type: integer
+          minimum: 1
+          maximum: 365
+        priorite:
+          type: string
+          enum: [haute, normale, basse]
+        modeExtraction:
+          type: string
+          enum: [rss, scraping, auto]
+        filtresMotsCles:
+          type: object
+          properties:
+            inclure:
+              type: array
+              items:
+                type: string
+            exclure:
+              type: array
+              items:
+                type: string
+        notifications:
+          type: string
+          enum: [aucune, nouveaux, tous]
+        plageHoraire:
+          type: object
+          nullable: true
+          properties:
+            debut:
+              type: string
+            fin:
+              type: string
+            joursActifs:
+              type: array
+              items:
+                type: integer
+
+    # ===== Articles =====
+
+    Article:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        sourceId:
+          type: string
+          format: uuid
+        titre:
+          type: string
+        lien:
+          type: string
+          format: uri
+        datePublication:
+          type: string
+          format: date-time
+        resume:
+          type: string
+          maxLength: 500
+        urlImage:
+          type: string
+          format: uri
+          nullable: true
+        auteur:
+          type: string
+          nullable: true
+        source:
+          type: object
+          properties:
+            nom:
+              type: string
+            urlFavicon:
+              type: string
+              format: uri
+
+    ListeArticles:
+      type: object
+      properties:
+        donnees:
+          type: array
+          items:
+            $ref: '#/components/schemas/Article'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # ===== Tags =====
+
+    Tag:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nom:
+          type: string
+        slug:
+          type: string
+        dateCreation:
+          type: string
+          format: date-time
+
+    TagAvecStats:
+      allOf:
+        - $ref: '#/components/schemas/Tag'
+        - type: object
+          properties:
+            nombreSources:
+              type: integer
+
+    TagPopulaire:
+      allOf:
+        - $ref: '#/components/schemas/Tag'
+        - type: object
+          properties:
+            nombreUtilisations:
+              type: integer
+
+    # ===== Communauté =====
+
+    SourceCommunaute:
+      allOf:
+        - $ref: '#/components/schemas/Source'
+        - type: object
+          properties:
+            nombreAbonnes:
+              type: integer
+            noteMoyenne:
+              type: number
+              format: float
+            tags:
+              type: array
+              items:
+                type: string
+            estAbonne:
+              type: boolean
+
+    ListeSourcesCommunaute:
+      type: object
+      properties:
+        donnees:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceCommunaute'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # ===== Commun =====
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limite:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    Erreur:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+
+    ErreurValidation:
+      type: object
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+        erreurs:
+          type: array
+          items:
+            type: object
+            properties:
+              champ:
+                type: string
+              message:
+                type: string
