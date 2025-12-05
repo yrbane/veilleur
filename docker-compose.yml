@@ -80,7 +80,7 @@ services:
     container_name: veilleur-redis
     restart: unless-stopped
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${REDIS_PORT:-6380}:6379"
     volumes:
       # Persistance des données Redis
       - redis-data:/data
