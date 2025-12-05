@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1764937130202,
+      "tag": "0000_messy_nextwave",
+      "breakpoints": true
+    }
+  ]
+}

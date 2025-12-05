@@ -21,10 +21,18 @@ services:
       - /app/node_modules
     environment:
       NODE_ENV: development
-      DATABASE_URL: mysql://veilleur:veilleur_secret@mariadb:3306/veilleur
-      REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-refresh-secret-change-in-production}
+      # Base de données
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_USER: veilleur
+      DB_PASSWORD: veilleur_secret
+      DB_NAME: veilleur
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production-32chars}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-refresh-secret-change-in-production32}
       PORT: 3000
       SCRAPING_USER_AGENT: Veilleur/1.0 (+https://github.com/yrbane/veilleur)
       SCRAPING_RATE_LIMIT_MS: 5000
@@ -84,9 +92,7 @@ services:
     volumes:
       # Persistance des données Redis
       - redis-data:/data
-      # Configuration personnalisée
-      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
-    command: redis-server /usr/local/etc/redis/redis.conf
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy volatile-ttl
     networks:
       - veilleur-network
     healthcheck:
