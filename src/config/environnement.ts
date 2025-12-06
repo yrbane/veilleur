@@ -14,6 +14,9 @@ const schemaEnvironnement = z.object({
   PORT: z.coerce.number().default(3000),
   HOST: z.string().default('0.0.0.0'),
 
+  // CORS - Liste des origines autorisées (séparées par des virgules)
+  CORS_ALLOWED_ORIGINS: z.string().default('http://localhost:5173,http://localhost:3000'),
+
   // Base de données MariaDB
   DATABASE_URL: z.string().url().optional(),
   DB_HOST: z.string().default('localhost'),
@@ -110,4 +113,11 @@ export function estProduction(): boolean {
  */
 export function estTest(): boolean {
   return env.NODE_ENV === 'test';
+}
+
+/**
+ * Retourne la liste des origines CORS autorisées
+ */
+export function obtenirOriginesCORS(): string[] {
+  return env.CORS_ALLOWED_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean);
 }

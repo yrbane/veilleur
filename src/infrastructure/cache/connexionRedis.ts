@@ -8,6 +8,7 @@ import { obtenirUrlRedis } from '@/config/environnement';
 import { loggerCache } from '../logging/logger';
 
 let redisClient: Redis | null = null;
+let redisBullMQClient: Redis | null = null;
 
 /**
  * Crée la connexion à Redis
@@ -71,15 +72,45 @@ export function obtenirRedis(): Redis {
 }
 
 /**
+ * Crée ou récupère une connexion Redis compatible BullMQ
+ * BullMQ exige maxRetriesPerRequest = null
+ */
+export function obtenirRedisBullMQ(): Redis {
+  if (!redisBullMQClient) {
+    redisBullMQClient = new Redis(obtenirUrlRedis(), {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+    });
+
+    redisBullMQClient.on('error', (err: Error) => {
+      loggerCache.error({ erreur: err.message }, 'Erreur Redis BullMQ');
+    });
+  }
+  return redisBullMQClient;
+}
+
+/**
  * Ferme la connexion Redis
  */
 export async function fermerConnexionRedis(): Promise<void> {
+  const promises: Promise<void>[] = [];
+
   if (redisClient) {
     loggerCache.info('Fermeture de la connexion Redis...');
-    await redisClient.quit();
-    redisClient = null;
-    loggerCache.info('Connexion Redis fermée');
+    promises.push(redisClient.quit().then(() => {
+      redisClient = null;
+    }));
   }
+
+  if (redisBullMQClient) {
+    loggerCache.info('Fermeture de la connexion Redis BullMQ...');
+    promises.push(redisBullMQClient.quit().then(() => {
+      redisBullMQClient = null;
+    }));
+  }
+
+  await Promise.all(promises);
+  loggerCache.info('Connexion Redis fermée');
 }
 
 /**

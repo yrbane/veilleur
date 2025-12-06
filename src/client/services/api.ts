@@ -260,7 +260,10 @@ export const auth = {
 
   async deconnexion(): Promise<void> {
     try {
-      await requete('/auth/deconnexion', { method: 'POST' });
+      await requete('/auth/deconnexion', {
+        method: 'POST',
+        body: JSON.stringify({ refreshToken }),
+      });
     } finally {
       clearTokens();
     }
