@@ -48,6 +48,9 @@ const schemaEnvironnement = z.object({
 
   // Logging
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+
+  // Limites de taille des requêtes (en octets)
+  BODY_LIMIT: z.coerce.number().default(1048576), // 1 Mo par défaut
 });
 
 export type Environnement = z.infer<typeof schemaEnvironnement>;
