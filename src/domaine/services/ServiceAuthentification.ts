@@ -14,6 +14,64 @@ import { env } from '@/config/environnement';
 const scryptAsync = promisify(scrypt);
 
 /**
+ * Paramètres de scrypt pour le hachage sécurisé
+ * N=16384 (2^14), r=8, p=1 - recommandé par OWASP
+ * keylen=64 octets pour une sécurité post-quantique
+ */
+const SCRYPT_PARAMS = {
+  N: 16384,        // Coût CPU (mémoire = 128 * N * r octets)
+  r: 8,            // Taille de bloc
+  p: 1,            // Parallélisme
+  keylen: 64,      // Longueur de la clé dérivée
+  saltlen: 32,     // Longueur du sel (256 bits)
+};
+
+/**
+ * Règles de validation du mot de passe
+ */
+const REGLES_MOT_DE_PASSE = {
+  longueurMin: 8,
+  longueurMax: 128,
+  requiertMajuscule: true,
+  requiertMinuscule: true,
+  requiertChiffre: true,
+  requiertSpecial: true,
+};
+
+/**
+ * Valide la force d'un mot de passe
+ */
+export function validerForceMotDePasse(motDePasse: string): { valide: boolean; erreurs: string[] } {
+  const erreurs: string[] = [];
+
+  if (motDePasse.length < REGLES_MOT_DE_PASSE.longueurMin) {
+    erreurs.push(`Le mot de passe doit contenir au moins ${REGLES_MOT_DE_PASSE.longueurMin} caractères`);
+  }
+
+  if (motDePasse.length > REGLES_MOT_DE_PASSE.longueurMax) {
+    erreurs.push(`Le mot de passe ne doit pas dépasser ${REGLES_MOT_DE_PASSE.longueurMax} caractères`);
+  }
+
+  if (REGLES_MOT_DE_PASSE.requiertMajuscule && !/[A-Z]/.test(motDePasse)) {
+    erreurs.push('Le mot de passe doit contenir au moins une majuscule');
+  }
+
+  if (REGLES_MOT_DE_PASSE.requiertMinuscule && !/[a-z]/.test(motDePasse)) {
+    erreurs.push('Le mot de passe doit contenir au moins une minuscule');
+  }
+
+  if (REGLES_MOT_DE_PASSE.requiertChiffre && !/[0-9]/.test(motDePasse)) {
+    erreurs.push('Le mot de passe doit contenir au moins un chiffre');
+  }
+
+  if (REGLES_MOT_DE_PASSE.requiertSpecial && !/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/`~';]/.test(motDePasse)) {
+    erreurs.push('Le mot de passe doit contenir au moins un caractère spécial');
+  }
+
+  return { valide: erreurs.length === 0, erreurs };
+}
+
+/**
  * Payload du token JWT d'accès
  */
 export interface PayloadAccessToken {
@@ -56,7 +114,8 @@ export class ErreurAuthentification extends Error {
       | 'TOKEN_REVOQUE'
       | 'TOTP_REQUIS'
       | 'TOTP_INVALIDE'
-      | 'TOTP_DEJA_ACTIF',
+      | 'TOTP_DEJA_ACTIF'
+      | 'MOT_DE_PASSE_FAIBLE',
   ) {
     super(message);
     this.name = 'ErreurAuthentification';
@@ -86,12 +145,21 @@ export class ServiceAuthentification {
    * Inscrit un nouvel utilisateur
    */
   async inscrire(email: string, motDePasse: string): Promise<ResultatAuthentification> {
+    // Valider la force du mot de passe
+    const validation = validerForceMotDePasse(motDePasse);
+    if (!validation.valide) {
+      throw new ErreurAuthentification(
+        validation.erreurs.join('. '),
+        'MOT_DE_PASSE_FAIBLE',
+      );
+    }
+
     // Vérifier si l'email existe déjà
     if (await this.depotUtilisateurs.emailExiste(email)) {
       throw new ErreurAuthentification('Cet email est déjà utilisé', 'EMAIL_EXISTANT');
     }
 
-    // Hasher le mot de passe
+    // Hasher le mot de passe avec paramètres sécurisés
     const motDePasseHash = await this.hasherMotDePasse(motDePasse);
 
     // Créer l'utilisateur
@@ -242,6 +310,15 @@ export class ServiceAuthentification {
     ancienMotDePasse: string,
     nouveauMotDePasse: string,
   ): Promise<void> {
+    // Valider la force du nouveau mot de passe
+    const validation = validerForceMotDePasse(nouveauMotDePasse);
+    if (!validation.valide) {
+      throw new ErreurAuthentification(
+        validation.erreurs.join('. '),
+        'MOT_DE_PASSE_FAIBLE',
+      );
+    }
+
     const utilisateur = await this.depotUtilisateurs.trouverParId(utilisateurId);
 
     if (!utilisateur) {
@@ -258,7 +335,7 @@ export class ServiceAuthentification {
       throw new ErreurAuthentification('Mot de passe actuel incorrect', 'IDENTIFIANTS_INVALIDES');
     }
 
-    // Hasher et sauvegarder le nouveau mot de passe
+    // Hasher et sauvegarder le nouveau mot de passe avec les paramètres sécurisés
     const nouveauHash = await this.hasherMotDePasse(nouveauMotDePasse);
     await this.depotUtilisateurs.mettreAJour(utilisateurId, { motDePasseHash: nouveauHash });
 
@@ -310,29 +387,69 @@ export class ServiceAuthentification {
   }
 
   /**
-   * Hash un mot de passe avec scrypt
+   * Hash un mot de passe avec scrypt (paramètres OWASP)
+   * Format: version:N:r:p:sel:hash
    */
   private async hasherMotDePasse(motDePasse: string): Promise<string> {
-    const sel = randomBytes(16).toString('hex');
-    const hash = (await scryptAsync(motDePasse, sel, 64)) as Buffer;
-    return `${sel}:${hash.toString('hex')}`;
+    const sel = randomBytes(SCRYPT_PARAMS.saltlen).toString('hex');
+    const hash = (await scryptAsync(motDePasse, sel, SCRYPT_PARAMS.keylen, {
+      N: SCRYPT_PARAMS.N,
+      r: SCRYPT_PARAMS.r,
+      p: SCRYPT_PARAMS.p,
+    })) as Buffer;
+    // Format versionné pour permettre les upgrades futurs
+    return `v2:${SCRYPT_PARAMS.N}:${SCRYPT_PARAMS.r}:${SCRYPT_PARAMS.p}:${sel}:${hash.toString('hex')}`;
   }
 
   /**
    * Vérifie un mot de passe contre son hash
+   * Supporte l'ancien format (sel:hash) et le nouveau (v2:N:r:p:sel:hash)
    */
   private async verifierMotDePasse(motDePasse: string, hash: string): Promise<boolean> {
     const parts = hash.split(':');
-    if (parts.length !== 2) {
-      return false;
+
+    // Nouveau format v2: version:N:r:p:sel:hash
+    if (parts[0] === 'v2' && parts.length === 6) {
+      const [, nStr, rStr, pStr, sel, hashStocke] = parts;
+      const N = parseInt(nStr!, 10);
+      const r = parseInt(rStr!, 10);
+      const p = parseInt(pStr!, 10);
+
+      if (!sel || !hashStocke || isNaN(N) || isNaN(r) || isNaN(p)) {
+        return false;
+      }
+
+      const hashCalcule = (await scryptAsync(motDePasse, sel, SCRYPT_PARAMS.keylen, {
+        N,
+        r,
+        p,
+      })) as Buffer;
+      const hashStockeBuffer = Buffer.from(hashStocke, 'hex');
+
+      if (hashCalcule.length !== hashStockeBuffer.length) {
+        return false;
+      }
+
+      return timingSafeEqual(hashCalcule, hashStockeBuffer);
     }
-    const [sel, hashStocke] = parts;
-    if (!sel || !hashStocke) {
-      return false;
+
+    // Ancien format: sel:hash (rétrocompatibilité)
+    if (parts.length === 2) {
+      const [sel, hashStocke] = parts;
+      if (!sel || !hashStocke) {
+        return false;
+      }
+      const hashCalcule = (await scryptAsync(motDePasse, sel, 64)) as Buffer;
+      const hashStockeBuffer = Buffer.from(hashStocke, 'hex');
+
+      if (hashCalcule.length !== hashStockeBuffer.length) {
+        return false;
+      }
+
+      return timingSafeEqual(hashCalcule, hashStockeBuffer);
     }
-    const hashCalcule = (await scryptAsync(motDePasse, sel, 64)) as Buffer;
-    const hashStockeBuffer = Buffer.from(hashStocke, 'hex');
-    return timingSafeEqual(hashCalcule, hashStockeBuffer);
+
+    return false;
   }
 
   /**
