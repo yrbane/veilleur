@@ -9,6 +9,7 @@ import type { TypeSource } from '@/domaine/entites/Source';
 import type { ArticleBrut, MetaOpenGraph, MetaTwitter } from '@/domaine/entites/Article';
 import { env } from '@/config/environnement';
 import { loggerScraping } from '../logging/logger';
+import { validerUrlScraping } from './validationUrl';
 
 /**
  * Résultat de l'extraction d'une source
@@ -112,28 +113,35 @@ export class ServiceScraping {
    * Extrait les articles d'une URL
    */
   async extraireArticles(url: string, type?: TypeSource): Promise<ResultatExtraction> {
-    loggerScraping.info({ url, type }, 'Début extraction');
+    // Validation SSRF - Bloquer les URLs internes
+    const validationUrl = validerUrlScraping(url);
+    if (!validationUrl.valide) {
+      throw new Error(`URL invalide: ${validationUrl.erreur}`);
+    }
+
+    const urlSecurisee = validationUrl.urlNormalisee!;
+    loggerScraping.info({ url: urlSecurisee, type }, 'Début extraction');
 
     try {
       // Essayer RSS/Atom d'abord
       if (!type || type === 'rss' || type === 'atom') {
         try {
-          return await this.extraireRss(url);
+          return await this.extraireRss(urlSecurisee);
         } catch (erreurRss) {
-          loggerScraping.debug({ url, erreur: erreurRss }, 'RSS/Atom échoué, essai HTML');
+          loggerScraping.debug({ url: urlSecurisee, erreur: erreurRss }, 'RSS/Atom échoué, essai HTML');
 
           // Fallback vers HTML si RSS échoue
           if (type !== 'rss' && type !== 'atom') {
-            return await this.extraireHtml(url);
+            return await this.extraireHtml(urlSecurisee);
           }
           throw erreurRss;
         }
       }
 
       // Extraction HTML directe
-      return await this.extraireHtml(url);
+      return await this.extraireHtml(urlSecurisee);
     } catch (erreur) {
-      loggerScraping.error({ url, erreur }, 'Échec extraction');
+      loggerScraping.error({ url: urlSecurisee, erreur }, 'Échec extraction');
       throw erreur;
     }
   }
@@ -410,8 +418,17 @@ export class ServiceScraping {
     openGraph: MetaOpenGraph;
     twitter: MetaTwitter;
   }> {
+    // Validation SSRF
+    const validationUrl = validerUrlScraping(url);
+    if (!validationUrl.valide) {
+      loggerScraping.warn({ url, erreur: validationUrl.erreur }, 'URL enrichissement bloquée');
+      return { openGraph: {}, twitter: {} };
+    }
+
+    const urlSecurisee = validationUrl.urlNormalisee!;
+
     try {
-      const response = await fetch(url, {
+      const response = await fetch(urlSecurisee, {
         headers: {
           'User-Agent': this.options.userAgent,
           Accept: 'text/html',
@@ -454,8 +471,16 @@ export class ServiceScraping {
    * Détecte si une URL est un flux RSS/Atom ou une page HTML
    */
   async detecterType(url: string): Promise<TypeSource> {
+    // Validation SSRF
+    const validationUrl = validerUrlScraping(url);
+    if (!validationUrl.valide) {
+      throw new Error(`URL invalide: ${validationUrl.erreur}`);
+    }
+
+    const urlSecurisee = validationUrl.urlNormalisee!;
+
     try {
-      const response = await fetch(url, {
+      const response = await fetch(urlSecurisee, {
         method: 'HEAD',
         headers: { 'User-Agent': this.options.userAgent },
         signal: AbortSignal.timeout(5000),
@@ -470,7 +495,7 @@ export class ServiceScraping {
       ) {
         // Vérifier si c'est vraiment un flux valide
         try {
-          await this.rssParser.parseURL(url);
+          await this.rssParser.parseURL(urlSecurisee);
           return 'rss';
         } catch {
           return 'html';
@@ -481,7 +506,7 @@ export class ServiceScraping {
     } catch {
       // En cas d'erreur, essayer de parser comme RSS
       try {
-        await this.rssParser.parseURL(url);
+        await this.rssParser.parseURL(urlSecurisee);
         return 'rss';
       } catch {
         return 'html';
