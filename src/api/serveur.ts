@@ -39,6 +39,8 @@ export async function creerServeur(): Promise<FastifyInstance> {
         : undefined,
     },
     trustProxy: true,
+    // Limite de taille du body pour prévenir les attaques par déni de service
+    bodyLimit: env.BODY_LIMIT,
   });
 
   // Plugins de sécurité - Helmet avec CSP configuré
