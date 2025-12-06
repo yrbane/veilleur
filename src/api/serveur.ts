@@ -105,12 +105,43 @@ export async function creerServeur(): Promise<FastifyInstance> {
     maxAge: 86400, // 24 heures
   });
 
-  // Rate limiting
+  // Rate limiting - Combiné IP + Utilisateur authentifié
   await serveur.register(fastifyRateLimit, {
-    max: env.RATE_LIMIT_IP_MAX,
     timeWindow: env.RATE_LIMIT_WINDOW_MS,
     keyGenerator: (request: FastifyRequest) => {
-      return request.ip;
+      // Si l'utilisateur est authentifié, utiliser son ID pour un rate limit plus élevé
+      const utilisateur = (request as FastifyRequest & { utilisateur?: { sub: string } }).utilisateur;
+      if (utilisateur?.sub) {
+        return `user:${utilisateur.sub}`;
+      }
+      // Sinon, utiliser l'IP
+      return `ip:${request.ip}`;
+    },
+    // Limite dynamique selon le type d'utilisateur
+    max: (request: FastifyRequest) => {
+      const utilisateur = (request as FastifyRequest & { utilisateur?: { sub: string } }).utilisateur;
+      if (utilisateur?.sub) {
+        return env.RATE_LIMIT_USER_MAX; // 300 requêtes/minute pour les authentifiés
+      }
+      return env.RATE_LIMIT_IP_MAX; // 60 requêtes/minute pour les anonymes
+    },
+    errorResponseBuilder: (_request: FastifyRequest, context) => {
+      return {
+        erreur: 'RATE_LIMIT_DEPASSE',
+        message: 'Trop de requêtes. Veuillez réessayer plus tard.',
+        retryAfter: Math.ceil(context.ttl / 1000),
+      };
+    },
+    addHeadersOnExceeding: {
+      'x-ratelimit-limit': true,
+      'x-ratelimit-remaining': true,
+      'x-ratelimit-reset': true,
+    },
+    addHeaders: {
+      'x-ratelimit-limit': true,
+      'x-ratelimit-remaining': true,
+      'x-ratelimit-reset': true,
+      'retry-after': true,
     },
   });
 
