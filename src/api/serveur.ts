@@ -41,9 +41,42 @@ export async function creerServeur(): Promise<FastifyInstance> {
     trustProxy: true,
   });
 
-  // Plugins de sécurité
+  // Plugins de sécurité - Helmet avec CSP configuré
   await serveur.register(fastifyHelmet, {
-    contentSecurityPolicy: estDeveloppement() ? false : undefined,
+    contentSecurityPolicy: estDeveloppement() ? false : {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"], // unsafe-inline pour le SPA
+        styleSrc: ["'self'", "'unsafe-inline'"], // unsafe-inline pour les styles inline
+        imgSrc: ["'self'", 'data:', 'https:'], // Autoriser images externes HTTPS
+        fontSrc: ["'self'", 'data:'],
+        connectSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    },
+    // Headers de sécurité supplémentaires
+    crossOriginEmbedderPolicy: false, // Désactivé pour permettre les images externes
+    crossOriginOpenerPolicy: { policy: 'same-origin' },
+    crossOriginResourcePolicy: { policy: 'cross-origin' }, // Permettre les ressources cross-origin
+    originAgentCluster: true,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    strictTransportSecurity: {
+      maxAge: 31536000, // 1 an
+      includeSubDomains: true,
+      preload: true,
+    },
+    xContentTypeOptions: true,
+    xDnsPrefetchControl: { allow: false },
+    xDownloadOptions: true,
+    xFrameOptions: { action: 'deny' },
+    xPermittedCrossDomainPolicies: { permittedPolicies: 'none' },
+    xXssProtection: true,
   });
 
   await serveur.register(fastifyCors, {
