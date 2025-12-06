@@ -26,6 +26,7 @@ import { routesArticles } from './routes/articles';
 import { routesTags } from './routes/tags';
 import { routesCommunaute } from './routes/communaute';
 import { pluginAuthentification } from './middlewares/authentification';
+import { protectionCSRF } from './middlewares/csrf';
 
 /**
  * Crée et configure l'instance Fastify
@@ -149,6 +150,9 @@ export async function creerServeur(): Promise<FastifyInstance> {
 
   // Utilitaires
   await serveur.register(fastifySensible);
+
+  // Protection CSRF pour les opérations modifiantes
+  serveur.addHook('onRequest', protectionCSRF);
 
   // Documentation Swagger
   await serveur.register(fastifySwagger, {
