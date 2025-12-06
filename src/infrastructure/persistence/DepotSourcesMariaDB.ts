@@ -25,6 +25,7 @@ import {
 } from './schema';
 import { loggerBdd } from '../logging/logger';
 import { createId } from '@paralleldrive/cuid2';
+import { construirePatternLike, limiterRecherche } from './securite';
 
 /**
  * Implémentation du dépôt sources avec Drizzle ORM
@@ -487,7 +488,10 @@ export class DepotSourcesMariaDB implements DepotSources {
       const conditions: ReturnType<typeof eq>[] = [eq(sources.statut, 'active')];
 
       if (criteres.recherche) {
-        conditions.push(like(sources.nom, `%${criteres.recherche}%`));
+        // Sécuriser la recherche contre les injections LIKE
+        const rechercheSanitisee = limiterRecherche(criteres.recherche);
+        const patternSecurise = construirePatternLike(rechercheSanitisee);
+        conditions.push(like(sources.nom, patternSecurise));
       }
 
       // Compter le total de sources avec abonnés
