@@ -4,7 +4,7 @@
  */
 
 import { Worker, Queue, Job } from 'bullmq';
-import { obtenirRedis } from '../cache/connexionRedis';
+import { obtenirRedisBullMQ } from '../cache/connexionRedis';
 import { obtenirServiceScraping } from '../scraping/ServiceScraping';
 import { DepotSourcesMariaDB } from '../persistence/DepotSourcesMariaDB';
 import { DepotArticlesMariaDB } from '../persistence/DepotArticlesMariaDB';
@@ -13,7 +13,7 @@ import { loggerJobs as loggerWorker } from '../logging/logger';
 /**
  * Nom de la queue de synchronisation
  */
-export const NOM_QUEUE_SYNCHRO = 'veilleur:synchro';
+export const NOM_QUEUE_SYNCHRO = 'veilleur-synchro';
 
 /**
  * Types de jobs
@@ -43,7 +43,7 @@ export interface ResultatSynchro {
  * Crée la queue de synchronisation
  */
 export function creerQueueSynchro(): Queue<DonneesJob> {
-  const connexion = obtenirRedis();
+  const connexion = obtenirRedisBullMQ();
 
   const queue = new Queue<DonneesJob>(NOM_QUEUE_SYNCHRO, {
     connection: connexion,
@@ -71,7 +71,7 @@ export function creerQueueSynchro(): Queue<DonneesJob> {
  * Crée le worker de synchronisation
  */
 export function creerWorkerSynchro(): Worker<DonneesJob, ResultatSynchro | ResultatSynchro[]> {
-  const connexion = obtenirRedis();
+  const connexion = obtenirRedisBullMQ();
   const serviceScraping = obtenirServiceScraping();
   const depotSources = new DepotSourcesMariaDB();
   const depotArticles = new DepotArticlesMariaDB();

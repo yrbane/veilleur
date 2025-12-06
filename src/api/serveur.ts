@@ -14,7 +14,7 @@ import fastifyStatic from '@fastify/static';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync, readFileSync } from 'fs';
-import { env, estDeveloppement } from '@/config/environnement';
+import { env, estDeveloppement, obtenirOriginesCORS } from '@/config/environnement';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 import { logger } from '@/infrastructure/logging/logger';
@@ -47,8 +47,29 @@ export async function creerServeur(): Promise<FastifyInstance> {
   });
 
   await serveur.register(fastifyCors, {
-    origin: estDeveloppement() ? true : env.HOST,
+    origin: (origin, callback) => {
+      // En développement, autoriser toutes les origines
+      if (estDeveloppement()) {
+        return callback(null, true);
+      }
+      // Sans origine (requête serveur-to-serveur), autoriser
+      if (!origin) {
+        return callback(null, true);
+      }
+      // Vérifier si l'origine est dans la liste blanche
+      const originesAutorisees = obtenirOriginesCORS();
+      if (originesAutorisees.includes(origin)) {
+        return callback(null, true);
+      }
+      // Rejeter l'origine non autorisée
+      logger.warn({ origin }, 'Origine CORS rejetée');
+      return callback(new Error('Origine non autorisée par CORS'), false);
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
+    maxAge: 86400, // 24 heures
   });
 
   // Rate limiting
