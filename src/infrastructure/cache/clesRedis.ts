@@ -10,7 +10,6 @@
  * - Support des slots Redis Cluster (hashtags)
  */
 
-import type Redis from 'ioredis';
 import { obtenirRedis } from './connexionRedis';
 
 /**
@@ -311,7 +310,6 @@ export async function pourChaquePattern<T>(
 export async function analyserUtilisation(): Promise<
   Record<string, { count: number; memoire: number }>
 > {
-  const redis = obtenirRedis();
   const stats: Record<string, { count: number; memoire: number }> = {};
 
   // Analyser chaque namespace
