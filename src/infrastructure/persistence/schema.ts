@@ -104,6 +104,13 @@ export const refreshTokens = mysqlTable(
   table => ({
     idxToken: index('idx_refresh_token').on(table.token),
     idxUtilisateur: index('idx_refresh_utilisateur').on(table.utilisateurId),
+    // Index pour nettoyage tokens expirés
+    idxExpiration: index('idx_refresh_expiration').on(table.dateExpiration),
+    // Index composite pour recherche tokens valides d'un utilisateur
+    idxUtilisateurRevoque: index('idx_refresh_utilisateur_revoque').on(
+      table.utilisateurId,
+      table.estRevoque,
+    ),
   }),
 );
 
@@ -129,6 +136,13 @@ export const sources = mysqlTable(
   table => ({
     idxHash: index('idx_source_hash').on(table.hashUrlNormalise),
     idxStatut: index('idx_source_statut').on(table.statut),
+    // Index pour synchronisation (sources actives à synchroniser)
+    idxSynchro: index('idx_source_synchro').on(table.dateDerniereSynchro),
+    // Index composite pour filtrage sources actives par date de synchro
+    idxStatutSynchro: index('idx_source_statut_synchro').on(
+      table.statut,
+      table.dateDerniereSynchro,
+    ),
   }),
 );
 
@@ -157,6 +171,12 @@ export const articles = mysqlTable(
     idxSourceDate: index('idx_article_source_date').on(table.sourceId, table.datePublication),
     idxHash: index('idx_article_hash').on(table.hashContenu),
     idxDate: index('idx_article_date').on(table.datePublication),
+    // Index sur sourceId seul pour suppression/comptage par source
+    idxSource: index('idx_article_source').on(table.sourceId),
+    // Index sur lien pour vérification d'existence (préfixe de 255 car longueur max index)
+    idxLien: index('idx_article_lien').on(table.lien),
+    // Index sur dateExtraction pour nettoyage
+    idxExtraction: index('idx_article_extraction').on(table.dateExtraction),
   }),
 );
 
@@ -181,26 +201,42 @@ export const utilisateursSources = mysqlTable(
       table.sourceId,
     ),
     idxUtilisateur: index('idx_utilisateur_source_utilisateur').on(table.utilisateurId),
+    // Index sur sourceId pour compter/supprimer sources orphelines
+    idxSource: index('idx_utilisateur_source_source').on(table.sourceId),
+    // Index composite pour fil d'actualités (sources non en pause)
+    idxUtilisateurPause: index('idx_utilisateur_source_pause').on(
+      table.utilisateurId,
+      table.estEnPause,
+    ),
+    // Index pour tri par date d'ajout
+    idxDateAjout: index('idx_utilisateur_source_date').on(table.dateAjout),
   }),
 );
 
 /**
  * Table des paramètres par source
  */
-export const parametresSources = mysqlTable('parametres_sources', {
-  id: varchar('id', { length: 36 })
-    .primaryKey()
-    .$defaultFn(() => createId()),
-  utilisateurSourceId: varchar('utilisateur_source_id', { length: 36 }).notNull().unique(),
-  nombreMaxArticles: int('nombre_max_articles').default(20),
-  frequenceMinutes: int('frequence_minutes').default(30),
-  retentionJours: int('retention_jours').default(30),
-  priorite: mysqlEnum('priorite', ['haute', 'normale', 'basse']).default('normale'),
-  modeExtraction: mysqlEnum('mode_extraction', ['rss', 'scraping', 'auto']).default('auto'),
-  filtresMotsCles: json('filtres_mots_cles').$type<FiltresMotsCles>().default({}),
-  notifications: mysqlEnum('notifications', ['aucune', 'nouveaux', 'tous']).default('nouveaux'),
-  plageHoraire: json('plage_horaire').$type<PlageHoraire>(),
-});
+export const parametresSources = mysqlTable(
+  'parametres_sources',
+  {
+    id: varchar('id', { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    utilisateurSourceId: varchar('utilisateur_source_id', { length: 36 }).notNull().unique(),
+    nombreMaxArticles: int('nombre_max_articles').default(20),
+    frequenceMinutes: int('frequence_minutes').default(30),
+    retentionJours: int('retention_jours').default(30),
+    priorite: mysqlEnum('priorite', ['haute', 'normale', 'basse']).default('normale'),
+    modeExtraction: mysqlEnum('mode_extraction', ['rss', 'scraping', 'auto']).default('auto'),
+    filtresMotsCles: json('filtres_mots_cles').$type<FiltresMotsCles>().default({}),
+    notifications: mysqlEnum('notifications', ['aucune', 'nouveaux', 'tous']).default('nouveaux'),
+    plageHoraire: json('plage_horaire').$type<PlageHoraire>(),
+  },
+  table => ({
+    // Index sur priorité pour ordonnancer les synchronisations
+    idxPriorite: index('idx_parametres_priorite').on(table.priorite),
+  }),
+);
 
 /**
  * Table des tags
@@ -243,15 +279,22 @@ export const utilisateursSourcesTags = mysqlTable(
 /**
  * Table de cache source (fallback si Redis indisponible)
  */
-export const cachesSources = mysqlTable('caches_sources', {
-  id: varchar('id', { length: 36 })
-    .primaryKey()
-    .$defaultFn(() => createId()),
-  sourceId: varchar('source_id', { length: 36 }).notNull().unique(),
-  donneesJson: text('donnees_json').notNull(),
-  dateCreation: timestamp('date_creation').notNull().defaultNow(),
-  dateExpiration: timestamp('date_expiration').notNull(),
-});
+export const cachesSources = mysqlTable(
+  'caches_sources',
+  {
+    id: varchar('id', { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    sourceId: varchar('source_id', { length: 36 }).notNull().unique(),
+    donneesJson: text('donnees_json').notNull(),
+    dateCreation: timestamp('date_creation').notNull().defaultNow(),
+    dateExpiration: timestamp('date_expiration').notNull(),
+  },
+  table => ({
+    // Index pour nettoyage des entrées expirées
+    idxExpiration: index('idx_cache_expiration').on(table.dateExpiration),
+  }),
+);
 
 // =============================================================================
 // Relations
