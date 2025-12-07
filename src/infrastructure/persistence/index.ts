@@ -9,3 +9,4 @@ export * from './DepotSourcesMariaDB';
 export * from './DepotArticlesMariaDB';
 export * from './paginationCurseur';
 export * from './securite';
+export * from './dataLoader';
