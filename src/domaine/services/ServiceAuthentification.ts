@@ -4,14 +4,29 @@
  */
 
 import * as jose from 'jose';
-import { randomBytes, scrypt, timingSafeEqual } from 'crypto';
-import { promisify } from 'util';
+import { randomBytes, scrypt as scryptCallback, timingSafeEqual, ScryptOptions } from 'crypto';
 import type { DepotUtilisateurs, DepotRefreshTokens } from '@/domaine/ports/DepotUtilisateurs';
 import type { Utilisateur, UtilisateurPublic } from '@/domaine/entites/Utilisateur';
 import { versUtilisateurPublic } from '@/domaine/entites/Utilisateur';
 import { env } from '@/config/environnement';
+import { ajouterABlacklist, estDansBlacklist } from '@/infrastructure/cache/blacklistJwt';
 
-const scryptAsync = promisify(scrypt);
+/**
+ * Wrapper promisifié de scrypt avec support des options
+ */
+function scryptAsync(
+  password: string,
+  salt: string,
+  keylen: number,
+  options?: ScryptOptions,
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    scryptCallback(password, salt, keylen, options ?? {}, (err, derivedKey) => {
+      if (err) reject(err);
+      else resolve(derivedKey);
+    });
+  });
+}
 
 /**
  * Paramètres de scrypt pour le hachage sécurisé
@@ -78,6 +93,7 @@ export interface PayloadAccessToken {
   sub: string;
   email: string;
   type: 'access';
+  jti: string;  // Identifiant unique pour la révocation
 }
 
 /**
@@ -255,9 +271,9 @@ export class ServiceAuthentification {
   }
 
   /**
-   * Déconnecte un utilisateur (révoque le refresh token)
+   * Déconnecte un utilisateur (révoque le refresh token et l'access token)
    */
-  async deconnecter(refreshToken: string): Promise<void> {
+  async deconnecter(refreshToken: string, accessToken?: string): Promise<void> {
     try {
       const { payload } = await jose.jwtVerify(refreshToken, this.secretRefresh, {
         algorithms: ['HS256'],
@@ -267,10 +283,40 @@ export class ServiceAuthentification {
     } catch {
       // Ignorer les erreurs si le token est déjà invalide
     }
+
+    // Révoquer l'access token si fourni
+    if (accessToken) {
+      await this.revoquerAccessToken(accessToken);
+    }
+  }
+
+  /**
+   * Révoque un access token (l'ajoute à la blacklist)
+   */
+  async revoquerAccessToken(accessToken: string): Promise<void> {
+    try {
+      const { payload } = await jose.jwtVerify(accessToken, this.secretAccess, {
+        algorithms: ['HS256'],
+      });
+      const typedPayload = payload as unknown as PayloadAccessToken;
+      const exp = payload.exp;  // Claim standard JWT
+
+      if (typedPayload.jti && exp) {
+        // Calculer le TTL restant
+        const ttlRestant = exp - Math.floor(Date.now() / 1000);
+        if (ttlRestant > 0) {
+          await ajouterABlacklist(typedPayload.jti, ttlRestant);
+        }
+      }
+    } catch {
+      // Ignorer si le token est déjà invalide ou expiré
+    }
   }
 
   /**
    * Déconnecte toutes les sessions d'un utilisateur
+   * Note: Les access tokens existants restent valides jusqu'à expiration
+   * Pour une révocation immédiate, utiliser revoquerAccessToken sur chaque token
    */
   async deconnecterPartout(utilisateurId: string): Promise<number> {
     return this.depotRefreshTokens.revoquerTousTokensUtilisateur(utilisateurId);
@@ -278,6 +324,7 @@ export class ServiceAuthentification {
 
   /**
    * Vérifie un access token et retourne le payload
+   * Vérifie également que le token n'est pas dans la blacklist
    */
   async verifierAccessToken(token: string): Promise<PayloadAccessToken> {
     try {
@@ -288,6 +335,11 @@ export class ServiceAuthentification {
 
       if (typedPayload.type !== 'access') {
         throw new ErreurAuthentification('Token invalide', 'TOKEN_INVALIDE');
+      }
+
+      // Vérifier si le token est dans la blacklist (révoqué)
+      if (typedPayload.jti && await estDansBlacklist(typedPayload.jti)) {
+        throw new ErreurAuthentification('Token révoqué', 'TOKEN_REVOQUE');
       }
 
       return typedPayload;
@@ -347,11 +399,15 @@ export class ServiceAuthentification {
    * Génère les tokens d'authentification
    */
   private async genererTokens(utilisateur: Utilisateur): Promise<ResultatAuthentification> {
+    // Générer un JTI unique pour l'access token (permet la révocation)
+    const accessJti = randomBytes(16).toString('hex');
+
     // Générer l'access token
     const accessToken = await new jose.SignJWT({
       sub: utilisateur.id,
       email: utilisateur.email,
       type: 'access',
+      jti: accessJti,
     } satisfies PayloadAccessToken)
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
@@ -392,11 +448,11 @@ export class ServiceAuthentification {
    */
   private async hasherMotDePasse(motDePasse: string): Promise<string> {
     const sel = randomBytes(SCRYPT_PARAMS.saltlen).toString('hex');
-    const hash = (await scryptAsync(motDePasse, sel, SCRYPT_PARAMS.keylen, {
+    const hash = await scryptAsync(motDePasse, sel, SCRYPT_PARAMS.keylen, {
       N: SCRYPT_PARAMS.N,
       r: SCRYPT_PARAMS.r,
       p: SCRYPT_PARAMS.p,
-    })) as Buffer;
+    });
     // Format versionné pour permettre les upgrades futurs
     return `v2:${SCRYPT_PARAMS.N}:${SCRYPT_PARAMS.r}:${SCRYPT_PARAMS.p}:${sel}:${hash.toString('hex')}`;
   }
@@ -419,11 +475,11 @@ export class ServiceAuthentification {
         return false;
       }
 
-      const hashCalcule = (await scryptAsync(motDePasse, sel, SCRYPT_PARAMS.keylen, {
+      const hashCalcule = await scryptAsync(motDePasse, sel, SCRYPT_PARAMS.keylen, {
         N,
         r,
         p,
-      })) as Buffer;
+      });
       const hashStockeBuffer = Buffer.from(hashStocke, 'hex');
 
       if (hashCalcule.length !== hashStockeBuffer.length) {
@@ -439,7 +495,7 @@ export class ServiceAuthentification {
       if (!sel || !hashStocke) {
         return false;
       }
-      const hashCalcule = (await scryptAsync(motDePasse, sel, 64)) as Buffer;
+      const hashCalcule = await scryptAsync(motDePasse, sel, 64);
       const hashStockeBuffer = Buffer.from(hashStocke, 'hex');
 
       if (hashCalcule.length !== hashStockeBuffer.length) {
