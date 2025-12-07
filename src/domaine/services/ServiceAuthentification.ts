@@ -10,6 +10,11 @@ import type { Utilisateur, UtilisateurPublic } from '@/domaine/entites/Utilisate
 import { versUtilisateurPublic } from '@/domaine/entites/Utilisateur';
 import { env } from '@/config/environnement';
 import { ajouterABlacklist, estDansBlacklist } from '@/infrastructure/cache/blacklistJwt';
+import {
+  verifierVerrouillage,
+  enregistrerEchec,
+  reinitialiserTentatives,
+} from '@/infrastructure/cache/verrouillageCompte';
 
 /**
  * Wrapper promisifié de scrypt avec support des options
@@ -125,6 +130,7 @@ export class ErreurAuthentification extends Error {
       | 'EMAIL_EXISTANT'
       | 'IDENTIFIANTS_INVALIDES'
       | 'COMPTE_INACTIF'
+      | 'COMPTE_VERROUILLE'
       | 'TOKEN_INVALIDE'
       | 'TOKEN_EXPIRE'
       | 'TOKEN_REVOQUE'
@@ -132,6 +138,10 @@ export class ErreurAuthentification extends Error {
       | 'TOTP_INVALIDE'
       | 'TOTP_DEJA_ACTIF'
       | 'MOT_DE_PASSE_FAIBLE',
+    public readonly details?: {
+      tentativesRestantes?: number;
+      tempsRestant?: number;
+    },
   ) {
     super(message);
     this.name = 'ErreurAuthentification';
@@ -201,11 +211,35 @@ export class ServiceAuthentification {
    * Connecte un utilisateur existant
    */
   async connecter(email: string, motDePasse: string): Promise<ResultatAuthentification> {
+    // Vérifier si le compte est verrouillé
+    const verrouillage = await verifierVerrouillage(email);
+    if (verrouillage.estVerrouille) {
+      const minutesRestantes = Math.ceil((verrouillage.tempsRestant ?? 0) / 60);
+      throw new ErreurAuthentification(
+        `Compte temporairement verrouillé. Réessayez dans ${minutesRestantes} minute(s).`,
+        'COMPTE_VERROUILLE',
+        { tempsRestant: verrouillage.tempsRestant ?? undefined },
+      );
+    }
+
     // Récupérer l'utilisateur
     const utilisateur = await this.depotUtilisateurs.trouverParEmail(email);
 
     if (!utilisateur) {
-      throw new ErreurAuthentification('Email ou mot de passe incorrect', 'IDENTIFIANTS_INVALIDES');
+      // Enregistrer l'échec même si l'email n'existe pas (évite l'énumération)
+      const resultat = await enregistrerEchec(email);
+      if (resultat.estVerrouille) {
+        throw new ErreurAuthentification(
+          'Trop de tentatives. Compte temporairement verrouillé.',
+          'COMPTE_VERROUILLE',
+          { tempsRestant: resultat.tempsRestant ?? undefined },
+        );
+      }
+      throw new ErreurAuthentification(
+        'Email ou mot de passe incorrect',
+        'IDENTIFIANTS_INVALIDES',
+        { tentativesRestantes: resultat.tentativesRestantes },
+      );
     }
 
     // Vérifier le compte actif
@@ -217,8 +251,24 @@ export class ServiceAuthentification {
     const motDePasseValide = await this.verifierMotDePasse(motDePasse, utilisateur.motDePasseHash);
 
     if (!motDePasseValide) {
-      throw new ErreurAuthentification('Email ou mot de passe incorrect', 'IDENTIFIANTS_INVALIDES');
+      // Enregistrer l'échec
+      const resultat = await enregistrerEchec(email);
+      if (resultat.estVerrouille) {
+        throw new ErreurAuthentification(
+          'Trop de tentatives. Compte temporairement verrouillé.',
+          'COMPTE_VERROUILLE',
+          { tempsRestant: resultat.tempsRestant ?? undefined },
+        );
+      }
+      throw new ErreurAuthentification(
+        'Email ou mot de passe incorrect',
+        'IDENTIFIANTS_INVALIDES',
+        { tentativesRestantes: resultat.tentativesRestantes },
+      );
     }
+
+    // Réinitialiser le compteur de tentatives après connexion réussie
+    await reinitialiserTentatives(email);
 
     // Mettre à jour la dernière connexion
     await this.depotUtilisateurs.mettreAJourDerniereConnexion(utilisateur.id);
