@@ -68,7 +68,7 @@ export function protectionCSRF(
   }
 
   // Exempter certaines routes
-  const routeSansParams = request.url.split('?')[0];
+  const routeSansParams = request.url.split('?')[0] ?? '';
   if (ROUTES_EXEMPTEES.some(route => routeSansParams.startsWith(route))) {
     return done();
   }
@@ -98,10 +98,11 @@ export function protectionCSRF(
       'Requête CSRF bloquée - origine non autorisée',
     );
 
-    return reply.status(403).send({
+    reply.status(403).send({
       erreur: 'CSRF_ORIGINE_INVALIDE',
       message: 'Origine de la requête non autorisée',
     });
+    return;
   }
 
   done();
