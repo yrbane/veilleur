@@ -3,7 +3,17 @@
  * Communication avec le backend
  */
 
+import { deduplication, demarrerNettoyageCache } from '../utils/deduplication';
+
 const API_BASE = '/api/v1';
+
+// TTL par défaut pour le cache des requêtes GET (5 minutes)
+const TTL_CACHE_DEFAUT = 5 * 60 * 1000;
+
+// Démarrer le nettoyage périodique du cache
+if (typeof window !== 'undefined') {
+  demarrerNettoyageCache(60000);
+}
 
 /**
  * Erreur API personnalisée
@@ -65,39 +75,92 @@ export function estAuthentifie(): boolean {
 }
 
 /**
+ * Options de requête avec déduplication
+ */
+interface OptionsRequete extends RequestInit {
+  // TTL du cache (0 = pas de cache, -1 = TTL par défaut)
+  ttlCache?: number;
+  // Désactiver la déduplication
+  sansDeduplication?: boolean;
+}
+
+/**
  * Effectue une requête API
  */
 async function requete<T>(
   endpoint: string,
-  options: RequestInit = {},
+  options: OptionsRequete = {},
 ): Promise<T> {
+  const { ttlCache, sansDeduplication, ...fetchOptions } = options;
   const url = `${API_BASE}${endpoint}`;
+  const method = (fetchOptions.method || 'GET').toUpperCase();
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string>),
+    ...(fetchOptions.headers as Record<string, string>),
   };
 
   if (accessToken) {
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  // Fonction qui exécute réellement la requête
+  const executerRequete = async (signal?: AbortSignal): Promise<T> => {
+    const response = await fetch(url, {
+      ...fetchOptions,
+      headers,
+      signal,
+    });
 
-  // Gestion du rafraîchissement de token
-  if (response.status === 401 && refreshToken) {
-    const refreshed = await rafraichirTokens();
-    if (refreshed) {
-      headers['Authorization'] = `Bearer ${accessToken}`;
-      const retryResponse = await fetch(url, { ...options, headers });
-      return handleResponse<T>(retryResponse);
+    // Gestion du rafraîchissement de token
+    if (response.status === 401 && refreshToken) {
+      const refreshed = await rafraichirTokens();
+      if (refreshed) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+        const retryResponse = await fetch(url, { ...fetchOptions, headers, signal });
+        return handleResponse<T>(retryResponse);
+      }
     }
+
+    return handleResponse<T>(response);
+  };
+
+  // Utiliser la déduplication uniquement pour les GET (sauf si désactivée)
+  if (method === 'GET' && !sansDeduplication) {
+    const cacheTtl = ttlCache === -1 ? TTL_CACHE_DEFAUT : (ttlCache || 0);
+    return deduplication.executer<T>(
+      url,
+      executerRequete,
+      {
+        ttlCache: cacheTtl,
+        requestOptions: { ...fetchOptions, headers },
+      },
+    );
   }
 
-  return handleResponse<T>(response);
+  // Pour les autres méthodes, exécuter directement
+  return executerRequete();
+}
+
+/**
+ * Invalide le cache pour un pattern d'URL
+ */
+export function invaliderCache(pattern: string | RegExp): void {
+  deduplication.invaliderCachePattern(pattern);
+}
+
+/**
+ * Vide tout le cache de requêtes
+ */
+export function viderCacheRequetes(): void {
+  deduplication.viderCache();
+}
+
+/**
+ * Obtient les statistiques de déduplication
+ */
+export function obtenirStatsDeduplication() {
+  return deduplication.obtenirStatistiques();
 }
 
 /**
