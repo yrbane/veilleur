@@ -51,6 +51,9 @@ const schemaEnvironnement = z.object({
 
   // Limites de taille des requêtes (en octets)
   BODY_LIMIT: z.coerce.number().default(1048576), // 1 Mo par défaut
+
+  // Signature HMAC pour les requêtes API-to-API
+  API_HMAC_SECRET: z.string().min(32).optional(),
 });
 
 export type Environnement = z.infer<typeof schemaEnvironnement>;
