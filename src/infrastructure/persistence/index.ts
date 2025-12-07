@@ -7,3 +7,5 @@ export * from './schema';
 export * from './DepotUtilisateursMariaDB';
 export * from './DepotSourcesMariaDB';
 export * from './DepotArticlesMariaDB';
+export * from './paginationCurseur';
+export * from './securite';
