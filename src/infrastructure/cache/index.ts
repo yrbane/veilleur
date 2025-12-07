@@ -7,3 +7,4 @@ export * from './ServiceCacheRedis';
 export * from './poolRedis';
 export * from './blacklistJwt';
 export * from './verrouillageCompte';
+export * from './cacheLayer';
