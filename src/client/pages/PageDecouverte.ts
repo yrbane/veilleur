@@ -18,11 +18,8 @@ let criteresActuels: CriteresCommunaute = {
 /**
  * Affiche la page de découverte
  */
-export async function afficherPageDecouverte(): Promise<void> {
-  const app = document.getElementById('app');
-  if (!app) return;
-
-  vider(app);
+export async function afficherPageDecouverte(container: Element): Promise<void> {
+  vider(container);
   criteresActuels = { page: 1, limite: 12, tri: 'populaire' };
 
   const page = creerElement('div', { classes: ['page-decouverte'] });
@@ -61,7 +58,7 @@ export async function afficherPageDecouverte(): Promise<void> {
   });
 
   page.append(entete, barreRecherche, filtres, sectionTags, grilleSources, pagination);
-  app.append(page);
+  container.append(page);
 
   // Charger les données
   await Promise.all([
