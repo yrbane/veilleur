@@ -46,13 +46,12 @@ describe('retry', () => {
     });
 
     it('devrait échouer immédiatement si erreur non retriable', async () => {
+      vi.useRealTimers();
       const fn = vi.fn().mockRejectedValue(new Error('non-retriable error'));
 
-      const promise = retry(fn, { maxTentatives: 3, delaiInitial: 100 });
-
-      await vi.runAllTimersAsync();
-      await expect(promise).rejects.toThrow('non-retriable error');
+      await expect(retry(fn, { maxTentatives: 3, delaiInitial: 100 })).rejects.toThrow('non-retriable error');
       expect(fn).toHaveBeenCalledTimes(1);
+      vi.useFakeTimers();
     });
 
     it('devrait utiliser une fonction estRetryable personnalisée', async () => {
@@ -91,18 +90,27 @@ describe('retry', () => {
 
     it('devrait appeler onEchecFinal après le nombre max de tentatives', async () => {
       const onEchecFinal = vi.fn();
-      const fn = vi.fn().mockRejectedValue(
-        Object.assign(new Error('always fail'), { code: 'ECONNRESET' })
-      );
+      // Utiliser mockImplementation pour éviter les unhandled rejections
+      const fn = vi.fn().mockImplementation(() => {
+        const err = new Error('always fail');
+        (err as unknown as { code: string }).code = 'ECONNRESET';
+        return Promise.reject(err);
+      });
 
+      // Capturer la promise immédiatement avec un handler
       const promise = retry(fn, {
         maxTentatives: 3,
         delaiInitial: 100,
         onEchecFinal,
-      });
+      }).catch((err) => err);
 
+      // Attendre que tous les timers soient exécutés
       await vi.runAllTimersAsync();
-      await expect(promise).rejects.toThrow('always fail');
+
+      // Récupérer l'erreur
+      const errorCaught = await promise;
+
+      expect(errorCaught.message).toBe('always fail');
       expect(onEchecFinal).toHaveBeenCalledTimes(1);
       expect(fn).toHaveBeenCalledTimes(3);
     });
@@ -193,34 +201,45 @@ describe('retry', () => {
     });
   });
 
-  describe('avecTimeout', () => {
-    it('devrait résoudre si la promise termine avant le timeout', async () => {
-      const promise = Promise.resolve('success');
+});
 
-      const result = await avecTimeout(promise, 5000);
+describe('avecTimeout', () => {
+  it('devrait résoudre si la promise termine avant le timeout', async () => {
+    vi.useRealTimers();
+    const promise = Promise.resolve('success');
 
-      expect(result).toBe('success');
-    });
+    const result = await avecTimeout(promise, 5000);
 
-    it('devrait rejeter si le timeout est dépassé', async () => {
-      const promise = new Promise(resolve => setTimeout(() => resolve('success'), 10000));
+    expect(result).toBe('success');
+  });
 
-      const timeoutPromise = avecTimeout(promise, 100);
+  it('devrait rejeter si le timeout est dépassé', async () => {
+    vi.useFakeTimers();
 
-      await vi.advanceTimersByTimeAsync(100);
+    const promise = new Promise(() => {});
+    const timeoutPromise = avecTimeout(promise, 100);
 
-      await expect(timeoutPromise).rejects.toThrow(/timeout/i);
-    });
+    // Avancer le timer pour déclencher le timeout
+    vi.advanceTimersByTime(100);
 
-    it('devrait utiliser un message d\'erreur personnalisé', async () => {
-      const promise = new Promise(resolve => setTimeout(() => resolve('success'), 10000));
+    // Attendre que la rejection soit traitée
+    await expect(timeoutPromise).rejects.toThrow(/timeout/i);
 
-      const timeoutPromise = avecTimeout(promise, 100, 'Opération trop longue');
+    vi.useRealTimers();
+  });
 
-      await vi.advanceTimersByTimeAsync(100);
+  it('devrait utiliser un message d\'erreur personnalisé', async () => {
+    vi.useFakeTimers();
 
-      await expect(timeoutPromise).rejects.toThrow('Opération trop longue');
-    });
+    const promise = new Promise(() => {});
+    const timeoutPromise = avecTimeout(promise, 100, 'Opération trop longue');
+
+    // Avancer le timer
+    vi.advanceTimersByTime(100);
+
+    await expect(timeoutPromise).rejects.toThrow('Opération trop longue');
+
+    vi.useRealTimers();
   });
 });
 
