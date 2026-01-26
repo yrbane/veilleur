@@ -96,9 +96,13 @@ async function requete<T>(
   const method = (fetchOptions.method || 'GET').toUpperCase();
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...(fetchOptions.headers as Record<string, string>),
   };
+
+  // Ne définir Content-Type que si on a un body
+  if (fetchOptions.body) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (accessToken) {
     headers['Authorization'] = `Bearer ${accessToken}`;
