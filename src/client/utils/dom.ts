@@ -34,7 +34,10 @@ export function creerElement<K extends keyof HTMLElementTagNameMap>(
   const element = document.createElement(tag);
 
   if (options?.classes) {
-    element.classList.add(...options.classes);
+    const validClasses = options.classes.filter(c => c);
+    if (validClasses.length > 0) {
+      element.classList.add(...validClasses);
+    }
   }
 
   if (options?.attrs) {
