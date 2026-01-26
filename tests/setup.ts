@@ -24,75 +24,7 @@ vi.spyOn(console, 'error').mockImplementation((...args) => {
   originalConsoleError(...args);
 });
 
-// Mock de window.matchMedia pour les tests responsive
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-});
-
-// Mock de ResizeObserver
-class ResizeObserverMock {
-  observe = vi.fn();
-  unobserve = vi.fn();
-  disconnect = vi.fn();
-}
-window.ResizeObserver = ResizeObserverMock;
-
-// Mock de IntersectionObserver
-class IntersectionObserverMock {
-  readonly root: Element | null = null;
-  readonly rootMargin: string = '';
-  readonly thresholds: ReadonlyArray<number> = [];
-
-  constructor(
-    private callback: IntersectionObserverCallback,
-    private options?: IntersectionObserverInit,
-  ) {}
-
-  observe = vi.fn((target: Element) => {
-    // Simuler une intersection immédiate pour les tests
-    const entries: IntersectionObserverEntry[] = [
-      {
-        target,
-        isIntersecting: true,
-        intersectionRatio: 1,
-        boundingClientRect: target.getBoundingClientRect(),
-        intersectionRect: target.getBoundingClientRect(),
-        rootBounds: null,
-        time: Date.now(),
-      },
-    ];
-    this.callback(entries, this as unknown as IntersectionObserver);
-  });
-
-  unobserve = vi.fn();
-  disconnect = vi.fn();
-  takeRecords = vi.fn().mockReturnValue([]);
-}
-window.IntersectionObserver = IntersectionObserverMock as unknown as typeof IntersectionObserver;
-
-// Mock de scrollTo
-window.scrollTo = vi.fn();
-
-// Mock de requestAnimationFrame
-window.requestAnimationFrame = vi.fn((callback) => {
-  return setTimeout(callback, 0);
-});
-
-window.cancelAnimationFrame = vi.fn((id) => {
-  clearTimeout(id);
-});
-
-// Mock de localStorage
+// Mock de localStorage (fonctionne en Node aussi)
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
@@ -112,8 +44,80 @@ const localStorageMock = (() => {
     key: vi.fn((index: number) => Object.keys(store)[index] ?? null),
   };
 })();
-Object.defineProperty(window, 'localStorage', { value: localStorageMock });
-Object.defineProperty(window, 'sessionStorage', { value: localStorageMock });
+
+// Mocks spécifiques au navigateur - seulement si window existe (jsdom)
+if (typeof window !== 'undefined') {
+  // Mock de window.matchMedia pour les tests responsive
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+
+  // Mock de ResizeObserver
+  class ResizeObserverMock {
+    observe = vi.fn();
+    unobserve = vi.fn();
+    disconnect = vi.fn();
+  }
+  window.ResizeObserver = ResizeObserverMock;
+
+  // Mock de IntersectionObserver
+  class IntersectionObserverMock {
+    readonly root: Element | null = null;
+    readonly rootMargin: string = '';
+    readonly thresholds: ReadonlyArray<number> = [];
+
+    constructor(
+      private callback: IntersectionObserverCallback,
+      _options?: IntersectionObserverInit,
+    ) {}
+
+    observe = vi.fn((target: Element) => {
+      // Simuler une intersection immédiate pour les tests
+      const entries: IntersectionObserverEntry[] = [
+        {
+          target,
+          isIntersecting: true,
+          intersectionRatio: 1,
+          boundingClientRect: target.getBoundingClientRect(),
+          intersectionRect: target.getBoundingClientRect(),
+          rootBounds: null,
+          time: Date.now(),
+        },
+      ];
+      this.callback(entries, this as unknown as IntersectionObserver);
+    });
+
+    unobserve = vi.fn();
+    disconnect = vi.fn();
+    takeRecords = vi.fn().mockReturnValue([]);
+  }
+  window.IntersectionObserver = IntersectionObserverMock as unknown as typeof IntersectionObserver;
+
+  // Mock de scrollTo
+  window.scrollTo = vi.fn();
+
+  // Mock de requestAnimationFrame
+  window.requestAnimationFrame = vi.fn((callback) => {
+    return setTimeout(callback, 0);
+  });
+
+  window.cancelAnimationFrame = vi.fn((id) => {
+    clearTimeout(id);
+  });
+
+  Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+  Object.defineProperty(window, 'sessionStorage', { value: localStorageMock });
+}
 
 // Mock de fetch
 const fetchMock = vi.fn(() =>
