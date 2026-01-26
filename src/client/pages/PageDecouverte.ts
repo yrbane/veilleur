@@ -331,9 +331,10 @@ function creerCarteSourcePopulaire(source: SourcePopulaire): HTMLElement {
   stats.append(utilisateurs);
 
   if (source.noteMoyenne !== null) {
+    const noteMoyenne = Number(source.noteMoyenne);
     const note = creerElement('span', {
       classes: ['stat-note'],
-      texte: `★ ${source.noteMoyenne.toFixed(1)}`,
+      texte: `★ ${noteMoyenne.toFixed(1)}`,
     });
     stats.append(note);
   }
