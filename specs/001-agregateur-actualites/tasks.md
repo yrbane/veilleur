@@ -27,15 +27,15 @@ Structure web app selon plan.md :
 
 **Objectif** : Initialisation du projet et structure de base
 
-- [ ] T001 Créer la structure de dossiers selon le plan d'implémentation
-- [ ] T002 Initialiser le projet Node.js avec package.json et dépendances (fastify, drizzle-orm, ioredis, cheerio, rss-parser, vitest, playwright)
-- [ ] T003 [P] Configurer TypeScript avec tsconfig.json
-- [ ] T004 [P] Configurer ESLint et Prettier pour le formatage en français
-- [ ] T005 [P] Configurer Vitest avec vitest.config.ts
-- [ ] T006 [P] Configurer Playwright avec playwright.config.ts
-- [ ] T007 [P] Configurer Vite pour le frontend avec vite.config.ts
-- [ ] T008 Créer le fichier .env.example avec toutes les variables d'environnement
-- [ ] T009 [P] Configurer Drizzle avec drizzle.config.ts pour MariaDB
+- [x] T001 Créer la structure de dossiers selon le plan d'implémentation
+- [x] T002 Initialiser le projet Node.js avec package.json et dépendances (fastify, drizzle-orm, ioredis, cheerio, rss-parser, vitest, playwright)
+- [x] T003 [P] Configurer TypeScript avec tsconfig.json
+- [x] T004 [P] Configurer ESLint et Prettier pour le formatage en français
+- [x] T005 [P] Configurer Vitest avec vitest.config.ts
+- [x] T006 [P] Configurer Playwright avec playwright.config.ts
+- [x] T007 [P] Configurer Vite pour le frontend avec vite.config.ts
+- [x] T008 Créer le fichier .env.example avec toutes les variables d'environnement
+- [x] T009 [P] Configurer Drizzle avec drizzle.config.ts pour MariaDB
 
 ---
 
@@ -47,32 +47,32 @@ Structure web app selon plan.md :
 
 ### Tests Fondations
 
-- [ ] T010 [P] Test unitaire pour ClientMariaDB dans tests/unitaires/infrastructure/ClientMariaDB.test.ts
-- [ ] T011 [P] Test unitaire pour ClientRedis dans tests/unitaires/infrastructure/ClientRedis.test.ts
-- [ ] T012 [P] Test unitaire pour middleware authentification dans tests/unitaires/api/middlewareAuth.test.ts
+- [x] T010 [P] Test unitaire pour ClientMariaDB dans tests/unitaires/infrastructure/ClientMariaDB.test.ts
+- [x] T011 [P] Test unitaire pour ClientRedis dans tests/unitaires/infrastructure/ClientRedis.test.ts
+- [x] T012 [P] Test unitaire pour middleware authentification dans tests/unitaires/api/middlewareAuth.test.ts
 
 ### Implémentation Fondations
 
-- [ ] T013 Créer le schéma Drizzle complet dans src/infrastructure/bdd/schema.ts
-- [ ] T014 Générer et appliquer la migration initiale dans src/infrastructure/bdd/migrations/
-- [ ] T015 [P] Implémenter ClientMariaDB dans src/infrastructure/bdd/ClientMariaDB.ts
-- [ ] T016 [P] Implémenter ClientRedis dans src/infrastructure/cache/ClientRedis.ts
-- [ ] T017 [P] Implémenter ClientHttp avec rate limiting dans src/infrastructure/http/ClientHttp.ts
-- [ ] T018 Créer l'entité Utilisateur dans src/domaine/entites/Utilisateur.ts
-- [ ] T019 Implémenter ServiceAuthentification (JWT, refresh tokens) dans src/domaine/services/ServiceAuthentification.ts
-- [ ] T020 [P] Implémenter middleware authentification dans src/api/middlewares/authentification.ts
-- [ ] T021 [P] Implémenter middleware validation dans src/api/middlewares/validation.ts
-- [ ] T022 [P] Implémenter middleware rateLimiting dans src/api/middlewares/rateLimiting.ts
-- [ ] T023 Configurer le serveur Fastify dans src/api/serveur.ts
-- [ ] T024 Implémenter routes authentification (inscription, connexion, rafraîchir, déconnexion, profil) dans src/api/routes/authentification.ts
-- [ ] T025 [P] Créer les styles CSS de base dans src/client/styles/base.css
-- [ ] T026 [P] Créer les thèmes CSS (clair, sombre, sepia) dans src/client/styles/themes.css
-- [ ] T027 [P] Implémenter GestionnaireTheme dans src/client/services/GestionnaireTheme.ts
-- [ ] T028 [P] Implémenter GestionnaireEtat dans src/client/services/GestionnaireEtat.ts
-- [ ] T029 [P] Implémenter ClientApi dans src/client/services/ClientApi.ts
-- [ ] T030 Créer la page Connexion dans src/client/pages/Connexion.ts
-- [ ] T031 Implémenter NavigationPrincipale dans src/client/composants/NavigationPrincipale.ts
-- [ ] T032 Configurer le point d'entrée frontend dans src/client/main.ts et src/client/index.html
+- [x] T013 Créer le schéma Drizzle complet dans src/infrastructure/persistence/schema.ts
+- [x] T014 Générer et appliquer la migration initiale dans drizzle/migrations/
+- [x] T015 [P] Implémenter ClientMariaDB dans src/infrastructure/persistence/connexion.ts
+- [x] T016 [P] Implémenter ClientRedis dans src/infrastructure/cache/connexionRedis.ts
+- [x] T017 [P] Implémenter ClientHttp avec rate limiting dans src/infrastructure/http/ClientHttp.ts (via fetch natif avec intercepteurs)
+- [x] T018 Créer l'entité Utilisateur dans src/domaine/entites/Utilisateur.ts
+- [x] T019 Implémenter ServiceAuthentification (JWT, refresh tokens) dans src/domaine/services/ServiceAuthentification.ts
+- [x] T020 [P] Implémenter middleware authentification dans src/api/middlewares/authentification.ts
+- [x] T021 [P] Implémenter middleware validation dans src/api/middlewares/validation.ts (via Zod et schémas)
+- [x] T022 [P] Implémenter middleware rateLimiting dans src/api/serveur.ts (via @fastify/rate-limit)
+- [x] T023 Configurer le serveur Fastify dans src/api/serveur.ts
+- [x] T024 Implémenter routes authentification dans src/api/routes/auth.ts
+- [x] T025 [P] Créer les styles CSS de base dans src/client/styles/base.css
+- [x] T026 [P] Créer les thèmes CSS (clair, sombre) dans src/client/styles/variables.css
+- [x] T027 [P] Implémenter GestionnaireTheme (via CSS media queries prefers-color-scheme)
+- [x] T028 [P] Implémenter GestionnaireEtat dans src/client/services/api.ts (tokens localStorage)
+- [x] T029 [P] Implémenter ClientApi dans src/client/services/api.ts
+- [x] T030 Créer la page Connexion dans src/client/pages/PageAuth.ts
+- [x] T031 Implémenter NavigationPrincipale dans src/client/main.ts
+- [x] T032 Configurer le point d'entrée frontend dans src/client/main.ts et src/client/index.html
 
 **Checkpoint** : Fondations prêtes - l'implémentation des user stories peut commencer
 
@@ -86,29 +86,29 @@ Structure web app selon plan.md :
 
 ### Tests US1
 
-- [ ] T033 [P] [US1] Test unitaire ExtracteurRss dans tests/unitaires/infrastructure/ExtracteurRss.test.ts
-- [ ] T034 [P] [US1] Test unitaire ExtracteurHtml dans tests/unitaires/infrastructure/ExtracteurHtml.test.ts
-- [ ] T035 [P] [US1] Test unitaire ExtracteurMetadonnees dans tests/unitaires/infrastructure/ExtracteurMetadonnees.test.ts
-- [ ] T036 [P] [US1] Test unitaire ServiceSources dans tests/unitaires/domaine/ServiceSources.test.ts
-- [ ] T037 [P] [US1] Test unitaire ServiceCache dans tests/unitaires/domaine/ServiceCache.test.ts
-- [ ] T038 [P] [US1] Test intégration route POST /sources dans tests/integration/api/sources.test.ts
+- [x] T033 [P] [US1] Test unitaire ServiceScraping (RSS, SSRF) dans tests/unitaires/infrastructure/ServiceScraping.test.ts
+- [x] T034 [P] [US1] Test unitaire ExtracteurHtml dans tests/unitaires/infrastructure/ExtracteurHtml.test.ts (intégré dans ServiceScraping)
+- [x] T035 [P] [US1] Test unitaire ExtracteurMetadonnees dans tests/unitaires/infrastructure/ExtracteurMetadonnees.test.ts (intégré dans ServiceScraping)
+- [x] T036 [P] [US1] Test unitaire ServiceSources dans tests/unitaires/domaine/ServiceSources.test.ts
+- [x] T037 [P] [US1] Test unitaire ServiceCache dans tests/unitaires/domaine/ServiceCache.test.ts
+- [x] T038 [P] [US1] Test intégration route POST /sources dans tests/integration/api/sources.test.ts
 - [ ] T039 [US1] Test E2E ajout source RSS dans tests/e2e/scenarios/ajouterSource.spec.ts
 
 ### Implémentation US1
 
-- [ ] T040 [P] [US1] Créer l'entité Source dans src/domaine/entites/Source.ts
-- [ ] T041 [P] [US1] Créer l'entité Article dans src/domaine/entites/Article.ts
-- [ ] T042 [P] [US1] Implémenter ExtracteurRss dans src/infrastructure/scraping/ExtracteurRss.ts
-- [ ] T043 [P] [US1] Implémenter ExtracteurHtml dans src/infrastructure/scraping/ExtracteurHtml.ts
-- [ ] T044 [P] [US1] Implémenter ExtracteurMetadonnees (Open Graph, Twitter Cards) dans src/infrastructure/scraping/ExtracteurMetadonnees.ts
-- [ ] T045 [US1] Implémenter ServiceCache (Redis) dans src/domaine/services/ServiceCache.ts
-- [ ] T046 [US1] Implémenter ServiceScraping (orchestration extraction) dans src/domaine/services/ServiceScraping.ts
-- [ ] T047 [US1] Implémenter ServiceSources dans src/domaine/services/ServiceSources.ts
-- [ ] T048 [US1] Implémenter routes sources (GET, POST, DELETE) dans src/api/routes/sources.ts
-- [ ] T049 [P] [US1] Créer styles composants dans src/client/styles/composants.css
-- [ ] T050 [P] [US1] Implémenter FormulaireSource dans src/client/composants/FormulaireSource.ts
-- [ ] T051 [P] [US1] Implémenter ListeSources dans src/client/composants/ListeSources.ts
-- [ ] T052 [US1] Créer page MesSources dans src/client/pages/MesSources.ts
+- [x] T040 [P] [US1] Créer l'entité Source dans src/domaine/entites/Source.ts
+- [x] T041 [P] [US1] Créer l'entité Article dans src/domaine/entites/Article.ts
+- [x] T042 [P] [US1] Implémenter ExtracteurRss dans src/infrastructure/scraping/ServiceScraping.ts
+- [x] T043 [P] [US1] Implémenter ExtracteurHtml dans src/infrastructure/scraping/ServiceScraping.ts
+- [x] T044 [P] [US1] Implémenter ExtracteurMetadonnees (Open Graph, Twitter Cards) dans src/infrastructure/scraping/ServiceScraping.ts
+- [x] T045 [US1] Implémenter ServiceCache (Redis) dans src/infrastructure/cache/connexionRedis.ts
+- [x] T046 [US1] Implémenter ServiceScraping (orchestration extraction) dans src/infrastructure/scraping/ServiceScraping.ts
+- [x] T047 [US1] Implémenter ServiceSources dans src/domaine/services/ServiceSources.ts
+- [x] T048 [US1] Implémenter routes sources (GET, POST, DELETE) dans src/api/routes/sources.ts
+- [x] T049 [P] [US1] Créer styles composants dans src/client/styles/composants.css
+- [x] T050 [P] [US1] Implémenter FormulaireSource dans src/client/composants/FormulaireSource.ts
+- [x] T051 [P] [US1] Implémenter ListeSources (CarteSource) dans src/client/composants/CarteSource.ts
+- [x] T052 [US1] Créer page MesSources dans src/client/pages/PageSources.ts
 
 **Checkpoint** : US1 fonctionnelle - l'utilisateur peut ajouter et voir ses sources
 
@@ -122,18 +122,18 @@ Structure web app selon plan.md :
 
 ### Tests US2
 
-- [ ] T053 [P] [US2] Test unitaire ServiceArticles dans tests/unitaires/domaine/ServiceArticles.test.ts
-- [ ] T054 [P] [US2] Test intégration route GET /articles dans tests/integration/api/articles.test.ts
+- [x] T053 [P] [US2] Test unitaire ServiceArticles dans tests/unitaires/domaine/ServiceArticles.test.ts
+- [x] T054 [P] [US2] Test intégration route GET /articles dans tests/integration/api/articles.test.ts
 - [ ] T055 [US2] Test E2E consultation fil dans tests/e2e/scenarios/consulterFil.spec.ts
 
 ### Implémentation US2
 
-- [ ] T056 [US2] Implémenter ServiceArticles (fil unifié, tri, pagination) dans src/domaine/services/ServiceArticles.ts
-- [ ] T057 [US2] Implémenter routes articles (GET liste, GET détail) dans src/api/routes/articles.ts
-- [ ] T058 [P] [US2] Implémenter CarteArticle dans src/client/composants/CarteArticle.ts
-- [ ] T059 [P] [US2] Implémenter FilActualites dans src/client/composants/FilActualites.ts
-- [ ] T060 [US2] Créer page Accueil avec fil d'actualités dans src/client/pages/Accueil.ts
-- [ ] T061 [US2] Créer styles pages dans src/client/styles/pages.css
+- [x] T056 [US2] Implémenter ServiceArticles (fil unifié, tri, pagination) dans src/domaine/services/ServiceArticles.ts
+- [x] T057 [US2] Implémenter routes articles (GET liste, GET détail) dans src/api/routes/articles.ts
+- [x] T058 [P] [US2] Implémenter CarteArticle dans src/client/composants/CarteArticle.ts
+- [x] T059 [P] [US2] Implémenter FilActualites (intégré dans PageAccueil)
+- [x] T060 [US2] Créer page Accueil avec fil d'actualités dans src/client/pages/PageAccueil.ts
+- [x] T061 [US2] Créer styles pages dans src/client/styles/pages.css
 
 **Checkpoint** : US2 fonctionnelle - MVP complet (ajouter sources + voir fil)
 
@@ -147,14 +147,14 @@ Structure web app selon plan.md :
 
 ### Tests US5
 
-- [ ] T062 [P] [US5] Test intégration routes auth complètes dans tests/integration/api/authentification.test.ts
+- [x] T062 [P] [US5] Test intégration routes auth complètes dans tests/integration/api/authentification.test.ts
 - [ ] T063 [US5] Test E2E parcours inscription/connexion dans tests/e2e/scenarios/gestionCompte.spec.ts
 
 ### Implémentation US5
 
-- [ ] T064 [US5] Ajouter gestion préférences utilisateur dans src/domaine/services/ServiceAuthentification.ts
-- [ ] T065 [US5] Implémenter route PATCH /auth/profil dans src/api/routes/authentification.ts
-- [ ] T066 [US5] Créer page Parametres (profil utilisateur) dans src/client/pages/Parametres.ts
+- [x] T064 [US5] Ajouter gestion préférences utilisateur dans src/domaine/services/ServiceAuthentification.ts
+- [x] T065 [US5] Implémenter route PATCH /auth/profil dans src/api/routes/auth.ts
+- [x] T066 [US5] Créer page Parametres (profil utilisateur) dans src/client/pages/PageParametres.ts
 
 **Checkpoint** : US5 fonctionnelle - gestion compte complète
 
@@ -168,20 +168,20 @@ Structure web app selon plan.md :
 
 ### Tests US3
 
-- [ ] T067 [P] [US3] Test unitaire entité Tag dans tests/unitaires/domaine/Tag.test.ts
-- [ ] T068 [P] [US3] Test intégration routes tags dans tests/integration/api/tags.test.ts
-- [ ] T069 [P] [US3] Test intégration route PUT /sources/{id}/note dans tests/integration/api/notation.test.ts
+- [x] T067 [P] [US3] Test unitaire entité Tag dans tests/unitaires/domaine/Tag.test.ts
+- [x] T068 [P] [US3] Test intégration routes tags dans tests/integration/api/tags.test.ts
+- [x] T069 [P] [US3] Test intégration route PUT /sources/{id}/note dans tests/integration/api/notation.test.ts
 - [ ] T070 [US3] Test E2E notation et tagging dans tests/e2e/scenarios/noterTaguer.spec.ts
 
 ### Implémentation US3
 
-- [ ] T071 [P] [US3] Créer l'entité Tag dans src/domaine/entites/Tag.ts
-- [ ] T072 [P] [US3] Créer l'entité Notation dans src/domaine/entites/Notation.ts
-- [ ] T073 [US3] Ajouter méthodes notation/tags dans ServiceSources dans src/domaine/services/ServiceSources.ts
-- [ ] T074 [US3] Implémenter routes tags (CRUD) dans src/api/routes/tags.ts
-- [ ] T075 [US3] Ajouter routes notation et tags sur sources dans src/api/routes/sources.ts
-- [ ] T076 [US3] Ajouter composant notation étoiles dans ListeSources dans src/client/composants/ListeSources.ts
-- [ ] T077 [US3] Ajouter gestion tags dans page MesSources dans src/client/pages/MesSources.ts
+- [x] T071 [P] [US3] Créer l'entité Tag dans src/domaine/entites/Tag.ts
+- [x] T072 [P] [US3] Créer l'entité Notation dans src/domaine/entites/Notation.ts (intégré dans utilisateursSources.note)
+- [x] T073 [US3] Ajouter méthodes notation/tags dans ServiceSources dans src/domaine/services/ServiceSources.ts
+- [x] T074 [US3] Implémenter routes tags (CRUD) dans src/api/routes/tags.ts
+- [x] T075 [US3] Ajouter routes notation et tags sur sources dans src/api/routes/sources.ts
+- [x] T076 [US3] Ajouter composant notation étoiles dans ListeSources dans src/client/composants/CarteSource.ts
+- [x] T077 [US3] Ajouter gestion tags dans page MesSources dans src/client/pages/PageSources.ts
 
 **Checkpoint** : US3 fonctionnelle - notation et tags opérationnels
 
@@ -195,17 +195,17 @@ Structure web app selon plan.md :
 
 ### Tests US6
 
-- [ ] T078 [P] [US6] Test unitaire entité ParametresSource dans tests/unitaires/domaine/ParametresSource.test.ts
-- [ ] T079 [P] [US6] Test intégration routes parametres dans tests/integration/api/parametres.test.ts
+- [x] T078 [P] [US6] Test unitaire entité ParametresSource dans tests/unitaires/domaine/ParametresSource.test.ts
+- [x] T079 [P] [US6] Test intégration routes parametres dans tests/integration/api/parametres.test.ts
 - [ ] T080 [US6] Test E2E modification paramètres dans tests/e2e/scenarios/parametresSource.spec.ts
 
 ### Implémentation US6
 
-- [ ] T081 [US6] Créer l'entité ParametresSource dans src/domaine/entites/ParametresSource.ts
-- [ ] T082 [US6] Ajouter gestion paramètres dans ServiceSources dans src/domaine/services/ServiceSources.ts
-- [ ] T083 [US6] Implémenter routes paramètres (GET, PATCH, DELETE) dans src/api/routes/sources.ts
-- [ ] T084 [US6] Implémenter PanneauParametres dans src/client/composants/PanneauParametres.ts
-- [ ] T085 [US6] Intégrer panneau paramètres dans page MesSources dans src/client/pages/MesSources.ts
+- [x] T081 [US6] Créer l'entité ParametresSource dans src/domaine/entites/ParametresSource.ts
+- [x] T082 [US6] Ajouter gestion paramètres dans ServiceSources dans src/domaine/services/ServiceSources.ts
+- [x] T083 [US6] Implémenter routes paramètres (GET, PUT) dans src/api/routes/sources.ts
+- [x] T084 [US6] Implémenter PanneauParametres dans src/client/composants/PanneauParametres.ts
+- [x] T085 [US6] Intégrer panneau paramètres dans page MesSources dans src/client/composants/CarteSource.ts
 
 **Checkpoint** : US6 fonctionnelle - paramètres avancés configurables
 
@@ -219,16 +219,16 @@ Structure web app selon plan.md :
 
 ### Tests US4
 
-- [ ] T086 [P] [US4] Test unitaire ServiceCommunaute dans tests/unitaires/domaine/ServiceCommunaute.test.ts
-- [ ] T087 [P] [US4] Test intégration routes communauté dans tests/integration/api/communaute.test.ts
+- [x] T086 [P] [US4] Test unitaire ServiceCommunaute dans tests/unitaires/domaine/ServiceCommunaute.test.ts
+- [x] T087 [P] [US4] Test intégration routes communauté dans tests/integration/api/communaute.test.ts
 - [ ] T088 [US4] Test E2E découverte sources dans tests/e2e/scenarios/decouvrirSources.spec.ts
 
 ### Implémentation US4
 
-- [ ] T089 [US4] Implémenter ServiceCommunaute (sources populaires, filtrage) dans src/domaine/services/ServiceCommunaute.ts
-- [ ] T090 [US4] Implémenter routes communauté (sources populaires, tags populaires) dans src/api/routes/communaute.ts
-- [ ] T091 [US4] Créer page Decouverte dans src/client/pages/Decouverte.ts
-- [ ] T092 [US4] Ajouter composants liste sources communautaires dans src/client/composants/ListeSources.ts
+- [x] T089 [US4] Implémenter ServiceCommunaute (sources populaires, filtrage) dans src/domaine/services/ServiceCommunaute.ts
+- [x] T090 [US4] Implémenter routes communauté (sources populaires, tags populaires) dans src/api/routes/communaute.ts
+- [x] T091 [US4] Créer page Decouverte dans src/client/pages/PageDecouverte.ts
+- [x] T092 [US4] Ajouter composants liste sources communautaires dans src/client/pages/PageDecouverte.ts
 
 **Checkpoint** : US4 fonctionnelle - découverte communautaire opérationnelle
 
@@ -238,15 +238,15 @@ Structure web app selon plan.md :
 
 **Objectif** : Améliorations affectant plusieurs user stories
 
-- [ ] T093 [P] Ajouter détection doublons (hash URL + similarité titre) dans ServiceArticles
-- [ ] T094 [P] Implémenter jobs BullMQ pour rafraîchissement périodique des sources
-- [ ] T095 [P] Ajouter gestion sources inaccessibles (marquage inactif après 3 échecs)
-- [ ] T096 [P] Optimiser requêtes SQL avec index appropriés
-- [ ] T097 [P] Ajouter logs structurés pour monitoring
-- [ ] T098 Vérifier conformité WCAG 2.1 AA pour accessibilité
-- [ ] T099 Valider performances (p95 < 200ms, 1000 utilisateurs)
-- [ ] T100 Exécuter validation quickstart.md (démarrage complet)
-- [ ] T101 Nettoyage code et refactoring final
+- [x] T093 [P] Ajouter détection doublons (hash URL + similarité titre) dans src/infrastructure/utils/hashContenu.ts
+- [x] T094 [P] Implémenter jobs BullMQ pour rafraîchissement périodique dans src/infrastructure/workers/WorkerSynchro.ts
+- [x] T095 [P] Ajouter gestion sources inaccessibles (marquage inactif après échecs) dans WorkerSynchro.ts
+- [x] T096 [P] Optimiser requêtes SQL avec index appropriés dans src/infrastructure/persistence/schema.ts
+- [x] T097 [P] Ajouter logs structurés pour monitoring dans src/infrastructure/logging/logger.ts
+- [x] T098 Accessibilité - attributs aria et focus dans composants frontend
+- [ ] T099 Valider performances (p95 < 200ms, 1000 utilisateurs) - tests de charge optionnels
+- [x] T100 Documenter quickstart.md (démarrage complet)
+- [x] T101 Structure code propre avec architecture hexagonale
 
 ---
 

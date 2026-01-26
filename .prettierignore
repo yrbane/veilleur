@@ -1,0 +1,25 @@
+# Veilleur - Prettier Ignore
+
+# Dépendances
+node_modules/
+
+# Build
+dist/
+build/
+
+# Coverage
+coverage/
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Fichiers générés
+drizzle/migrations/
+
+# Markdown (formaté manuellement)
+*.md
+
+# YAML configs
+docker-compose*.yml
