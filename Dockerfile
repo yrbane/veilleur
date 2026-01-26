@@ -81,7 +81,7 @@ ENV NODE_ENV=development
 
 # Installer les dépendances de développement
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 # Le code source sera monté en volume
 COPY . .

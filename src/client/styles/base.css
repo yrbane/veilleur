@@ -1,0 +1,209 @@
+/**
+ * Veilleur - Styles de base
+ * Layout principal et éléments communs
+ */
+
+body {
+  font-family: var(--police-sans);
+  font-size: var(--taille-base);
+  color: var(--couleur-texte);
+  background-color: var(--couleur-fond);
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* En-tête */
+.entete {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background-color: var(--couleur-fond-carte);
+  border-bottom: 1px solid var(--couleur-bordure);
+  box-shadow: var(--ombre-sm);
+}
+
+.navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espace-4);
+  max-width: var(--largeur-max-contenu);
+  margin: 0 auto;
+  padding: var(--espace-3) var(--espace-4);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--espace-2);
+  font-size: var(--taille-xl);
+  font-weight: var(--poids-bold);
+  color: var(--couleur-primaire);
+}
+
+.logo-icone {
+  font-size: var(--taille-2xl);
+}
+
+.nav-liens {
+  display: flex;
+  gap: var(--espace-1);
+}
+
+.nav-lien {
+  padding: var(--espace-2) var(--espace-3);
+  border-radius: var(--rayon-md);
+  font-weight: var(--poids-medium);
+  color: var(--couleur-texte-secondaire);
+  transition: all var(--transition-rapide);
+}
+
+.nav-lien:hover {
+  background-color: var(--couleur-fond-hover);
+  color: var(--couleur-texte);
+}
+
+.nav-lien.actif {
+  background-color: var(--couleur-primaire-light);
+  color: var(--couleur-primaire);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--espace-2);
+}
+
+/* Contenu principal */
+.contenu-principal {
+  flex: 1;
+  max-width: var(--largeur-max-contenu);
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--espace-6) var(--espace-4);
+}
+
+/* Pied de page */
+.pied-page {
+  background-color: var(--couleur-fond-carte);
+  border-top: 1px solid var(--couleur-bordure);
+  padding: var(--espace-4);
+  text-align: center;
+  font-size: var(--taille-sm);
+  color: var(--couleur-texte-muted);
+}
+
+/* Chargement */
+.chargement {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espace-4);
+  padding: var(--espace-16) 0;
+  color: var(--couleur-texte-secondaire);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--couleur-bordure);
+  border-top-color: var(--couleur-primaire);
+  border-radius: var(--rayon-full);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Messages vides */
+.message-vide {
+  text-align: center;
+  padding: var(--espace-12) var(--espace-4);
+  color: var(--couleur-texte-secondaire);
+}
+
+.message-vide-icone {
+  font-size: 3rem;
+  margin-bottom: var(--espace-4);
+}
+
+.message-vide-titre {
+  font-size: var(--taille-lg);
+  font-weight: var(--poids-semibold);
+  margin-bottom: var(--espace-2);
+}
+
+/* Titres */
+h1 {
+  font-size: var(--taille-3xl);
+  font-weight: var(--poids-bold);
+  margin-bottom: var(--espace-6);
+}
+
+h2 {
+  font-size: var(--taille-2xl);
+  font-weight: var(--poids-semibold);
+  margin-bottom: var(--espace-4);
+}
+
+h3 {
+  font-size: var(--taille-xl);
+  font-weight: var(--poids-semibold);
+  margin-bottom: var(--espace-3);
+}
+
+/* Liens */
+a.lien {
+  color: var(--couleur-primaire);
+  transition: color var(--transition-rapide);
+}
+
+a.lien:hover {
+  color: var(--couleur-primaire-hover);
+  text-decoration: underline;
+}
+
+/* Utilitaires */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.masque {
+  display: none !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .navigation {
+    flex-wrap: wrap;
+  }
+
+  .nav-liens {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    padding-top: var(--espace-2);
+    border-top: 1px solid var(--couleur-bordure);
+    margin-top: var(--espace-2);
+  }
+
+  .contenu-principal {
+    padding: var(--espace-4) var(--espace-3);
+  }
+}

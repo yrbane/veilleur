@@ -1,55 +1,42 @@
 # Plan d'Implémentation : Veilleur
 
-**Projet** : **Veilleur** - Votre sentinelle de l'information
-**Repository** : https://github.com/yrbane/veilleur
 **Branche** : `001-agregateur-actualites` | **Date** : 2025-12-05 | **Spec** : [spec.md](./spec.md)
+**Entrée** : Spécification de fonctionnalité depuis `/specs/001-agregateur-actualites/spec.md`
 
 ## Résumé
 
-**Veilleur** est un agrégateur d'actualités libre permettant aux utilisateurs
-d'ajouter leurs propres sources RSS/web, de les noter, taguer, et découvrir
-des sources via la communauté. Le système inclut un cache agressif,
-l'extraction des métadonnées sociales (Open Graph, Twitter Cards), et des
-paramètres avancés par source.
+Agrégateur d'actualités libre permettant aux utilisateurs d'ajouter des sources RSS
+et sites web, de consulter un fil unifié d'articles, de noter et taguer leurs sources,
+et de découvrir des sources via la communauté. Architecture full-stack avec API
+Fastify, frontend Vanilla TypeScript/Web Components, persistance MariaDB/Redis.
 
 ## Contexte Technique
 
-**Langage/Version** : TypeScript 5.7+ (Node.js 22 LTS)
-**Dépendances Principales** :
-- Backend : Fastify 5.x, Drizzle ORM 0.36+
-- Frontend : Vanilla TypeScript, Vite 6.x
-- Scraping : cheerio, rss-parser
-- Cache : ioredis
-
-**Stockage** : MariaDB 11.x + Redis 7.x
-**Tests** : Vitest + Playwright
-**Plateforme Cible** : Linux server (backend), navigateurs modernes (frontend)
-**Type de Projet** : Application web (backend + frontend)
-**Objectifs Performance** :
-- p95 < 200ms pour les requêtes API
-- 1000 utilisateurs simultanés
-- 90% des requêtes servies depuis le cache
-
-**Contraintes** :
-- Cache partagé entre utilisateurs (1 requête/source/intervalle)
-- Respect des robots.txt
-- Rate limiting côté client
-
-**Échelle** : 1000+ utilisateurs, 100 sources/utilisateur max
+**Langage/Version** : Node.js 22 LTS, TypeScript 5.7+
+**Dépendances Principales** : Fastify 5.x, Drizzle ORM, BullMQ, cheerio, rss-parser
+**Stockage** : MariaDB 11.x (données), Redis 7.x (cache, sessions, files d'attente)
+**Tests** : Vitest (unitaires/intégration), Playwright (E2E)
+**Plateforme Cible** : Docker (Linux containers), navigateurs modernes
+**Type de Projet** : Web application (backend API + frontend SPA)
+**Objectifs de Performance** : p95 < 500ms, p99 < 1s, 100 req/s, 1000 utilisateurs simultanés
+**Contraintes** : Rate limiting 60 req/min (IP) / 300 req/min (user), cache 90% hit rate
+**Échelle/Portée** : 1000 utilisateurs, 100 sources/utilisateur, ~10k articles en cache
 
 ## Vérification Constitution
 
-*PORTE : Doit passer avant la Phase 0. Revérifier après la Phase 1.*
+*GATE : Doit passer avant Phase 0. Revérification après Phase 1.*
 
-| Principe | Statut | Conformité |
-|----------|--------|------------|
-| I. TDD First | ✅ | Tests Vitest écrits avant implémentation |
-| II. Security by Design | ✅ | Validation entrées, auth JWT, HTTPS, sanitization |
-| III. Performance First | ✅ | Cache Redis, requêtes optimisées, lazy loading |
-| IV. SOLID Code | ✅ | Architecture en couches, injection dépendances |
-| V. Ergonomie | ✅ | UI intuitive, messages clairs, responsive |
-| VI. Langue Française | ✅ | Code, variables, commentaires en français |
-| VII. Harmonie Esthétique | ✅ | CSS moderne, design system cohérent |
+| Principe | Statut | Justification |
+|----------|--------|---------------|
+| I. TDD First | ✅ PASS | Tests écrits avant implémentation, Vitest + Playwright configurés |
+| II. Security by Design | ✅ PASS | JWT + 2FA, validation Zod, rate limiting, bcrypt passwords |
+| III. Performance First | ✅ PASS | Cibles définies (p95<500ms), cache Redis agressif, BullMQ async |
+| IV. SOLID Code | ✅ PASS | Architecture hexagonale domaine/infrastructure/api |
+| V. Usability | ✅ PASS | Messages français clairs, UX validée par stories |
+| VI. Langue Française | ✅ PASS | Tout le code et docs en français |
+| VII. Harmonie Esthétique | ✅ PASS | Formatage Prettier, CSS moderne, charte unifiée |
+
+**Résultat** : ✅ Tous les gates passent - autorisation de procéder.
 
 ## Structure du Projet
 
@@ -57,115 +44,139 @@ paramètres avancés par source.
 
 ```text
 specs/001-agregateur-actualites/
-├── plan.md              # Ce fichier
 ├── spec.md              # Spécification fonctionnelle
-├── research.md          # Recherche Phase 0
-├── data-model.md        # Modèle de données Phase 1
-├── quickstart.md        # Guide de démarrage Phase 1
-├── contracts/           # Contrats API Phase 1
-│   └── api.yaml         # Spécification OpenAPI
-└── tasks.md             # Tâches (créé par /speckit.tasks)
+├── plan.md              # Ce fichier
+├── research.md          # Phase 0 : recherche technique
+├── data-model.md        # Phase 1 : modèle de données
+├── quickstart.md        # Phase 1 : guide de démarrage
+├── contracts/           # Phase 1 : contrats API
+│   └── api.yaml         # OpenAPI 3.1
+└── tasks.md             # Phase 2 : tâches (via /speckit.tasks)
 ```
 
 ### Code Source (racine du dépôt)
 
 ```text
 src/
-├── domaine/
-│   ├── entites/
+├── domaine/                    # Logique métier pure
+│   ├── entites/                # Entités du domaine
 │   │   ├── Utilisateur.ts
 │   │   ├── Source.ts
 │   │   ├── Article.ts
-│   │   ├── ParametresSource.ts
 │   │   ├── Tag.ts
-│   │   └── Notation.ts
-│   └── services/
-│       ├── ServiceAuthentification.ts
-│       ├── ServiceSources.ts
-│       ├── ServiceArticles.ts
-│       ├── ServiceCache.ts
-│       ├── ServiceScraping.ts
-│       └── ServiceCommunaute.ts
+│   │   └── index.ts
+│   ├── services/               # Services métier
+│   │   ├── ServiceAuthentification.ts
+│   │   ├── ServiceSources.ts
+│   │   ├── ServiceArticles.ts
+│   │   ├── ServiceTags.ts
+│   │   └── ServiceDecouverte.ts
+│   └── ports/                  # Interfaces (contrats)
+│       ├── DepotUtilisateurs.ts
+│       ├── DepotSources.ts
+│       ├── DepotArticles.ts
+│       └── ServiceCache.ts
 │
-├── infrastructure/
-│   ├── bdd/
-│   │   ├── schema.ts
-│   │   ├── migrations/
-│   │   └── ClientMariaDB.ts
-│   ├── cache/
-│   │   └── ClientRedis.ts
-│   ├── scraping/
-│   │   ├── ExtracteurRss.ts
-│   │   ├── ExtracteurHtml.ts
-│   │   └── ExtracteurMetadonnees.ts
-│   └── http/
-│       └── ClientHttp.ts
+├── infrastructure/             # Implémentations techniques
+│   ├── persistence/            # Accès données
+│   │   ├── schema.ts           # Schéma Drizzle
+│   │   ├── DepotUtilisateursMariaDB.ts
+│   │   ├── DepotSourcesMariaDB.ts
+│   │   └── DepotArticlesMariaDB.ts
+│   ├── cache/                  # Cache Redis
+│   │   ├── ServiceCacheRedis.ts
+│   │   └── gestionnaireSessions.ts
+│   ├── scraping/               # Extraction articles
+│   │   ├── extracteurRSS.ts
+│   │   ├── extracteurHTML.ts
+│   │   ├── extracteurMetadonnees.ts
+│   │   └── detecteurFlux.ts
+│   └── files/                  # Files d'attente BullMQ
+│       ├── fileRafraichissement.ts
+│       └── travailleurs/
+│           └── travailleurScraping.ts
 │
-├── api/
+├── api/                        # Couche HTTP Fastify
+│   ├── serveur.ts              # Point d'entrée
 │   ├── routes/
 │   │   ├── authentification.ts
 │   │   ├── sources.ts
 │   │   ├── articles.ts
 │   │   ├── tags.ts
-│   │   └── communaute.ts
+│   │   ├── decouverte.ts
+│   │   └── sante.ts
 │   ├── middlewares/
 │   │   ├── authentification.ts
-│   │   ├── validation.ts
-│   │   └── rateLimiting.ts
-│   └── serveur.ts
+│   │   ├── rateLimiting.ts
+│   │   └── validation.ts
+│   └── schemas/                # Schémas Zod pour validation
+│       ├── authentification.ts
+│       ├── sources.ts
+│       └── articles.ts
 │
-└── client/
+└── client/                     # Frontend Vanilla TS
     ├── index.html
-    ├── main.ts
     ├── styles/
-    │   ├── base.css
+    │   ├── variables.css
     │   ├── composants.css
-    │   ├── pages.css
-    │   └── themes.css
+    │   └── pages.css
     ├── composants/
-    │   ├── CarteArticle.ts
+    │   ├── CartArticle.ts
     │   ├── ListeSources.ts
-    │   ├── FilActualites.ts
     │   ├── FormulaireSource.ts
-    │   ├── PanneauParametres.ts
-    │   └── NavigationPrincipale.ts
+    │   └── Navigation.ts
     ├── pages/
-    │   ├── Accueil.ts
-    │   ├── MesSources.ts
-    │   ├── Decouverte.ts
-    │   ├── Parametres.ts
-    │   └── Connexion.ts
+    │   ├── PageAccueil.ts
+    │   ├── PageFil.ts
+    │   ├── PageSources.ts
+    │   ├── PageDecouverte.ts
+    │   └── PageConnexion.ts
     └── services/
-        ├── ClientApi.ts
-        ├── GestionnaireTheme.ts
-        └── GestionnaireEtat.ts
+        ├── clientApi.ts
+        └── gestionnaireAuth.ts
 
 tests/
 ├── unitaires/
 │   ├── domaine/
 │   └── infrastructure/
 ├── integration/
-│   └── api/
+│   ├── api/
+│   └── persistence/
 └── e2e/
-    └── scenarios/
+    ├── authentification.spec.ts
+    ├── sources.spec.ts
+    └── fil.spec.ts
 
-drizzle.config.ts
-vite.config.ts
-vitest.config.ts
-playwright.config.ts
-tsconfig.json
-package.json
+drizzle/
+└── migrations/                 # Migrations SQL générées
 ```
 
-**Décision de Structure** : Architecture en couches (domaine/infrastructure/api/client)
-suivant les principes SOLID et permettant une séparation claire des responsabilités.
-Le frontend vanilla TypeScript est servi par Vite en développement et construit
-en statique pour la production.
+**Décision de Structure** : Architecture hexagonale (Ports & Adapters) avec séparation
+claire domaine/infrastructure/api. Le frontend utilise des Web Components natifs
+sans framework pour minimiser la complexité.
 
 ## Suivi de Complexité
 
-> Aucune violation de la constitution identifiée.
+> Aucune violation de constitution détectée - section non applicable.
 
-| Violation | Justification | Alternative Rejetée |
-|-----------|---------------|---------------------|
-| - | - | - |
+## Phases d'Implémentation
+
+### Phase 0 : Recherche (research.md)
+
+Recherche technique sur :
+- Meilleures pratiques JWT refresh tokens avec Fastify
+- Stratégies de cache Redis pour articles
+- Parsing RSS/Atom avec rss-parser
+- Extraction métadonnées Open Graph avec cheerio
+- Configuration BullMQ pour files de scraping
+- Schéma Drizzle ORM pour MariaDB
+
+### Phase 1 : Design (data-model.md, contracts/, quickstart.md)
+
+1. Modèle de données complet avec relations
+2. Contrat API OpenAPI 3.1
+3. Guide de démarrage développeur
+
+### Phase 2 : Tâches (tasks.md)
+
+Décomposition en tâches atomiques via `/speckit.tasks`

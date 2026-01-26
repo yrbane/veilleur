@@ -7,6 +7,16 @@
 **Statut** : Brouillon
 **Description** : Agrégateur d'actualités libre avec scraping RSS et sites web
 
+## Clarifications
+
+### Session 2025-12-05
+
+- Q: Stratégie d'authentification ? → A: JWT access + refresh tokens (stateless)
+- Q: Cibles de performance API ? → A: p95 < 500ms, p99 < 1s, 100 req/s
+- Q: Exigences mot de passe ? → A: 10 car. min, 1 majuscule + 1 chiffre, 2FA optionnelle (email/appli)
+- Q: Rate limiting API ? → A: 60 req/min par IP, 300 req/min par user authentifié
+- Q: Logging et observabilité ? → A: Logs JSON (pino) + Prometheus + console colorée en dev
+
 ## Scénarios Utilisateur & Tests *(obligatoire)*
 
 ### Story 1 - Ajouter une source d'actualités (Priorité : P1)
@@ -213,7 +223,15 @@ et constater que le comportement change conformément aux réglages.
 ### Exigences Fonctionnelles
 
 - **EF-001** : Le système DOIT permettre aux utilisateurs de créer un compte avec
-  email et mot de passe.
+  email et mot de passe. L'authentification utilise JWT stateless avec access
+  tokens (courte durée) et refresh tokens (longue durée) pour la persistance
+  des sessions multi-appareils.
+
+- **EF-001a** : Le mot de passe DOIT respecter : minimum 10 caractères, au moins
+  1 majuscule et 1 chiffre.
+
+- **EF-001b** : Le système DOIT proposer une authentification à deux facteurs
+  (2FA) optionnelle via email (code OTP) ou application d'authentification (TOTP).
 
 - **EF-002** : Le système DOIT permettre l'ajout de sources via URL (flux RSS ou
   site web).
@@ -324,6 +342,22 @@ et constater que le comportement change conformément aux réglages.
 - **EF-036** : Le système DOIT valider les paramètres et afficher des
   avertissements si les valeurs risquent de causer des problèmes (ex: fréquence
   trop élevée pouvant être bloquée par la source).
+
+### Exigences Non-Fonctionnelles
+
+- **ENF-001** : Performance API - Latence p95 < 500ms, p99 < 1s pour tous les
+  endpoints. Throughput minimum de 100 requêtes/seconde.
+
+- **ENF-002** : Le système DOIT supporter 1000 utilisateurs simultanés sans
+  dégradation de performance.
+
+- **ENF-003** : Rate limiting API - Maximum 60 requêtes/minute par adresse IP
+  pour les visiteurs anonymes, 300 requêtes/minute par utilisateur authentifié.
+  Réponse HTTP 429 avec header Retry-After en cas de dépassement.
+
+- **ENF-004** : Observabilité - Logs JSON structurés via pino en production,
+  affichage console coloré (pino-pretty) en développement. Endpoint /metrics
+  exposant les métriques Prometheus (latences, throughput, erreurs, cache hit rate).
 
 ### Entités Clés
 
