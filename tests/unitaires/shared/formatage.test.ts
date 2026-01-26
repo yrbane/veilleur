@@ -4,68 +4,91 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
-  formaterDate,
-  formaterDateRelative,
-  formaterNombre,
-  formaterOctets,
-  formaterDuree,
-  formaterPourcentage,
+  formatageRelatif,
+  formatageDateCourt,
+  formatageDateLong,
+  formatageDateMoyen,
+  formatageDateHeure,
+  formattageHeure,
+  formatageDuree,
+  formatageDureeCourt,
+  formatageNombre,
+  formatageNombreAbrege,
+  formatagePourcentage,
+  formatageMonnaie,
+  formatageOrdinal,
+  formatageTaille,
   tronquer,
-  capitaliser,
-  pluraliser,
-  slugifier,
-  extraireInitiales,
-  formaterListeTexte,
-  stripHtml,
-  escapeHtml,
-  unescapeHtml,
+  tronquerMot,
+  slugify,
+  majuscule,
+  majusculeChaqueMot,
+  labeliser,
+  pluriel,
+  avecUnite,
+  initiales,
+  sansBalisesHtml,
+  echapperHtml,
+  formatageListe,
+  extraireDomaine,
+  formatageUrl,
+  format,
 } from '@shared/utils/formatage';
 
 describe('formatage', () => {
-  describe('formaterDate', () => {
-    it('devrait formater une date avec le format par défaut', () => {
-      const date = new Date('2024-03-15T14:30:00');
-      const resultat = formaterDate(date);
-      expect(resultat).toMatch(/15.*mars.*2024/i);
-    });
-
-    it('devrait formater avec un format court', () => {
+  describe('formatageDateCourt', () => {
+    it('devrait formater une date en format court', () => {
       const date = new Date('2024-03-15');
-      const resultat = formaterDate(date, { format: 'court' });
-      expect(resultat).toMatch(/15\/03\/2024|15\.03\.2024/);
-    });
-
-    it('devrait formater avec un format long', () => {
-      const date = new Date('2024-03-15');
-      const resultat = formaterDate(date, { format: 'long' });
-      expect(resultat.toLowerCase()).toContain('mars');
-      expect(resultat).toContain('2024');
-    });
-
-    it('devrait inclure l\'heure si demandé', () => {
-      const date = new Date('2024-03-15T14:30:00');
-      const resultat = formaterDate(date, { inclureHeure: true });
-      expect(resultat).toMatch(/14[h:]30/);
+      const resultat = formatageDateCourt(date);
+      expect(resultat).toMatch(/15\/03\/2024/);
     });
 
     it('devrait gérer un timestamp', () => {
       const timestamp = new Date('2024-03-15').getTime();
-      const resultat = formaterDate(timestamp);
+      const resultat = formatageDateCourt(timestamp);
       expect(resultat).toContain('15');
     });
 
     it('devrait gérer une chaîne ISO', () => {
-      const resultat = formaterDate('2024-03-15T14:30:00Z');
+      const resultat = formatageDateCourt('2024-03-15T14:30:00Z');
       expect(resultat).toContain('15');
-    });
-
-    it('devrait retourner le fallback pour une date invalide', () => {
-      const resultat = formaterDate('invalid', { fallback: 'Date inconnue' });
-      expect(resultat).toBe('Date inconnue');
     });
   });
 
-  describe('formaterDateRelative', () => {
+  describe('formatageDateLong', () => {
+    it('devrait formater avec un format long', () => {
+      const date = new Date('2024-03-15');
+      const resultat = formatageDateLong(date);
+      expect(resultat.toLowerCase()).toContain('mars');
+      expect(resultat).toContain('2024');
+    });
+  });
+
+  describe('formatageDateMoyen', () => {
+    it('devrait formater en format moyen', () => {
+      const date = new Date('2024-03-15');
+      const resultat = formatageDateMoyen(date);
+      expect(resultat).toContain('2024');
+    });
+  });
+
+  describe('formatageDateHeure', () => {
+    it('devrait inclure l\'heure', () => {
+      const date = new Date('2024-03-15T14:30:00');
+      const resultat = formatageDateHeure(date);
+      expect(resultat).toMatch(/14[h:]30/);
+    });
+  });
+
+  describe('formattageHeure', () => {
+    it('devrait formater l\'heure', () => {
+      const date = new Date('2024-03-15T14:30:00');
+      const resultat = formattageHeure(date);
+      expect(resultat).toMatch(/14[h:]30/);
+    });
+  });
+
+  describe('formatageRelatif', () => {
     beforeEach(() => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2024-03-15T12:00:00Z'));
@@ -77,327 +100,372 @@ describe('formatage', () => {
 
     it('devrait afficher "à l\'instant" pour maintenant', () => {
       const date = new Date('2024-03-15T12:00:00Z');
-      const resultat = formaterDateRelative(date);
-      expect(resultat.toLowerCase()).toMatch(/instant|seconde|maintenant/);
+      const resultat = formatageRelatif(date);
+      expect(resultat.toLowerCase()).toMatch(/instant/);
+    });
+
+    it('devrait afficher les secondes', () => {
+      const date = new Date('2024-03-15T11:59:30Z');
+      const resultat = formatageRelatif(date);
+      expect(resultat.toLowerCase()).toMatch(/secondes/);
     });
 
     it('devrait afficher les minutes', () => {
       const date = new Date('2024-03-15T11:55:00Z');
-      const resultat = formaterDateRelative(date);
-      expect(resultat.toLowerCase()).toMatch(/5.*min|il y a 5/i);
+      const resultat = formatageRelatif(date);
+      expect(resultat.toLowerCase()).toMatch(/5.*minutes/i);
     });
 
     it('devrait afficher les heures', () => {
       const date = new Date('2024-03-15T09:00:00Z');
-      const resultat = formaterDateRelative(date);
-      expect(resultat.toLowerCase()).toMatch(/3.*heure|il y a 3/i);
+      const resultat = formatageRelatif(date);
+      expect(resultat.toLowerCase()).toMatch(/3.*heures/i);
     });
 
     it('devrait afficher "hier"', () => {
       const date = new Date('2024-03-14T12:00:00Z');
-      const resultat = formaterDateRelative(date);
-      expect(resultat.toLowerCase()).toMatch(/hier|1.*jour/i);
+      const resultat = formatageRelatif(date);
+      expect(resultat.toLowerCase()).toBe('hier');
     });
 
     it('devrait afficher les jours', () => {
       const date = new Date('2024-03-12T12:00:00Z');
-      const resultat = formaterDateRelative(date);
-      expect(resultat.toLowerCase()).toMatch(/3.*jour|il y a 3/i);
+      const resultat = formatageRelatif(date);
+      expect(resultat.toLowerCase()).toMatch(/3.*jours/i);
     });
 
-    it('devrait afficher la date pour les dates anciennes', () => {
+    it('devrait afficher les semaines', () => {
+      const date = new Date('2024-03-01T12:00:00Z');
+      const resultat = formatageRelatif(date);
+      expect(resultat.toLowerCase()).toMatch(/semaine/);
+    });
+
+    it('devrait afficher les mois', () => {
       const date = new Date('2024-01-15T12:00:00Z');
-      const resultat = formaterDateRelative(date);
-      // Peut afficher la date ou "il y a X mois"
-      expect(resultat).toBeTruthy();
+      const resultat = formatageRelatif(date);
+      expect(resultat.toLowerCase()).toMatch(/mois/);
+    });
+
+    it('devrait afficher les années', () => {
+      const date = new Date('2022-03-15T12:00:00Z');
+      const resultat = formatageRelatif(date);
+      expect(resultat.toLowerCase()).toMatch(/ans/);
     });
   });
 
-  describe('formaterNombre', () => {
+  describe('formatageNombre', () => {
     it('devrait formater un nombre simple', () => {
-      expect(formaterNombre(1234)).toMatch(/1[\s,.]?234/);
+      const resultat = formatageNombre(1234);
+      // Format français avec espace insécable
+      expect(resultat.replace(/\s/g, '')).toBe('1234');
     });
 
     it('devrait formater avec des décimales', () => {
-      const resultat = formaterNombre(1234.567, { decimales: 2 });
-      expect(resultat).toMatch(/1[\s,.]?234[,.]57/);
-    });
-
-    it('devrait formater en notation compacte', () => {
-      const resultat = formaterNombre(1500000, { compact: true });
-      expect(resultat.toLowerCase()).toMatch(/1[,.]?5?\s*m|million/);
+      const resultat = formatageNombre(1234.56, 2);
+      // Format français avec espace insécable ou fin
+      expect(resultat.replace(/\s/g, '')).toContain('1234');
+      expect(resultat).toContain('56');
     });
 
     it('devrait gérer les grands nombres', () => {
-      const resultat = formaterNombre(1000000000);
-      expect(resultat).toBeTruthy();
-    });
-
-    it('devrait gérer les petits nombres', () => {
-      expect(formaterNombre(0.001, { decimales: 3 })).toMatch(/0[,.]001/);
+      const resultat = formatageNombre(1000000);
+      expect(resultat.replace(/\s/g, '')).toBe('1000000');
     });
 
     it('devrait gérer les nombres négatifs', () => {
-      const resultat = formaterNombre(-1234);
-      expect(resultat).toContain('1234');
-      expect(resultat).toMatch(/-|−/);
+      const resultat = formatageNombre(-1234);
+      expect(resultat).toContain('-');
     });
   });
 
-  describe('formaterOctets', () => {
+  describe('formatageNombreAbrege', () => {
+    it('devrait formater en k pour les milliers', () => {
+      const resultat = formatageNombreAbrege(1500);
+      expect(resultat).toBe('1.5k');
+    });
+
+    it('devrait formater en M pour les millions', () => {
+      const resultat = formatageNombreAbrege(2500000);
+      expect(resultat).toBe('2.5M');
+    });
+
+    it('devrait formater en Md pour les milliards', () => {
+      const resultat = formatageNombreAbrege(3000000000);
+      expect(resultat).toBe('3Md');
+    });
+
+    it('devrait laisser les petits nombres tels quels', () => {
+      const resultat = formatageNombreAbrege(500);
+      expect(resultat).toBe('500');
+    });
+  });
+
+  describe('formatagePourcentage', () => {
+    it('devrait formater un pourcentage', () => {
+      const resultat = formatagePourcentage(0.75);
+      expect(resultat).toContain('75');
+      expect(resultat).toContain('%');
+    });
+
+    it('devrait formater avec des décimales', () => {
+      const resultat = formatagePourcentage(0.7567, 2);
+      expect(resultat).toContain('75');
+    });
+  });
+
+  describe('formatageMonnaie', () => {
+    it('devrait formater en euros par défaut', () => {
+      const resultat = formatageMonnaie(42.5);
+      expect(resultat).toContain('42');
+      expect(resultat).toMatch(/€|EUR/);
+    });
+  });
+
+  describe('formatageOrdinal', () => {
+    it('devrait retourner 1er pour 1', () => {
+      expect(formatageOrdinal(1)).toBe('1er');
+    });
+
+    it('devrait retourner 2e pour 2', () => {
+      expect(formatageOrdinal(2)).toBe('2e');
+    });
+  });
+
+  describe('formatageTaille', () => {
     it('devrait formater des octets', () => {
-      expect(formaterOctets(500)).toMatch(/500.*o|bytes/i);
+      expect(formatageTaille(500)).toBe('500 o');
     });
 
     it('devrait formater des Ko', () => {
-      expect(formaterOctets(1024)).toMatch(/1.*ko|kb/i);
+      expect(formatageTaille(1024)).toBe('1 Ko');
     });
 
     it('devrait formater des Mo', () => {
-      expect(formaterOctets(1048576)).toMatch(/1.*mo|mb/i);
+      expect(formatageTaille(1048576)).toBe('1 Mo');
     });
 
     it('devrait formater des Go', () => {
-      expect(formaterOctets(1073741824)).toMatch(/1.*go|gb/i);
+      expect(formatageTaille(1073741824)).toBe('1 Go');
     });
 
     it('devrait formater avec précision', () => {
-      const resultat = formaterOctets(1536, { precision: 1 });
-      expect(resultat).toMatch(/1[,.]5.*ko|kb/i);
+      expect(formatageTaille(1536, 1)).toBe('1.5 Ko');
     });
 
     it('devrait gérer 0 octet', () => {
-      expect(formaterOctets(0)).toMatch(/0.*o|bytes/i);
+      expect(formatageTaille(0)).toBe('0 o');
     });
   });
 
-  describe('formaterDuree', () => {
+  describe('formatageDuree', () => {
+    it('devrait formater des millisecondes', () => {
+      expect(formatageDuree(500)).toBe('500ms');
+    });
+
     it('devrait formater des secondes', () => {
-      expect(formaterDuree(45)).toMatch(/45.*s/i);
+      expect(formatageDuree(3000)).toBe('3s');
     });
 
     it('devrait formater des minutes et secondes', () => {
-      const resultat = formaterDuree(125);
-      expect(resultat).toMatch(/2.*min|2:05/i);
+      expect(formatageDuree(90000)).toBe('1min 30s');
     });
 
     it('devrait formater des heures', () => {
-      const resultat = formaterDuree(3665);
-      expect(resultat).toMatch(/1.*h|heure/i);
+      expect(formatageDuree(3600000)).toBe('1h');
     });
 
     it('devrait formater des jours', () => {
-      const resultat = formaterDuree(90000);
-      expect(resultat).toMatch(/1.*j|jour/i);
-    });
-
-    it('devrait gérer 0', () => {
-      expect(formaterDuree(0)).toMatch(/0|instant/i);
-    });
-
-    it('devrait gérer le format compact', () => {
-      const resultat = formaterDuree(3665, { format: 'compact' });
-      expect(resultat).toBeTruthy();
+      expect(formatageDuree(86400000)).toBe('1j');
     });
   });
 
-  describe('formaterPourcentage', () => {
-    it('devrait formater un pourcentage simple', () => {
-      expect(formaterPourcentage(0.5)).toMatch(/50.*%/);
+  describe('formatageDureeCourt', () => {
+    it('devrait formater en format court', () => {
+      expect(formatageDureeCourt(90000)).toBe('01:30');
     });
 
-    it('devrait formater avec décimales', () => {
-      const resultat = formaterPourcentage(0.1234, { decimales: 1 });
-      expect(resultat).toMatch(/12[,.]3.*%/);
-    });
-
-    it('devrait gérer les valeurs supérieures à 100%', () => {
-      expect(formaterPourcentage(1.5)).toMatch(/150.*%/);
-    });
-
-    it('devrait gérer 0%', () => {
-      expect(formaterPourcentage(0)).toMatch(/0.*%/);
+    it('devrait inclure les heures si nécessaire', () => {
+      expect(formatageDureeCourt(3661000)).toBe('1:01:01');
     });
   });
 
   describe('tronquer', () => {
     it('devrait tronquer un texte long', () => {
-      const resultat = tronquer('Un texte très long qui dépasse la limite', 20);
-      expect(resultat.length).toBeLessThanOrEqual(23); // 20 + "..."
-      expect(resultat).toMatch(/\.{3}|…$/);
+      const resultat = tronquer('Ceci est un texte très long', 15);
+      expect(resultat).toBe('Ceci est un te…');
+      expect(resultat.length).toBe(15);
     });
 
-    it('devrait ne pas tronquer un texte court', () => {
-      const texte = 'Court';
-      expect(tronquer(texte, 20)).toBe(texte);
-    });
-
-    it('devrait respecter la coupure sur les mots si demandé', () => {
-      const resultat = tronquer('Un texte avec des mots', 10, { surMot: true });
-      expect(resultat).not.toMatch(/\s\.{3}|…$/); // Ne devrait pas couper au milieu
+    it('devrait laisser un texte court intact', () => {
+      const resultat = tronquer('Court', 20);
+      expect(resultat).toBe('Court');
     });
 
     it('devrait utiliser un suffixe personnalisé', () => {
-      const resultat = tronquer('Un texte long', 8, { suffixe: '>>>' });
-      expect(resultat).toContain('>>>');
+      const resultat = tronquer('Texte long', 8, '...');
+      expect(resultat).toBe('Texte...');
     });
   });
 
-  describe('capitaliser', () => {
-    it('devrait capitaliser la première lettre', () => {
-      expect(capitaliser('bonjour')).toBe('Bonjour');
+  describe('tronquerMot', () => {
+    it('devrait tronquer au dernier mot entier', () => {
+      const resultat = tronquerMot('Ceci est un texte très long', 20);
+      expect(resultat).not.toMatch(/\s…$/);
+    });
+  });
+
+  describe('slugify', () => {
+    it('devrait convertir en minuscules', () => {
+      expect(slugify('Hello World')).toBe('hello-world');
+    });
+
+    it('devrait retirer les accents', () => {
+      expect(slugify('Café résumé')).toBe('cafe-resume');
+    });
+
+    it('devrait remplacer les espaces par des tirets', () => {
+      expect(slugify('un deux trois')).toBe('un-deux-trois');
+    });
+
+    it('devrait retirer les caractères spéciaux', () => {
+      expect(slugify('test@#$%test')).toBe('testtest');
+    });
+  });
+
+  describe('majuscule', () => {
+    it('devrait mettre en majuscule la première lettre', () => {
+      expect(majuscule('hello')).toBe('Hello');
     });
 
     it('devrait gérer une chaîne vide', () => {
-      expect(capitaliser('')).toBe('');
-    });
-
-    it('devrait gérer une chaîne déjà capitalisée', () => {
-      expect(capitaliser('Bonjour')).toBe('Bonjour');
-    });
-
-    it('devrait capitaliser toutes les premières lettres si demandé', () => {
-      const resultat = capitaliser('bonjour le monde', { toutLesMots: true });
-      expect(resultat).toBe('Bonjour Le Monde');
+      expect(majuscule('')).toBe('');
     });
   });
 
-  describe('pluraliser', () => {
-    it('devrait retourner le singulier pour 1', () => {
-      expect(pluraliser(1, 'article', 'articles')).toBe('1 article');
-    });
-
-    it('devrait retourner le pluriel pour plusieurs', () => {
-      expect(pluraliser(5, 'article', 'articles')).toBe('5 articles');
-    });
-
-    it('devrait gérer 0', () => {
-      expect(pluraliser(0, 'article', 'articles')).toBe('0 article');
-    });
-
-    it('devrait utiliser le pluriel automatique si non fourni', () => {
-      const resultat = pluraliser(5, 'article');
-      expect(resultat).toMatch(/5 articles?/);
+  describe('majusculeChaqueMot', () => {
+    it('devrait mettre en majuscule chaque mot', () => {
+      expect(majusculeChaqueMot('hello world')).toBe('Hello World');
     });
   });
 
-  describe('slugifier', () => {
-    it('devrait convertir en slug', () => {
-      expect(slugifier('Hello World')).toBe('hello-world');
+  describe('labeliser', () => {
+    it('devrait convertir camelCase en label', () => {
+      expect(labeliser('nomUtilisateur')).toBe('Nom utilisateur');
     });
 
-    it('devrait supprimer les accents', () => {
-      expect(slugifier('Café résumé')).toBe('cafe-resume');
-    });
-
-    it('devrait supprimer les caractères spéciaux', () => {
-      expect(slugifier('Test!@#$%')).toBe('test');
-    });
-
-    it('devrait gérer les espaces multiples', () => {
-      expect(slugifier('Test   Multiple   Spaces')).toBe('test-multiple-spaces');
-    });
-
-    it('devrait supprimer les tirets en début/fin', () => {
-      expect(slugifier('--test--')).toBe('test');
+    it('devrait convertir snake_case en label', () => {
+      expect(labeliser('nom_utilisateur')).toBe('Nom utilisateur');
     });
   });
 
-  describe('extraireInitiales', () => {
-    it('devrait extraire les initiales d\'un nom complet', () => {
-      expect(extraireInitiales('Jean Dupont')).toBe('JD');
+  describe('pluriel', () => {
+    it('devrait retourner le singulier pour 0 ou 1', () => {
+      expect(pluriel(0, 'article')).toBe('article');
+      expect(pluriel(1, 'article')).toBe('article');
     });
 
-    it('devrait gérer un seul nom', () => {
-      const resultat = extraireInitiales('Jean');
-      expect(resultat).toMatch(/^J/);
+    it('devrait retourner le pluriel pour > 1', () => {
+      expect(pluriel(2, 'article')).toBe('articles');
     });
 
-    it('devrait limiter le nombre d\'initiales', () => {
-      const resultat = extraireInitiales('Jean Claude Van Damme', 2);
-      expect(resultat.length).toBeLessThanOrEqual(2);
-    });
-
-    it('devrait gérer les accents', () => {
-      expect(extraireInitiales('Éric Émile')).toMatch(/[EÉ]{2}/i);
+    it('devrait utiliser un pluriel personnalisé', () => {
+      expect(pluriel(2, 'cheval', 'chevaux')).toBe('chevaux');
     });
   });
 
-  describe('formaterListeTexte', () => {
-    it('devrait formater une liste simple', () => {
-      const resultat = formaterListeTexte(['pomme', 'poire', 'banane']);
-      expect(resultat).toMatch(/pomme.*poire.*banane/);
-    });
-
-    it('devrait utiliser "et" entre les derniers éléments', () => {
-      const resultat = formaterListeTexte(['pomme', 'poire', 'banane']);
-      expect(resultat).toMatch(/et|,/);
-    });
-
-    it('devrait gérer un seul élément', () => {
-      expect(formaterListeTexte(['pomme'])).toBe('pomme');
-    });
-
-    it('devrait gérer deux éléments', () => {
-      const resultat = formaterListeTexte(['pomme', 'poire']);
-      expect(resultat).toMatch(/pomme.*et.*poire|pomme.*poire/);
-    });
-
-    it('devrait gérer une liste vide', () => {
-      expect(formaterListeTexte([])).toBe('');
+  describe('avecUnite', () => {
+    it('devrait combiner nombre et unité au pluriel', () => {
+      expect(avecUnite(5, 'article')).toContain('5');
+      expect(avecUnite(5, 'article')).toContain('articles');
     });
   });
 
-  describe('stripHtml', () => {
-    it('devrait supprimer les balises HTML', () => {
-      expect(stripHtml('<p>Hello <strong>World</strong></p>')).toBe('Hello World');
+  describe('initiales', () => {
+    it('devrait extraire les initiales', () => {
+      expect(initiales('Jean Dupont')).toBe('JD');
     });
 
-    it('devrait gérer les balises auto-fermantes', () => {
-      expect(stripHtml('Hello<br/>World')).toMatch(/Hello\s*World/);
-    });
-
-    it('devrait gérer les attributs', () => {
-      expect(stripHtml('<a href="test">Link</a>')).toBe('Link');
-    });
-
-    it('devrait décoder les entités HTML', () => {
-      expect(stripHtml('&amp; &lt; &gt;')).toBe('& < >');
-    });
-
-    it('devrait gérer une chaîne vide', () => {
-      expect(stripHtml('')).toBe('');
+    it('devrait respecter la limite', () => {
+      expect(initiales('Jean Pierre Dupont', 2)).toBe('JP');
     });
   });
 
-  describe('escapeHtml', () => {
+  describe('sansBalisesHtml', () => {
+    it('devrait retirer les balises HTML', () => {
+      expect(sansBalisesHtml('<p>Texte <strong>formaté</strong></p>')).toBe('Texte formaté');
+    });
+  });
+
+  describe('echapperHtml', () => {
     it('devrait échapper les caractères spéciaux', () => {
-      expect(escapeHtml('<script>alert("XSS")</script>')).toBe(
-        '&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;'
-      );
-    });
-
-    it('devrait échapper les esperluettes', () => {
-      expect(escapeHtml('Tom & Jerry')).toBe('Tom &amp; Jerry');
-    });
-
-    it('devrait gérer les apostrophes', () => {
-      const resultat = escapeHtml("It's a test");
-      expect(resultat).toMatch(/It(&apos;|&#39;|')s a test/);
+      expect(echapperHtml('<script>')).toBe('&lt;script&gt;');
+      expect(echapperHtml('"test"')).toBe('&quot;test&quot;');
+      expect(echapperHtml("'test'")).toBe('&#039;test&#039;');
+      expect(echapperHtml('A & B')).toBe('A &amp; B');
     });
   });
 
-  describe('unescapeHtml', () => {
-    it('devrait dé-échapper les entités HTML', () => {
-      expect(unescapeHtml('&lt;p&gt;Test&lt;/p&gt;')).toBe('<p>Test</p>');
+  describe('formatageListe', () => {
+    it('devrait retourner vide pour liste vide', () => {
+      expect(formatageListe([])).toBe('');
     });
 
-    it('devrait dé-échapper les esperluettes', () => {
-      expect(unescapeHtml('Tom &amp; Jerry')).toBe('Tom & Jerry');
+    it('devrait retourner l\'élément seul', () => {
+      expect(formatageListe(['un'])).toBe('un');
     });
 
-    it('devrait gérer les entités numériques', () => {
-      expect(unescapeHtml('&#60;test&#62;')).toBe('<test>');
+    it('devrait joindre deux éléments avec "et"', () => {
+      expect(formatageListe(['un', 'deux'])).toBe('un et deux');
+    });
+
+    it('devrait joindre plusieurs éléments avec virgules et "et"', () => {
+      expect(formatageListe(['un', 'deux', 'trois'])).toBe('un, deux et trois');
+    });
+
+    it('devrait utiliser une conjonction personnalisée', () => {
+      expect(formatageListe(['un', 'deux'], 'ou')).toBe('un ou deux');
+    });
+  });
+
+  describe('extraireDomaine', () => {
+    it('devrait extraire le domaine', () => {
+      expect(extraireDomaine('https://www.example.com/path')).toBe('example.com');
+    });
+
+    it('devrait retirer www', () => {
+      expect(extraireDomaine('https://www.test.fr')).toBe('test.fr');
+    });
+
+    it('devrait gérer une URL invalide', () => {
+      expect(extraireDomaine('not-a-url')).toBe('not-a-url');
+    });
+  });
+
+  describe('formatageUrl', () => {
+    it('devrait formater sans protocole', () => {
+      expect(formatageUrl('https://example.com/page')).toBe('example.com/page');
+    });
+
+    it('devrait retirer www', () => {
+      expect(formatageUrl('https://www.example.com')).toBe('example.com');
+    });
+
+    it('devrait tronquer si nécessaire', () => {
+      const resultat = formatageUrl('https://example.com/very/long/path', 15);
+      expect(resultat.length).toBe(15);
+    });
+  });
+
+  describe('format object', () => {
+    it('devrait exporter toutes les fonctions', () => {
+      expect(typeof format.relatif).toBe('function');
+      expect(typeof format.dateCourt).toBe('function');
+      expect(typeof format.dateLong).toBe('function');
+      expect(typeof format.nombre).toBe('function');
+      expect(typeof format.taille).toBe('function');
+      expect(typeof format.tronquer).toBe('function');
+      expect(typeof format.slugify).toBe('function');
+      expect(typeof format.pluriel).toBe('function');
     });
   });
 });
