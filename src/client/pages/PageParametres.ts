@@ -9,6 +9,7 @@ import { ajouterBasculeMotDePasse } from '../utils/formulaires';
 import { creerElement, $, vider } from '../utils/dom';
 import { auth, articles, notifications, estAuthentifie } from '../services/api';
 import { pushSupporte, abonnementCourant, abonnerPush, desabonnerPush } from '../utils/notificationsPush';
+import { estInstallee, installationPossible, proposerInstallation, surChangementInstallation } from '../utils/pwa';
 import { telechargerFichier, suffixeDate } from '../utils/telechargement';
 import { toast } from '../utils/toast';
 import type { Utilisateur, Preferences, Statut2FA } from '../services/api';
@@ -122,9 +123,10 @@ function afficherFormulaires(): void {
   const section2FA = creerSection2FA();
 
   const sectionNotifications = creerSectionNotifications();
+  const sectionApplication = creerSectionApplication();
   const sectionDonnees = creerSectionDonnees();
 
-  contenu.append(sectionProfil, sectionPreferences, sectionNotifications, sectionMotDePasse, section2FA, sectionDonnees);
+  contenu.append(sectionProfil, sectionPreferences, sectionNotifications, sectionApplication, sectionMotDePasse, section2FA, sectionDonnees);
 }
 
 /**
@@ -289,6 +291,40 @@ function creerSectionNotifications(): HTMLElement {
     }
   });
 
+  return section;
+}
+
+/**
+ * Section Application : installation sur l'appareil (PWA)
+ */
+function creerSectionApplication(): HTMLElement {
+  const section = creerElement('section', { classes: ['la-card', 'section-parametres'], attrs: { id: 'section-application' } });
+  section.innerHTML = `
+    <h2 class="la-card-title">${iconeHtml('install_mobile')} Application</h2>
+    <p class="la-help" id="application-etat"></p>
+    <button type="button" class="la-btn secondary" id="btn-installer" hidden>Installer Veilleur</button>
+  `;
+  const etat = $('#application-etat', section) as HTMLElement;
+  const bouton = $('#btn-installer', section) as HTMLButtonElement;
+  const rafraichir = () => {
+    if (estInstallee()) {
+      etat.textContent = 'Veilleur est installé sur cet appareil.';
+      bouton.hidden = true;
+    } else if (installationPossible()) {
+      etat.textContent = 'Ajoutez Veilleur à votre écran d\'accueil : il s\'ouvre dans sa propre fenêtre et le fil reste consultable hors ligne.';
+      bouton.hidden = false;
+    } else {
+      etat.textContent = 'Depuis le menu de votre navigateur, choisissez « Installer l\'application » ou « Ajouter à l\'écran d\'accueil ».';
+      bouton.hidden = true;
+    }
+  };
+  bouton.addEventListener('click', async () => {
+    const accepte = await proposerInstallation();
+    if (accepte) toast.succes('Veilleur est installé');
+    rafraichir();
+  });
+  surChangementInstallation(rafraichir);
+  rafraichir();
   return section;
 }
 

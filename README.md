@@ -90,6 +90,9 @@
 - Notes moyennes communautaires
 - Articles les plus appréciés de la semaine, suggestions de sources d'après les lecteurs aux goûts proches, partage d'articles
 
+### 📱 Application installable
+- PWA : manifeste, icônes, raccourcis, coque consultable hors ligne, installation depuis les paramètres
+
 ### 🔔 Notifications
 - Web Push après chaque synchronisation (regroupé, au plus une fois par demi-heure, réglable par source)
 - Résumé courriel quotidien ou hebdomadaire des articles non lus, groupé par source

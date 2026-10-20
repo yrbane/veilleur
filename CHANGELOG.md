@@ -4,6 +4,26 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.17.0 — 2026-10-21 · « Application installable »
+
+### Ajouté
+- Veilleur est une PWA : manifeste (`/manifest.webmanifest`, icônes 192/512
+  + maskable, raccourcis « Non lus » et « Découverte »), couleur de thème,
+  icône Apple. Installable depuis le navigateur ; Paramètres → « Application »
+  propose l'installation quand le navigateur le permet.
+- Service worker désormais bundlé depuis `src/client/sw.ts` (stratégies
+  pures et testées dans `src/client/sw/strategies.ts`) : coque mise en cache
+  à l'installation, ressources empreintées servies depuis le cache, navigation
+  réseau d'abord avec la coque en secours hors ligne ; l'API et les autres
+  origines ne sont jamais mises en cache. Les anciens caches sont purgés à
+  chaque nouvelle version.
+- Toast « Nouvelle version disponible » quand un service worker plus récent
+  prend la main.
+
+### Modifié
+- Favicon : lettre en gras et police sans empattement (les icônes PNG en sont
+  rasterisées).
+
 ## 0.16.1 — 2026-10-21 · « Courriel via le relais local »
 
 ### Corrigé
