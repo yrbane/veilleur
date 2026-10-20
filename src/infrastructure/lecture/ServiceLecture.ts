@@ -30,6 +30,11 @@ export interface OptionsServiceLecture {
   seuilCaracteres?: number;
   serviceCache?: Pick<ServiceCache, 'obtenir' | 'stocker'>;
   dureeCacheS?: number;
+  /**
+   * Remplace l'adresse de chaque image par une adresse servie par Veilleur (cache local) ;
+   * null retire l'image. Sans résolveur, les images restent pointées vers le site d'origine.
+   */
+  resoudreImage?: (url: string) => Promise<string | null>;
 }
 
 const MOTS_PAR_MINUTE = 200;
@@ -72,6 +77,7 @@ export class ServiceLecture {
   private readonly seuilCaracteres: number | undefined;
   private readonly serviceCache: Pick<ServiceCache, 'obtenir' | 'stocker'> | undefined;
   private readonly dureeCacheS: number;
+  private readonly resoudreImage: ((url: string) => Promise<string | null>) | undefined;
 
   constructor(options: OptionsServiceLecture = {}) {
     this.fetchImpl = options.fetchImpl ?? fetch;
@@ -81,6 +87,7 @@ export class ServiceLecture {
     this.seuilCaracteres = options.seuilCaracteres;
     this.serviceCache = options.serviceCache;
     this.dureeCacheS = options.dureeCacheS ?? CACHE_DEFAUT_S;
+    this.resoudreImage = options.resoudreImage;
   }
 
   /**
@@ -94,10 +101,42 @@ export class ServiceLecture {
     const html = await this.telecharger(url);
     if (html === null) return null;
     const contenu = this.extraireDepuisHtml(html, url);
+    if (contenu && this.resoudreImage) {
+      contenu.contenuHtml = await this.reecrireImages(contenu.contenuHtml, this.resoudreImage);
+    }
     if (contenu && this.serviceCache) {
       await this.serviceCache.stocker(cle, contenu, { ttl: this.dureeCacheS });
     }
     return contenu;
+  }
+
+  /**
+   * Fait passer chaque image par le résolveur (HTML déjà nettoyé : balises simples, sans script)
+   */
+  private async reecrireImages(contenuHtml: string, resoudre: (url: string) => Promise<string | null>): Promise<string> {
+    const dom = new JSDOM('', { virtualConsole: new VirtualConsole() });
+    try {
+      const conteneur = dom.window.document.createElement('div');
+      conteneur.innerHTML = contenuHtml;
+      for (const image of Array.from(conteneur.querySelectorAll('img'))) {
+        const source = image.getAttribute('src') ?? '';
+        let locale: string | null = null;
+        try {
+          locale = await resoudre(source);
+        } catch (erreur) {
+          loggerScraping.debug({ source, erreur }, 'Lecture : image non résolue');
+        }
+        if (!locale) {
+          image.remove();
+          continue;
+        }
+        image.setAttribute('src', locale);
+        image.setAttribute('loading', 'lazy');
+      }
+      return conteneur.innerHTML;
+    } finally {
+      dom.window.close();
+    }
   }
 
   private async telecharger(url: string): Promise<string | null> {

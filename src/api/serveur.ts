@@ -129,7 +129,9 @@ export async function creerServeur(): Promise<FastifyInstance> {
       return env.RATE_LIMIT_IP_MAX; // 60 requêtes/minute pour les anonymes
     },
     errorResponseBuilder: (_request: FastifyRequest, context) => {
+      // Sans statusCode, l'objet levé par le plugin ressort en 500 « Erreur non gérée »
       return {
+        statusCode: 429,
         erreur: 'RATE_LIMIT_DEPASSE',
         message: 'Trop de requêtes. Veuillez réessayer plus tard.',
         retryAfter: Math.ceil(context.ttl / 1000),
@@ -322,20 +324,22 @@ export async function creerServeur(): Promise<FastifyInstance> {
 
   // Gestion des erreurs
   serveur.setErrorHandler((erreur, request, reply) => {
-    const err = erreur as Error & { statusCode?: number };
+    const err = erreur as Error & { statusCode?: number; retryAfter?: number };
+    if (err.statusCode === 429) {
+      // Limite de requêtes atteinte : comportement attendu, pas une erreur applicative
+      logger.warn({ url: request.url, ip: request.ip }, 'Limite de requêtes atteinte');
+      return reply.status(429).send({
+        erreur: 'RATE_LIMIT_DEPASSE',
+        message: 'Trop de requêtes. Veuillez réessayer plus tard.',
+        retryAfter: err.retryAfter,
+      });
+    }
     logger.error({
       erreur: err.message,
       stack: err.stack,
       url: request.url,
       methode: request.method,
     }, 'Erreur non gérée');
-
-    if (err.statusCode === 429) {
-      return reply.status(429).send({
-        erreur: 'Trop de requêtes',
-        message: 'Veuillez réessayer plus tard',
-      });
-    }
 
     const statusCode = err.statusCode ?? 500;
     return reply.status(statusCode).send({
