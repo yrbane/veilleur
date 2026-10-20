@@ -4,6 +4,19 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.14.0 — 2026-10-21 · « Mots-clés tendance »
+
+### Ajouté
+- Tendances : les mots-clés qui montent, comparés entre les dernières 24 h et
+  la moyenne quotidienne des 7 jours précédents (score = récents / (moyenne + 1)).
+  Bloc « Tendances dans votre fil » sur l'accueil (clic = filtre par mot-clé) et
+  « Tendances du moment » sur la Découverte, calculées sur tous les articles,
+  visibles sans compte ; un clic ouvre le fil filtré (`/?motCle=…`).
+- API : `GET /api/v1/tendances` (public) et `GET /api/v1/tendances/fil`
+  (authentifié), paramètre `limite` (1-30). Résultat en cache 10 minutes.
+- Dépôt : `compterMotsCles` (comptage par mot-clé sur une fenêtre de publication,
+  global ou restreint aux sources actives d'un utilisateur).
+
 ## 0.13.0 — 2026-10-21 · « Rubriques »
 
 ### Ajouté

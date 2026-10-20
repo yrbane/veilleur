@@ -6,7 +6,8 @@
 import { icone, iconeHtml } from '../utils/icones';
 import { urlFaviconLocale } from '../utils/favicons';
 import { creerElement, vider } from '../utils/dom';
-import { communaute, sources as apiSources, estAuthentifie } from '../services/api';
+import { communaute, sources as apiSources, tendances as apiTendances, estAuthentifie } from '../services/api';
+import { creerBlocTendances } from '../composants/Tendances';
 import type { SourcePopulaire, TagPopulaire, CriteresCommunaute } from '../services/api';
 import { toast } from '../utils/toast';
 import { naviguerVers } from '../main';
@@ -59,13 +60,26 @@ export async function afficherPageDecouverte(container: Element): Promise<void> 
     attrs: { id: 'pagination' },
   });
 
-  page.append(entete, barreRecherche, filtres, sectionTags, grilleSources, pagination);
+  // Tendances de l'ensemble des articles : un clic ouvre le fil filtré sur le mot
+  const blocTendances = creerBlocTendances({
+    titre: 'Tendances du moment',
+    charger: async () => (await apiTendances.globales(12)).donnees,
+    onChoix: mot => {
+      if (estAuthentifie()) {
+        naviguerVers(`/?motCle=${encodeURIComponent(mot)}`);
+      } else {
+        naviguerVers('/connexion');
+      }
+    },
+  });
+  page.append(entete, barreRecherche, blocTendances, filtres, sectionTags, grilleSources, pagination);
   container.append(page);
 
   // Charger les données
   await Promise.all([
     chargerTagsPopulaires(),
     chargerSourcesPopulaires(),
+    blocTendances.rafraichir(),
   ]);
 }
 

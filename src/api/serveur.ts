@@ -25,6 +25,7 @@ import { routesTags } from './routes/tags';
 import { routesCommunaute } from './routes/communaute';
 import { routesImages } from './routes/images';
 import { routesFavicons } from './routes/favicons';
+import { routesTendances } from './routes/tendances';
 import { pluginAuthentification } from './middlewares/authentification';
 import { protectionCSRF } from './middlewares/csrf';
 
@@ -321,6 +322,9 @@ export async function creerServeur(): Promise<FastifyInstance> {
 
   // Favicons des sources servis depuis le cache local (publics, comme les images)
   await serveur.register(routesFavicons, { prefix: '/api/v1/favicons' });
+
+  // Mots-clés tendance (global public, fil authentifié)
+  await serveur.register(routesTendances, { prefix: '/api/v1/tendances' });
 
   // Gestion des erreurs
   serveur.setErrorHandler((erreur, request, reply) => {

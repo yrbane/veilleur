@@ -7,7 +7,8 @@
 import { iconeHtml } from '../utils/icones';
 import { creerElement, $, vider } from '../utils/dom';
 import { formatNombre } from '../utils/format';
-import { articles, sources, tags, estAuthentifie } from '../services/api';
+import { articles, sources, tags, tendances as apiTendances, estAuthentifie } from '../services/api';
+import { creerBlocTendances } from '../composants/Tendances';
 import { termesRecherche } from '../utils/surlignage';
 import { creerCarteArticle } from '../composants/CarteArticle';
 import { creerListeSkeletons } from '../composants/SkeletonArticle';
@@ -88,6 +89,12 @@ export async function afficherPageAccueil(container: Element): Promise<void> {
   }
 
   filtres = chargerFiltres();
+  // Arrivée depuis une autre page avec un mot-clé (tendances de la Découverte)
+  const motCleUrl = new URLSearchParams(window.location.search).get('motCle');
+  if (motCleUrl) {
+    filtres.motCle = motCleUrl;
+    window.history.replaceState(null, '', window.location.pathname);
+  }
 
   const page = creerElement('div', { classes: ['page-accueil'] });
 
@@ -108,14 +115,19 @@ export async function afficherPageAccueil(container: Element): Promise<void> {
     attrs: { id: 'fil-sentinelle', 'aria-live': 'polite' },
   });
 
-  fil.append(creerBarreRecherche(), creerBarreRubriques(), creerBarreOutils(), liste, sentinelle);
+  const blocTendances = creerBlocTendances({
+    titre: 'Tendances dans votre fil',
+    charger: async () => (await apiTendances.fil(10)).donnees,
+    onChoix: mot => filtrerParMotCle(mot),
+  });
+  fil.append(creerBarreRecherche(), creerBarreRubriques(), blocTendances, creerBarreOutils(), liste, sentinelle);
   page.append(entete, fil);
   container.append(page);
 
   observerDefilement(sentinelle);
 
   // Charger les données
-  await Promise.all([chargerStatistiques(), chargerMotsClesFiltre(), chargerArticles(1)]);
+  await Promise.all([chargerStatistiques(), chargerMotsClesFiltre(), chargerArticles(1), blocTendances.rafraichir()]);
 }
 
 /**

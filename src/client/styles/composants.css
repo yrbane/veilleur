@@ -878,3 +878,43 @@ mark.surligne {
   border-radius: var(--rayon-sm);
   padding: 0 0.1em;
 }
+
+/* Mots-clés tendance (0.14.0) */
+.tendances {
+  margin-bottom: var(--espace-4);
+}
+
+.tendances.masque {
+  display: none;
+}
+
+.tendances-titre {
+  display: flex;
+  align-items: center;
+  gap: var(--espace-1);
+  font-size: var(--taille-sm);
+  font-weight: var(--poids-semibold);
+  color: var(--couleur-texte-secondaire);
+  margin: 0 0 var(--espace-2);
+}
+
+.tendances-liste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espace-2);
+}
+
+.chip-tendance {
+  cursor: pointer;
+}
+
+.chip-tendance.forte {
+  border-color: var(--couleur-primaire);
+  color: var(--couleur-primaire);
+}
+
+.chip-tendance-nombre {
+  margin-left: var(--espace-1);
+  font-size: var(--taille-xs);
+  opacity: 0.75;
+}

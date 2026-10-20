@@ -5,6 +5,7 @@
 import { eq, and, lt, desc, asc, sql, inArray } from 'drizzle-orm';
 import type {
   CompteNonLus,
+  CriteresMotsCles,
   DepotArticles,
   CriteresArticles,
   ResultatPagineArticles,
@@ -503,6 +504,45 @@ export class DepotArticlesMariaDB implements DepotArticles {
       return lignes.map(l => ({ mot: l.mot, nombreArticles: Number(l.nombreArticles) }));
     } catch (erreur) {
       loggerBdd.error({ erreur, utilisateurId }, 'Erreur lors du listing des mots-clés du fil');
+      throw erreur;
+    }
+  }
+
+  async compterMotsCles(options: CriteresMotsCles): Promise<MotCleFil[]> {
+    const db = obtenirBdd();
+    const conditions = [
+      sql`${articles.datePublication} >= ${options.depuis}`,
+      sql`${articles.datePublication} < ${options.jusqua}`,
+    ];
+    if (options.mots && options.mots.length > 0) {
+      conditions.push(inArray(articlesMotsCles.mot, options.mots));
+    }
+    if (options.mots && options.mots.length === 0) return [];
+    try {
+      let requete = db
+        .select({ mot: articlesMotsCles.mot, nombreArticles: sql<number>`COUNT(DISTINCT ${articlesMotsCles.articleId})` })
+        .from(articlesMotsCles)
+        .innerJoin(articles, eq(articlesMotsCles.articleId, articles.id))
+        .$dynamic();
+      if (options.utilisateurId) {
+        requete = requete.innerJoin(
+          utilisateursSources,
+          and(
+            eq(utilisateursSources.sourceId, articles.sourceId),
+            eq(utilisateursSources.utilisateurId, options.utilisateurId),
+            eq(utilisateursSources.estEnPause, false),
+          ),
+        );
+      }
+      requete = requete
+        .where(and(...conditions))
+        .groupBy(articlesMotsCles.mot)
+        .orderBy(desc(sql`COUNT(DISTINCT ${articlesMotsCles.articleId})`), asc(articlesMotsCles.mot));
+      if (options.limite) requete = requete.limit(options.limite);
+      const lignes = await requete;
+      return lignes.map(l => ({ mot: l.mot, nombreArticles: Number(l.nombreArticles) }));
+    } catch (erreur) {
+      loggerBdd.error({ erreur, options }, 'Erreur lors du comptage des mots-clés par période');
       throw erreur;
     }
   }
