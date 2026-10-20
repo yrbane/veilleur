@@ -73,6 +73,7 @@
 - Articles notés et mis en favoris, classés automatiquement par cinq mots-clés extraits du texte
 - Fil trié (date, note, titre, source), filtré, avec recherche plein texte et chargement au défilement
 - Paramètres avancés par source
+- Thème clair, sombre ou automatique, mémorisé dans le navigateur
 
 </td>
 <td width="50%">
@@ -99,7 +100,8 @@
 graph TB
     subgraph Client["🖥️ Client"]
         WC[Web Components]
-        CSS[CSS Moderne]
+        CSS[Lunar Aurora + CSS moderne]
+        Icones[Material Symbols]
     end
 
     subgraph API["⚡ API Fastify"]
@@ -213,10 +215,11 @@ mindmap
     Frontend
       Vanilla TS
       Web Components
-      CSS Moderne
-        Nesting
-        oklch
-        Container Queries
+      Lunar Aurora
+        Tokens oklch
+        Thèmes clair/sombre
+        Layers CSS
+      Material Symbols
     Stockage
       MariaDB 11.x
       Redis 7.x
@@ -258,13 +261,17 @@ mindmap
 <td>File de tâches Redis</td>
 </tr>
 <tr>
-<td rowspan="3">🎨 Frontend</td>
+<td rowspan="4">🎨 Frontend</td>
 <td><img src="https://img.shields.io/badge/Web_Components-29ABE2?style=flat-square&logo=webcomponents.org&logoColor=white"/></td>
 <td>Composants natifs</td>
 </tr>
 <tr>
-<td><img src="https://img.shields.io/badge/CSS3-1572B6?style=flat-square&logo=css3&logoColor=white"/></td>
-<td>Styles modernes</td>
+<td><img src="https://img.shields.io/badge/Lunar_Aurora-7C3AED?style=flat-square&logo=css3&logoColor=white"/></td>
+<td>Framework CSS (tokens oklch, thèmes, composants)</td>
+</tr>
+<tr>
+<td><img src="https://img.shields.io/badge/Material_Symbols-4285F4?style=flat-square&logo=google&logoColor=white"/></td>
+<td>Icônes, police auto-hébergée</td>
 </tr>
 <tr>
 <td><img src="https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white"/></td>

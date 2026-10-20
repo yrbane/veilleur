@@ -3,6 +3,8 @@
  * Helpers pour la manipulation du DOM
  */
 
+import { icone } from './icones';
+
 /**
  * Sélectionne un élément du DOM
  */
@@ -28,16 +30,23 @@ export function creerElement<K extends keyof HTMLElementTagNameMap>(
     texte?: string;
     html?: string;
     enfants?: Node[];
+    /** Icône Material placée avant le texte */
+    icone?: string;
     onClick?: (e: Event) => void;
   },
 ): HTMLElementTagNameMap[K] {
   const element = document.createElement(tag);
 
   if (options?.classes) {
-    const validClasses = options.classes.filter(c => c);
+    // Une entrée peut porter plusieurs classes (« la-btn primary »)
+    const validClasses = options.classes.flatMap(c => c.split(' ')).filter(c => c);
     if (validClasses.length > 0) {
       element.classList.add(...validClasses);
     }
+  }
+
+  if (options?.icone) {
+    element.append(icone(options.icone));
   }
 
   if (options?.attrs) {
@@ -47,7 +56,11 @@ export function creerElement<K extends keyof HTMLElementTagNameMap>(
   }
 
   if (options?.texte) {
-    element.textContent = options.texte;
+    if (options.icone) {
+      element.append(document.createTextNode(options.texte));
+    } else {
+      element.textContent = options.texte;
+    }
   }
 
   if (options?.html) {

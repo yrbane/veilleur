@@ -26,19 +26,8 @@
   gap: var(--espace-4);
 }
 
-.stat {
-  text-align: center;
-}
-
-.stat-valeur {
-  font-size: var(--taille-2xl);
-  font-weight: var(--poids-bold);
+.page-accueil-stats .la-stat-value {
   color: var(--couleur-primaire);
-}
-
-.stat-label {
-  font-size: var(--taille-xs);
-  color: var(--couleur-texte-muted);
 }
 
 .fil-actualites {
@@ -165,7 +154,7 @@
   gap: var(--espace-2);
 }
 
-.actions-opml .btn {
+.actions-opml .la-btn {
   font-size: var(--taille-sm);
 }
 
@@ -444,15 +433,6 @@
   padding: var(--espace-4);
 }
 
-.btn-danger {
-  background-color: var(--couleur-danger);
-  color: white;
-}
-
-.btn-danger:hover {
-  background-color: color-mix(in srgb, var(--couleur-danger) 85%, black);
-}
-
 /* Configuration 2FA */
 .deux-fa-configuration {
   padding: var(--espace-2) 0;
@@ -539,11 +519,6 @@
   font-size: var(--taille-sm);
   letter-spacing: 0.1em;
   word-break: break-all;
-}
-
-.btn-petit {
-  padding: var(--espace-1) var(--espace-2);
-  font-size: var(--taille-xs);
 }
 
 .form-confirmer-2fa {
@@ -807,13 +782,8 @@
   border-top: 1px solid var(--couleur-bordure);
 }
 
-.carte-pop-actions .btn {
+.carte-pop-actions .la-btn {
   width: 100%;
-}
-
-.btn-succes {
-  background-color: var(--couleur-success);
-  color: white;
 }
 
 .pagination {
@@ -872,7 +842,7 @@
   margin-bottom: var(--espace-3);
 }
 
-.fil-recherche .champ-input {
+.fil-recherche .la-input {
   flex: 1;
   min-width: 0;
 }
@@ -904,29 +874,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--espace-1);
-}
-
-.chip-filtre {
-  padding: var(--espace-1) var(--espace-3);
-  font-size: var(--taille-sm);
-  font-family: var(--police-sans);
-  color: var(--couleur-texte-secondaire);
-  background-color: var(--couleur-fond-carte);
-  border: 1px solid var(--couleur-bordure);
-  border-radius: var(--rayon-full);
-  cursor: pointer;
-  transition: all var(--transition-rapide);
-}
-
-.chip-filtre:hover {
-  border-color: var(--couleur-primaire);
-  color: var(--couleur-primaire);
-}
-
-.chip-filtre.active {
-  background-color: var(--couleur-primaire);
-  border-color: var(--couleur-primaire);
-  color: white;
 }
 
 .fil-sentinelle {

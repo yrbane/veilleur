@@ -3,6 +3,8 @@
  * Gestion du profil et des préférences utilisateur
  */
 
+import { appliquerTheme } from '../utils/theme';
+import { iconeHtml } from '../utils/icones';
 import { creerElement, $, vider } from '../utils/dom';
 import { auth, estAuthentifie } from '../services/api';
 import { toast } from '../utils/toast';
@@ -19,11 +21,11 @@ export async function afficherPageParametres(container: Element): Promise<void> 
 
   if (!estAuthentifie()) {
     container.innerHTML = `
-      <div class="message-vide">
-        <div class="message-vide-icone">🔒</div>
-        <div class="message-vide-titre">Connexion requise</div>
+      <div class="la-empty">
+        <div class="la-empty-icon">${iconeHtml('lock')}</div>
+        <div class="la-empty-title">Connexion requise</div>
         <p>Connectez-vous pour accéder aux paramètres.</p>
-        <a href="/connexion" class="btn btn-primaire" data-nav>Se connecter</a>
+        <a href="/connexion" class="la-btn primary" data-nav>Se connecter</a>
       </div>
     `;
     return;
@@ -72,7 +74,7 @@ async function chargerProfil(): Promise<void> {
 
   contenu.innerHTML = `
     <div class="chargement">
-      <div class="spinner"></div>
+      <div class="la-spinner lg"></div>
       <p>Chargement du profil...</p>
     </div>
   `;
@@ -86,9 +88,9 @@ async function chargerProfil(): Promise<void> {
   } catch {
     toast.erreur('Erreur lors du chargement du profil');
     contenu.innerHTML = `
-      <div class="message-vide">
-        <div class="message-vide-icone">❌</div>
-        <div class="message-vide-titre">Erreur de chargement</div>
+      <div class="la-empty">
+        <div class="la-empty-icon">${iconeHtml('error')}</div>
+        <div class="la-empty-title">Erreur de chargement</div>
         <p>Impossible de charger le profil.</p>
       </div>
     `;
@@ -180,37 +182,37 @@ function creerSectionPreferences(): HTMLElement {
   const preferences = utilisateurCourant?.preferences ?? {};
 
   form.innerHTML = `
-    <div class="form-groupe">
+    <div class="la-form-group">
       <label for="pref-theme">Thème</label>
-      <select id="pref-theme" name="theme" class="form-select">
+      <select id="pref-theme" name="theme" class="la-select">
         <option value="auto" ${preferences.theme === 'auto' ? 'selected' : ''}>Automatique (système)</option>
         <option value="clair" ${preferences.theme === 'clair' ? 'selected' : ''}>Clair</option>
         <option value="sombre" ${preferences.theme === 'sombre' ? 'selected' : ''}>Sombre</option>
       </select>
-      <small class="form-aide">Le thème automatique suit les préférences de votre système.</small>
+      <small class="la-help">Le thème automatique suit les préférences de votre système.</small>
     </div>
 
-    <div class="form-groupe">
+    <div class="la-form-group">
       <label for="pref-langue">Langue</label>
-      <select id="pref-langue" name="langue" class="form-select">
+      <select id="pref-langue" name="langue" class="la-select">
         <option value="fr" ${preferences.langue === 'fr' || !preferences.langue ? 'selected' : ''}>Français</option>
         <option value="en" ${preferences.langue === 'en' ? 'selected' : ''}>English</option>
       </select>
     </div>
 
-    <div class="form-groupe">
+    <div class="la-form-group">
       <label for="pref-frequence">Fréquence de rafraîchissement</label>
-      <select id="pref-frequence" name="frequenceRafraichissement" class="form-select">
+      <select id="pref-frequence" name="frequenceRafraichissement" class="la-select">
         <option value="5" ${preferences.frequenceRafraichissement === 5 ? 'selected' : ''}>5 minutes</option>
         <option value="15" ${preferences.frequenceRafraichissement === 15 ? 'selected' : ''}>15 minutes</option>
         <option value="30" ${preferences.frequenceRafraichissement === 30 || !preferences.frequenceRafraichissement ? 'selected' : ''}>30 minutes</option>
         <option value="60" ${preferences.frequenceRafraichissement === 60 ? 'selected' : ''}>1 heure</option>
         <option value="120" ${preferences.frequenceRafraichissement === 120 ? 'selected' : ''}>2 heures</option>
       </select>
-      <small class="form-aide">Intervalle entre les synchronisations automatiques des sources.</small>
+      <small class="la-help">Intervalle entre les synchronisations automatiques des sources.</small>
     </div>
 
-    <button type="submit" class="btn btn-primaire">Enregistrer les préférences</button>
+    <button type="submit" class="la-btn primary">Enregistrer les préférences</button>
   `;
 
   form.addEventListener('submit', async (e) => {
@@ -255,23 +257,6 @@ async function sauvegarderPreferences(form: HTMLFormElement): Promise<void> {
 }
 
 /**
- * Applique le thème choisi
- */
-function appliquerTheme(theme: 'clair' | 'sombre' | 'auto'): void {
-  const html = document.documentElement;
-
-  if (theme === 'auto') {
-    html.removeAttribute('data-theme');
-    const prefereSombre = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    html.setAttribute('data-theme', prefereSombre ? 'sombre' : 'clair');
-  } else {
-    html.setAttribute('data-theme', theme);
-  }
-
-  localStorage.setItem('theme', theme);
-}
-
-/**
  * Crée la section changement de mot de passe
  */
 function creerSectionMotDePasse(): HTMLElement {
@@ -290,23 +275,23 @@ function creerSectionMotDePasse(): HTMLElement {
   }) as HTMLFormElement;
 
   form.innerHTML = `
-    <div class="form-groupe">
+    <div class="la-form-group">
       <label for="mdp-actuel">Mot de passe actuel</label>
-      <input type="password" id="mdp-actuel" name="motDePasseActuel" class="form-input" required autocomplete="current-password">
+      <input type="password" id="mdp-actuel" name="motDePasseActuel" class="la-input" required autocomplete="current-password">
     </div>
 
-    <div class="form-groupe">
+    <div class="la-form-group">
       <label for="mdp-nouveau">Nouveau mot de passe</label>
-      <input type="password" id="mdp-nouveau" name="nouveauMotDePasse" class="form-input" required minlength="10" autocomplete="new-password">
-      <small class="form-aide">Minimum 10 caractères, avec au moins une majuscule et un chiffre.</small>
+      <input type="password" id="mdp-nouveau" name="nouveauMotDePasse" class="la-input" required minlength="10" autocomplete="new-password">
+      <small class="la-help">Minimum 10 caractères, avec au moins une majuscule et un chiffre.</small>
     </div>
 
-    <div class="form-groupe">
+    <div class="la-form-group">
       <label for="mdp-confirmation">Confirmer le mot de passe</label>
-      <input type="password" id="mdp-confirmation" name="confirmation" class="form-input" required autocomplete="new-password">
+      <input type="password" id="mdp-confirmation" name="confirmation" class="la-input" required autocomplete="new-password">
     </div>
 
-    <button type="submit" class="btn btn-secondaire">Changer le mot de passe</button>
+    <button type="submit" class="la-btn secondary">Changer le mot de passe</button>
   `;
 
   form.addEventListener('submit', async (e) => {
@@ -418,14 +403,14 @@ function afficher2FAInactive(contenu: Element): void {
 
   wrapper.innerHTML = `
     <div class="deux-fa-description">
-      <div class="deux-fa-icone">🔓</div>
+      <div class="deux-fa-icone">${iconeHtml('lock_open')}</div>
       <div>
         <p class="deux-fa-titre">Renforcez la sécurité de votre compte</p>
         <p class="deux-fa-texte">L'authentification à deux facteurs ajoute une couche de protection supplémentaire.
         À chaque connexion, vous devrez entrer un code généré par votre application d'authentification.</p>
       </div>
     </div>
-    <button type="button" class="btn btn-primaire" id="btn-activer-2fa">Activer la 2FA</button>
+    <button type="button" class="la-btn primary" id="btn-activer-2fa">Activer la 2FA</button>
   `;
 
   contenu.append(wrapper);
@@ -446,7 +431,7 @@ function afficher2FAActive(contenu: Element): void {
 
   wrapper.innerHTML = `
     <div class="deux-fa-description">
-      <div class="deux-fa-icone deux-fa-icone-actif">🔒</div>
+      <div class="deux-fa-icone deux-fa-icone-actif">${iconeHtml('lock', { plein: true })}</div>
       <div>
         <p class="deux-fa-titre deux-fa-titre-actif">Authentification à deux facteurs activée</p>
         <p class="deux-fa-texte">Votre compte est protégé par l'authentification à deux facteurs.</p>
@@ -455,12 +440,12 @@ function afficher2FAActive(contenu: Element): void {
     <div class="deux-fa-desactiver">
       <p class="deux-fa-avertissement">Pour désactiver la 2FA, entrez un code de votre application d'authentification.</p>
       <form id="form-desactiver-2fa" class="deux-fa-form-desactiver">
-        <div class="form-groupe">
+        <div class="la-form-group">
           <label for="code-desactiver-2fa">Code d'authentification</label>
-          <input type="text" id="code-desactiver-2fa" name="code" class="form-input code-input"
+          <input type="text" id="code-desactiver-2fa" name="code" class="la-input code-input"
                  placeholder="000000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" required>
         </div>
-        <button type="submit" class="btn btn-danger">Désactiver la 2FA</button>
+        <button type="submit" class="la-btn error">Désactiver la 2FA</button>
       </form>
     </div>
   `;
@@ -525,7 +510,7 @@ function afficherConfiguration2FA(contenu: Element, qrCode: string, secret: stri
             <summary>Impossible de scanner ? Entrez le code manuellement</summary>
             <div class="secret-code">
               <code>${secret}</code>
-              <button type="button" class="btn btn-petit" id="btn-copier-secret">Copier</button>
+              <button type="button" class="la-btn sm" id="btn-copier-secret">Copier</button>
             </div>
           </details>
         </div>
@@ -536,13 +521,13 @@ function afficherConfiguration2FA(contenu: Element, qrCode: string, secret: stri
           <p class="etape-titre">Confirmez l'activation</p>
           <p class="etape-texte">Entrez le code à 6 chiffres affiché dans votre application.</p>
           <form id="form-confirmer-2fa" class="form-confirmer-2fa">
-            <div class="form-groupe">
-              <input type="text" id="code-confirmer-2fa" name="code" class="form-input code-input code-input-grand"
+            <div class="la-form-group">
+              <input type="text" id="code-confirmer-2fa" name="code" class="la-input code-input code-input-grand"
                      placeholder="000000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" required>
             </div>
             <div class="form-actions">
-              <button type="button" class="btn btn-secondaire" id="btn-annuler-2fa">Annuler</button>
-              <button type="submit" class="btn btn-primaire">Confirmer et activer</button>
+              <button type="button" class="la-btn secondary" id="btn-annuler-2fa">Annuler</button>
+              <button type="submit" class="la-btn primary">Confirmer et activer</button>
             </div>
           </form>
         </div>

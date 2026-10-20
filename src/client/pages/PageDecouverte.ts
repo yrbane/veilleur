@@ -3,6 +3,7 @@
  * Découverte des sources populaires de la communauté
  */
 
+import { icone, iconeHtml } from '../utils/icones';
 import { creerElement, vider } from '../utils/dom';
 import { communaute, sources as apiSources, estAuthentifie } from '../services/api';
 import type { SourcePopulaire, TagPopulaire, CriteresCommunaute } from '../services/api';
@@ -81,11 +82,12 @@ function creerBarreRecherche(): HTMLElement {
       placeholder: 'Rechercher une source...',
       id: 'recherche-decouverte',
     },
-    classes: ['form-input'],
+    classes: ['la-input'],
   }) as HTMLInputElement;
 
   const btnRecherche = creerElement('button', {
-    classes: ['btn', 'btn-primaire'],
+    classes: ['la-btn', 'primary'],
+    icone: 'search',
     texte: 'Rechercher',
     onClick: () => effectuerRecherche(input.value),
   });
@@ -152,7 +154,7 @@ function creerFiltres(): HTMLElement {
 
   options.forEach(opt => {
     const btn = creerElement('button', {
-      classes: ['btn', 'btn-tri', criteresActuels.tri === opt.valeur ? 'active' : ''],
+      classes: ['la-btn', 'btn-tri', criteresActuels.tri === opt.valeur ? 'active' : ''],
       texte: opt.label,
       attrs: { 'data-tri': opt.valeur || '' },
       onClick: async () => {
@@ -244,7 +246,7 @@ async function chargerSourcesPopulaires(): Promise<void> {
 
   grille.innerHTML = `
     <div class="chargement">
-      <div class="spinner"></div>
+      <div class="la-spinner lg"></div>
       <p>Chargement des sources...</p>
     </div>
   `;
@@ -256,8 +258,8 @@ async function chargerSourcesPopulaires(): Promise<void> {
 
     if (resultat.donnees.length === 0) {
       grille.innerHTML = `
-        <div class="message-vide">
-          <div class="message-vide-icone">🔍</div>
+        <div class="la-empty">
+          <div class="la-empty-icon">${iconeHtml('search_off')}</div>
           <h3>Aucune source trouvée</h3>
           <p>${criteresActuels.recherche
             ? 'Essayez avec d\'autres termes de recherche'
@@ -282,8 +284,8 @@ async function chargerSourcesPopulaires(): Promise<void> {
   } catch {
     vider(grille);
     grille.innerHTML = `
-      <div class="message-vide">
-        <div class="message-vide-icone">❌</div>
+      <div class="la-empty">
+        <div class="la-empty-icon">${iconeHtml('error')}</div>
         <h3>Erreur de chargement</h3>
         <p>Impossible de charger les sources populaires.</p>
       </div>
@@ -309,11 +311,11 @@ function creerCarteSourcePopulaire(source: SourcePopulaire): HTMLElement {
       attrs: { src: source.urlFavicon, alt: '' },
     });
     (img as HTMLImageElement).onerror = () => {
-      favicon.innerHTML = '<span>🌐</span>';
+      favicon.innerHTML = iconeHtml('public');
     };
     favicon.append(img);
   } else {
-    favicon.innerHTML = '<span>🌐</span>';
+    favicon.innerHTML = iconeHtml('public');
   }
 
   const infos = creerElement('div', { classes: ['carte-pop-infos'] });
@@ -334,8 +336,11 @@ function creerCarteSourcePopulaire(source: SourcePopulaire): HTMLElement {
     const noteMoyenne = Number(source.noteMoyenne);
     const note = creerElement('span', {
       classes: ['stat-note'],
-      texte: `★ ${noteMoyenne.toFixed(1)}`,
+      attrs: { 'aria-label': `Note moyenne ${noteMoyenne.toFixed(1)} sur 5` },
+      icone: 'star',
+      texte: noteMoyenne.toFixed(1),
     });
+    note.querySelector('.icone')?.classList.add('plein');
     stats.append(note);
   }
 
@@ -370,22 +375,24 @@ function creerCarteSourcePopulaire(source: SourcePopulaire): HTMLElement {
 
   if (estAuthentifie()) {
     const btnAjouter = creerElement('button', {
-      classes: ['btn', 'btn-primaire', 'btn-sm'],
+      classes: ['la-btn', 'primary', 'sm'],
+      icone: 'add',
       texte: 'Ajouter',
       onClick: async () => {
         try {
           btnAjouter.textContent = '...';
           (btnAjouter as HTMLButtonElement).disabled = true;
           await apiSources.ajouter(source.url, source.nom);
-          btnAjouter.textContent = 'Ajouté ✓';
-          btnAjouter.classList.remove('btn-primaire');
-          btnAjouter.classList.add('btn-succes');
+          btnAjouter.replaceChildren(icone('check'), document.createTextNode('Ajouté'));
+          btnAjouter.classList.remove('primary');
+          btnAjouter.classList.add('success');
           toast.succes(`"${source.nom}" ajouté à vos sources`);
         } catch (erreur) {
           const err = erreur as { code?: string };
           if (err.code === 'SOURCE_DEJA_AJOUTEE') {
             btnAjouter.textContent = 'Déjà ajouté';
-            btnAjouter.classList.remove('btn-primaire');
+            btnAjouter.classList.remove('primary');
+            btnAjouter.classList.add('secondary');
           } else {
             btnAjouter.textContent = 'Ajouter';
             (btnAjouter as HTMLButtonElement).disabled = false;
@@ -397,7 +404,7 @@ function creerCarteSourcePopulaire(source: SourcePopulaire): HTMLElement {
     actions.append(btnAjouter);
   } else {
     const btnConnexion = creerElement('button', {
-      classes: ['btn', 'btn-secondaire', 'btn-sm'],
+      classes: ['la-btn', 'secondary', 'sm'],
       texte: 'Connectez-vous',
       onClick: () => naviguerVers('/connexion'),
     });
@@ -424,8 +431,9 @@ function afficherPagination(
   // Bouton précédent
   if (pagination.page > 1) {
     const btnPrec = creerElement('button', {
-      classes: ['btn', 'btn-ghost'],
-      texte: '← Précédent',
+      classes: ['la-btn', 'ghost'],
+      icone: 'chevron_left',
+      texte: 'Précédent',
       onClick: async () => {
         criteresActuels.page = pagination.page - 1;
         await chargerSourcesPopulaires();
@@ -445,8 +453,8 @@ function afficherPagination(
   // Bouton suivant
   if (pagination.page < pagination.totalPages) {
     const btnSuiv = creerElement('button', {
-      classes: ['btn', 'btn-ghost'],
-      texte: 'Suivant →',
+      classes: ['la-btn', 'ghost'],
+      texte: 'Suivant',
       onClick: async () => {
         criteresActuels.page = pagination.page + 1;
         await chargerSourcesPopulaires();

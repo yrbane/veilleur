@@ -170,7 +170,7 @@ test.describe('US4 - Découvrir via la communauté', () => {
         await expect(page.getByText(/ajouté|succès/i)).toBeVisible({ timeout: 10000 });
 
         // Le bouton devrait changer
-        await expect(page.getByText(/ajouté ✓|déjà ajouté/i)).toBeVisible();
+        await expect(page.getByText(/^ajouté$|déjà ajouté/i)).toBeVisible();
       }
     });
 
@@ -208,9 +208,9 @@ test.describe('US4 - Découvrir via la communauté', () => {
       await page.goto('/decouverte');
       await page.waitForTimeout(2000);
 
-      // Les notes sont affichées avec ★
+      // Les notes moyennes sont affichées avec une étoile Material
       // Il peut y avoir des notes ou non selon les données
-      expect(await page.locator('text=/★ \\d/').count()).toBeGreaterThanOrEqual(0);
+      expect(await page.locator('.stat-note').count()).toBeGreaterThanOrEqual(0);
     });
 
     test('affiche le nom de domaine', async ({ page }) => {

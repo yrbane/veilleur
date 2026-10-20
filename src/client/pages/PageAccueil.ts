@@ -4,6 +4,7 @@
  * et chargement au défilement
  */
 
+import { iconeHtml } from '../utils/icones';
 import { creerElement, $, vider } from '../utils/dom';
 import { formatNombre } from '../utils/format';
 import { articles, estAuthentifie } from '../services/api';
@@ -97,7 +98,7 @@ export async function afficherPageAccueil(container: Element): Promise<void> {
 function creerBarreRecherche(): HTMLElement {
   const formulaire = creerElement('form', { classes: ['fil-recherche'], attrs: { role: 'search' } });
   const champ = creerElement('input', {
-    classes: ['champ-input'],
+    classes: ['la-input'],
     attrs: {
       type: 'search',
       id: 'fil-recherche',
@@ -126,9 +127,9 @@ function creerBarreRecherche(): HTMLElement {
   });
 
   const bouton = creerElement('button', {
-    classes: ['btn', 'btn-primaire'],
+    classes: ['la-btn', 'primary'],
     attrs: { type: 'submit', 'aria-label': 'Rechercher' },
-    texte: '🔍',
+    icone: 'search',
   });
   formulaire.append(champ, bouton);
   return formulaire;
@@ -142,7 +143,7 @@ function creerBarreOutils(): HTMLElement {
 
   // Tri
   const labelTri = creerElement('label', { classes: ['fil-outils-label'], attrs: { for: 'fil-tri' }, texte: 'Trier' });
-  const selectTri = creerElement('select', { classes: ['champ-select'], attrs: { id: 'fil-tri' } }) as HTMLSelectElement;
+  const selectTri = creerElement('select', { classes: ['la-select'], attrs: { id: 'fil-tri' } }) as HTMLSelectElement;
   for (const choix of CHOIX_TRI) {
     const option = creerElement('option', { attrs: { value: choix.valeur }, texte: choix.libelle });
     selectTri.append(option);
@@ -157,10 +158,10 @@ function creerBarreOutils(): HTMLElement {
 
   // Note minimale
   const labelNote = creerElement('label', { classes: ['fil-outils-label'], attrs: { for: 'fil-note-min' }, texte: 'Note' });
-  const selectNote = creerElement('select', { classes: ['champ-select'], attrs: { id: 'fil-note-min' } }) as HTMLSelectElement;
+  const selectNote = creerElement('select', { classes: ['la-select'], attrs: { id: 'fil-note-min' } }) as HTMLSelectElement;
   selectNote.append(creerElement('option', { attrs: { value: '' }, texte: 'Toutes' }));
   for (let n = 1; n <= 5; n++) {
-    selectNote.append(creerElement('option', { attrs: { value: String(n) }, texte: `${'★'.repeat(n)} et plus` }));
+    selectNote.append(creerElement('option', { attrs: { value: String(n) }, texte: `${n} étoile${n > 1 ? 's' : ''} et plus` }));
   }
   selectNote.value = filtres.noteMin ? String(filtres.noteMin) : '';
   selectNote.addEventListener('change', () => {
@@ -170,9 +171,10 @@ function creerBarreOutils(): HTMLElement {
 
   // Favoris
   const btnFavoris = creerElement('button', {
-    classes: ['chip-filtre', filtres.favoris ? 'active' : ''],
+    classes: ['la-chip chip-filtre', filtres.favoris ? 'active' : ''],
     attrs: { type: 'button', id: 'fil-favoris', 'aria-pressed': String(filtres.favoris) },
-    texte: '♥ Favoris',
+    icone: 'favorite',
+    texte: 'Favoris',
     onClick: () => {
       filtres.favoris = !filtres.favoris;
       btnFavoris.classList.toggle('active', filtres.favoris);
@@ -214,7 +216,7 @@ function afficherMotsClesFiltre(conteneur: Element, motsCles: MotCleFil[]): void
     : motsCles;
   for (const { mot, nombreArticles } of liste) {
     const chip = creerElement('button', {
-      classes: ['chip-filtre', filtres.motCle === mot ? 'active' : ''],
+      classes: ['la-chip chip-filtre', filtres.motCle === mot ? 'active' : ''],
       attrs: { type: 'button', 'data-mot': mot, 'aria-pressed': String(filtres.motCle === mot) },
       texte: nombreArticles ? `${mot} (${nombreArticles})` : mot,
       onClick: () => filtrerParMotCle(filtres.motCle === mot ? undefined : mot),
@@ -298,7 +300,7 @@ function afficherPageNonConnecte(container: Element): void {
   page.innerHTML = `
     <div class="auth-carte">
       <div class="auth-logo">
-        <div class="auth-logo-icone">📰</div>
+        <div class="auth-logo-icone">${iconeHtml('newspaper', { plein: true })}</div>
         <div class="auth-logo-texte">Veilleur</div>
       </div>
       <h2 class="auth-titre">Votre sentinelle de l'information</h2>
@@ -306,8 +308,8 @@ function afficherPageNonConnecte(container: Element): void {
         Agrégez vos sources d'actualités préférées en un seul endroit.
       </p>
       <div class="auth-actions">
-        <a href="/connexion" class="btn btn-primaire btn-lg" data-nav>Se connecter</a>
-        <a href="/inscription" class="btn btn-secondaire btn-lg" data-nav>Créer un compte</a>
+        <a href="/connexion" class="la-btn primary lg" data-nav>Se connecter</a>
+        <a href="/inscription" class="la-btn secondary lg" data-nav>Créer un compte</a>
       </div>
     </div>
   `;
@@ -344,16 +346,16 @@ function afficherStatistiques(container: Element, stats: Statistiques): void {
 
   for (const item of statItems) {
     const stat = creerElement('div', {
-      classes: ['stat'],
+      classes: ['la-stat plain'],
     });
 
     const valeur = creerElement('div', {
-      classes: ['stat-valeur'],
+      classes: ['la-stat-value'],
       texte: formatNombre(item.valeur),
     });
 
     const label = creerElement('div', {
-      classes: ['stat-label'],
+      classes: ['la-stat-label'],
       texte: item.label,
     });
 
@@ -416,11 +418,11 @@ async function chargerArticles(page: number): Promise<void> {
     if (page === 1) {
       vider(liste);
       liste.innerHTML = `
-        <div class="message-vide">
-          <div class="message-vide-icone">❌</div>
-          <div class="message-vide-titre">Erreur de chargement</div>
+        <div class="la-empty">
+          <div class="la-empty-icon">${iconeHtml('error')}</div>
+          <div class="la-empty-title">Erreur de chargement</div>
           <p>Impossible de charger les articles. Réessayez plus tard.</p>
-          <button class="btn btn-primaire" onclick="location.reload()">Réessayer</button>
+          <button class="la-btn primary" onclick="location.reload()">Réessayer</button>
         </div>
       `;
     }
@@ -448,11 +450,11 @@ function afficherMessageVide(container: Element): void {
   const filtresActifs = filtres.recherche || filtres.noteMin || filtres.favoris || filtres.motCle;
   if (filtresActifs) {
     container.innerHTML = `
-      <div class="message-vide">
-        <div class="message-vide-icone">🔍</div>
-        <div class="message-vide-titre">Aucun article ne correspond</div>
+      <div class="la-empty">
+        <div class="la-empty-icon">${iconeHtml('search_off')}</div>
+        <div class="la-empty-title">Aucun article ne correspond</div>
         <p>Modifiez la recherche ou les filtres pour voir plus d'articles.</p>
-        <button class="btn btn-secondaire" id="btn-reinitialiser-filtres" type="button">Réinitialiser les filtres</button>
+        <button class="la-btn secondary" id="btn-reinitialiser-filtres" type="button">Réinitialiser les filtres</button>
       </div>
     `;
     $('#btn-reinitialiser-filtres')?.addEventListener('click', () => {
@@ -464,11 +466,11 @@ function afficherMessageVide(container: Element): void {
     return;
   }
   container.innerHTML = `
-    <div class="message-vide">
-      <div class="message-vide-icone">📭</div>
-      <div class="message-vide-titre">Aucun article</div>
+    <div class="la-empty">
+      <div class="la-empty-icon">${iconeHtml('inbox')}</div>
+      <div class="la-empty-title">Aucun article</div>
       <p>Commencez par ajouter des sources pour voir des articles ici.</p>
-      <a href="/sources" class="btn btn-primaire" data-nav>Ajouter des sources</a>
+      <a href="/sources" class="la-btn primary" data-nav>Ajouter des sources</a>
     </div>
   `;
 }

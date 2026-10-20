@@ -3,6 +3,7 @@
  * Connexion et inscription
  */
 
+import { iconeHtml } from '../utils/icones';
 import { creerElement, $, vider } from '../utils/dom';
 import { auth, ErreurAPI } from '../services/api';
 import { toast } from '../utils/toast';
@@ -24,24 +25,24 @@ export function afficherPageConnexion(container: Element): void {
 
   carte.innerHTML = `
     <div class="auth-logo">
-      <div class="auth-logo-icone">📰</div>
+      <div class="auth-logo-icone">${iconeHtml('newspaper', { plein: true })}</div>
       <div class="auth-logo-texte">Veilleur</div>
     </div>
     <h2 class="auth-titre">Connexion</h2>
     <form class="auth-formulaire" id="form-connexion">
-      <div class="champ">
-        <label class="champ-label requis" for="email">Email</label>
-        <input type="email" id="email" name="email" class="champ-input"
+      <div class="la-form-group">
+        <label class="la-label requis" for="email">Email</label>
+        <input type="email" id="email" name="email" class="la-input"
                placeholder="votre@email.com" required autocomplete="email">
       </div>
-      <div class="champ">
-        <label class="champ-label requis" for="motDePasse">Mot de passe</label>
-        <input type="password" id="motDePasse" name="motDePasse" class="champ-input"
+      <div class="la-form-group">
+        <label class="la-label requis" for="motDePasse">Mot de passe</label>
+        <input type="password" id="motDePasse" name="motDePasse" class="la-input"
                placeholder="••••••••" required autocomplete="current-password">
       </div>
       <div class="champ-erreur masque" id="erreur-connexion"></div>
       <div class="auth-actions">
-        <button type="submit" class="btn btn-primaire btn-lg" id="btn-connexion">
+        <button type="submit" class="la-btn primary lg" id="btn-connexion">
           Se connecter
         </button>
       </div>
@@ -109,30 +110,30 @@ export function afficherPageInscription(container: Element): void {
 
   carte.innerHTML = `
     <div class="auth-logo">
-      <div class="auth-logo-icone">📰</div>
+      <div class="auth-logo-icone">${iconeHtml('newspaper', { plein: true })}</div>
       <div class="auth-logo-texte">Veilleur</div>
     </div>
     <h2 class="auth-titre">Créer un compte</h2>
     <form class="auth-formulaire" id="form-inscription">
-      <div class="champ">
-        <label class="champ-label requis" for="email">Email</label>
-        <input type="email" id="email" name="email" class="champ-input"
+      <div class="la-form-group">
+        <label class="la-label requis" for="email">Email</label>
+        <input type="email" id="email" name="email" class="la-input"
                placeholder="votre@email.com" required autocomplete="email">
       </div>
-      <div class="champ">
-        <label class="champ-label requis" for="motDePasse">Mot de passe</label>
-        <input type="password" id="motDePasse" name="motDePasse" class="champ-input"
+      <div class="la-form-group">
+        <label class="la-label requis" for="motDePasse">Mot de passe</label>
+        <input type="password" id="motDePasse" name="motDePasse" class="la-input"
                placeholder="••••••••" required autocomplete="new-password" minlength="8">
-        <span class="champ-aide">8 caractères minimum</span>
+        <span class="la-help">8 caractères minimum</span>
       </div>
-      <div class="champ">
-        <label class="champ-label requis" for="confirmation">Confirmer le mot de passe</label>
-        <input type="password" id="confirmation" name="confirmation" class="champ-input"
+      <div class="la-form-group">
+        <label class="la-label requis" for="confirmation">Confirmer le mot de passe</label>
+        <input type="password" id="confirmation" name="confirmation" class="la-input"
                placeholder="••••••••" required autocomplete="new-password">
       </div>
       <div class="champ-erreur masque" id="erreur-inscription"></div>
       <div class="auth-actions">
-        <button type="submit" class="btn btn-primaire btn-lg" id="btn-inscription">
+        <button type="submit" class="la-btn primary lg" id="btn-inscription">
           Créer mon compte
         </button>
       </div>
