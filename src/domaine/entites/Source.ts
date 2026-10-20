@@ -31,6 +31,8 @@ export const schemaSource = z.object({
   dateDerniereSynchro: z.date().nullable(),
   hashUrlNormalise: z.string().length(32).nullable(),
   nombreEchecs: z.number().int().min(0).default(0),
+  // Tags déduits automatiquement à la détection, appliqués à chaque utilisateur qui ajoute la source
+  tagsSuggeres: z.array(z.string().max(50)).optional(),
 });
 
 export type Source = z.infer<typeof schemaSource>;

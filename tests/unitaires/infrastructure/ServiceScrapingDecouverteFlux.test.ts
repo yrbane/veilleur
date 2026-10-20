@@ -28,7 +28,8 @@ const PAGE_AVEC_LIEN = `<html><head>
 const PAGE_SANS_LIEN = '<html><head><title>Site muet</title></head><body></body></html>';
 
 const FLUX = `<?xml version="1.0"?><rss version="2.0"><channel><title>Flux du journal</title>
-  <item><title>A</title><link>https://journal.fr/a</link></item></channel></rss>`;
+  <link>https://journal.fr</link><category>Politique</category>
+  <item><title>A</title><link>https://journal.fr/a</link><category>Écologie</category></item></channel></rss>`;
 
 /**
  * Simule le réseau : les URL de flux listées renvoient le flux, les autres la page HTML
@@ -65,7 +66,7 @@ describe('ServiceScraping.decouvrirFlux', () => {
 
     const flux = await service.decouvrirFlux('https://journal.fr/rss.xml');
 
-    expect(flux).toEqual({ url: 'https://journal.fr/rss.xml', type: 'rss', titre: 'Flux du journal', favicon: null });
+    expect(flux).toMatchObject({ url: 'https://journal.fr/rss.xml', type: 'rss', titre: 'Flux du journal', tags: ['Politique', 'Écologie'] });
     expect(appels).toEqual(['https://journal.fr/rss.xml']);
   });
 
@@ -121,7 +122,15 @@ describe('ServiceScraping.detecterSource', () => {
 
     const detection = await service.detecterSource('https://journal.fr');
 
-    expect(detection).toEqual({ url: 'https://journal.fr/articles/feed', type: 'rss', titre: 'Flux du journal', favicon: 'https://journal.fr/favicon.ico', joignable: true });
+    expect(detection).toEqual({
+      url: 'https://journal.fr/articles/feed',
+      type: 'rss',
+      titre: 'Flux du journal',
+      favicon: 'https://journal.fr/favicon.ico',
+      urlSite: 'https://journal.fr',
+      tags: ['Politique', 'Écologie'],
+      joignable: true,
+    });
   });
 
   it('devine le protocole : https d\'abord, puis http si le site ne répond pas en https', async () => {
@@ -159,6 +168,25 @@ describe('ServiceScraping.detecterSource', () => {
 
     const detection = await service.detecterSource('https://journal.fr');
 
-    expect(detection).toEqual({ url: 'https://journal.fr', type: 'html', titre: 'Site muet', favicon: 'https://journal.fr/ico.png', joignable: true });
+    expect(detection).toEqual({ url: 'https://journal.fr', type: 'html', titre: 'Site muet', favicon: 'https://journal.fr/ico.png', tags: [], joignable: true });
+  });
+
+  it('lit le favicon sur la page d\'accueil quand l\'utilisateur colle directement un flux', async () => {
+    const service = new ServiceScraping();
+    simulerReseau(['https://journal.fr/rss.xml'], '<html><head><link rel="icon" href="/ico.png"></head></html>');
+
+    const detection = await service.detecterSource('https://journal.fr/rss.xml');
+
+    expect(detection.favicon).toBe('https://journal.fr/ico.png');
+    expect(detection.tags).toEqual(['Politique', 'Écologie']);
+  });
+
+  it('déduit les tags des mots-clés de la page pour une source HTML', async () => {
+    const service = new ServiceScraping();
+    simulerReseau([], '<html><head><title>Site</title><meta name="keywords" content="astronomie, espace"></head></html>');
+
+    const detection = await service.detecterSource('https://journal.fr');
+
+    expect(detection.tags).toEqual(['astronomie', 'espace']);
   });
 });

@@ -4,7 +4,26 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
-## 0.5.1 — 2026-10-20 · « Mots-clés plus justes »
+## 0.6.0 — 2026-10-20 · « Favicon et tags de la source récupérés à l'ajout »
+
+### Ajouté
+- **À l'ajout d'une source, son favicon et ses tags sont récupérés
+  automatiquement**, sans saisie de l'utilisateur :
+  - le favicon est lu sur la page d'accueil du site (balises `<link rel="icon">`,
+    `apple-touch-icon`…), même quand l'utilisateur colle directement l'adresse
+    d'un flux ; à défaut `/favicon.ico` à la racine ;
+  - les tags (cinq au plus) viennent des catégories déclarées par le flux, puis
+    des catégories les plus fréquentes de ses articles, puis des mots-clés de la
+    page du site, et en dernier recours des mots-clés extraits des titres.
+    Les catégories creuses (« Actualités », « Uncategorized »…) sont écartées.
+- Les tags déduits sont mémorisés sur la source (`sources.tags_suggeres`,
+  migration `0007`) et repris pour chaque utilisateur qui l'ajoute ensuite.
+  Ils restent modifiables : retrait et ajout manuels fonctionnent comme avant.
+- `npm run sources:rattraper:prod` (`dist/rattraper-sources.js`) : complète le
+  favicon et les tags des sources déjà en base et tague les abonnements qui
+  n'avaient encore aucun tag.
+
+ · « Mots-clés plus justes »
 
 ### Corrigé
 - Les finales invariables en -ès (procès, succès, accès) ne sont plus
