@@ -49,11 +49,13 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'src/client/index.html'),
+        // Service worker : servi à la racine sans empreinte, le navigateur le recharge lui-même
+        sw: resolve(__dirname, 'src/client/sw.ts'),
       },
       output: {
         // Nommage des chunks avec hash pour cache busting
         chunkFileNames: 'assets/js/[name]-[hash].js',
-        entryFileNames: 'assets/js/[name]-[hash].js',
+        entryFileNames: (chunk) => (chunk.name === 'sw' ? 'sw.js' : 'assets/js/[name]-[hash].js'),
         assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
       },
     },

@@ -22,6 +22,7 @@ import { afficherPageParametres } from './pages/PageParametres';
 import { afficherPageDecouverte } from './pages/PageDecouverte';
 import { afficherPageProgression } from './pages/PageProgression';
 import { enregistrerServiceWorker } from './utils/notificationsPush';
+import { ecouterInstallation } from './utils/pwa';
 import { toast } from './utils/toast';
 
 // Version injectée par Vite (define) depuis package.json
@@ -311,8 +312,18 @@ async function initialiser(): Promise<void> {
   // Initialiser la navigation
   initialiserNavigation();
 
-  // Service worker (notifications push) : silencieux si indisponible
-  void enregistrerServiceWorker();
+  // Service worker (coque hors ligne, notifications push) : silencieux si indisponible
+  ecouterInstallation();
+  void enregistrerServiceWorker().then((inscription) => {
+    inscription?.addEventListener('updatefound', () => {
+      const nouveau = inscription.installing;
+      nouveau?.addEventListener('statechange', () => {
+        if (nouveau.state === 'activated' && navigator.serviceWorker.controller) {
+          toast.info('Nouvelle version de Veilleur disponible : rechargez la page');
+        }
+      });
+    });
+  });
 
   // Afficher la version dans le pied de page
   afficherVersion();
