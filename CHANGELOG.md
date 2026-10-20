@@ -4,6 +4,13 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.10.1 — 2026-10-21 · « jsdom en production »
+
+### Corrigé
+- `jsdom`, requis par l'extraction de lecture, était resté en dépendance de
+  développement : le serveur de production ne démarrait plus (`ERR_MODULE_NOT_FOUND`).
+  Déplacé en dépendance d'exécution.
+
 ## 0.10.0 — 2026-10-21 · « Lecture en place »
 
 ### Ajouté
