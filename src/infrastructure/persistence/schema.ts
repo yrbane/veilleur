@@ -294,11 +294,14 @@ export const utilisateursArticles = mysqlTable(
     favori: boolean('favori').notNull().default(false),
     // Date de lecture ; NULL = non lu
     luLe: timestamp('lu_le'),
+    // Liste de lecture « à lire plus tard »
+    aLire: boolean('a_lire').notNull().default(false),
     dateMiseAJour: timestamp('date_mise_a_jour').notNull().defaultNow(),
   },
   table => ({
     idxUnique: uniqueIndex('idx_utilisateur_article_unique').on(table.utilisateurId, table.articleId),
     idxLu: index('idx_utilisateur_article_lu').on(table.utilisateurId, table.luLe),
+    idxALire: index('idx_utilisateur_article_a_lire').on(table.utilisateurId, table.aLire),
     // Tri et filtre du fil par note, filtre favoris
     idxNote: index('idx_utilisateur_article_note').on(table.utilisateurId, table.note),
     idxFavori: index('idx_utilisateur_article_favori').on(table.utilisateurId, table.favori),

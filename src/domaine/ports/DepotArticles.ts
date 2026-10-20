@@ -28,6 +28,7 @@ export interface CriteresArticles {
   noteMin?: number;
   favoris?: boolean;
   nonLus?: boolean;
+  aLire?: boolean;
   // Mot-clé extrait automatiquement
   motCle?: string;
 }

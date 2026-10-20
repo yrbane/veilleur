@@ -46,7 +46,14 @@ const schemaCriteresFil = z.object({
     .enum(['true', 'false'])
     .optional()
     .transform(val => val === 'true'),
+  aLire: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform(val => val === 'true'),
 });
+
+const schemaALire = z.object({ aLire: z.boolean() });
+const schemaExport = z.object({ format: z.enum(['json', 'csv']).default('json') });
 
 const schemaLu = z.object({ lu: z.boolean() });
 const schemaTousLus = z.object({
@@ -232,6 +239,7 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
           motCle: { type: 'string' },
           favoris: { type: 'string', enum: ['true', 'false'] },
           nonLus: { type: 'string', enum: ['true', 'false'] },
+          aLire: { type: 'string', enum: ['true', 'false'] },
         },
       },
       response: {
@@ -261,6 +269,7 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
                   note: { type: 'number', nullable: true },
                   favori: { type: 'boolean' },
                   lu: { type: 'boolean' },
+                  aLire: { type: 'boolean' },
                   motsCles: { type: 'array', items: { type: 'string' } },
                 },
               },
@@ -303,6 +312,7 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
           note: annotation?.note ?? null,
           favori: annotation?.favori ?? false,
           lu: annotation?.lu ?? false,
+          aLire: annotation?.aLire ?? false,
           motsCles: (motsCles.get(article.id) ?? []).filter(mot => mot !== '—'),
         };
       });
@@ -584,6 +594,50 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
       const { id } = schemaParamsArticle.parse(request.params);
       const { lu } = schemaLu.parse(request.body);
       return reply.send(await obtenirServiceAnnotations().marquerLu(request.utilisateur!.sub, id, lu));
+    } catch (erreur) {
+      return gererErreurArticle(erreur, reply);
+    }
+  });
+
+  /**
+   * PUT /api/v1/articles/:id/a-lire — liste de lecture
+   */
+  fastify.put('/:id/a-lire', {
+    schema: {
+      tags: ['Articles'],
+      summary: 'Met un article dans la liste de lecture ou l\'en retire',
+      security: [{ bearerAuth: [] }],
+      params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
+      body: { type: 'object', required: ['aLire'], properties: { aLire: { type: 'boolean' } } },
+      response: { 200: { type: 'object', properties: { aLire: { type: 'boolean' } } } },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = schemaParamsArticle.parse(request.params);
+      const { aLire } = schemaALire.parse(request.body);
+      return reply.send(await obtenirServiceAnnotations().definirALire(request.utilisateur!.sub, id, aLire));
+    } catch (erreur) {
+      return gererErreurArticle(erreur, reply);
+    }
+  });
+
+  /**
+   * GET /api/v1/articles/export?format=json|csv — export des annotations
+   */
+  fastify.get('/export', {
+    schema: {
+      tags: ['Articles'],
+      summary: 'Exporte les annotations (notes, favoris, liste de lecture, lus) en JSON ou CSV',
+      security: [{ bearerAuth: [] }],
+      querystring: { type: 'object', properties: { format: { type: 'string', enum: ['json', 'csv'] } } },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { format } = schemaExport.parse(request.query);
+      const exportation = await obtenirServiceAnnotations().exporterAnnotations(request.utilisateur!.sub, format);
+      reply.header('Content-Type', exportation.typeMime);
+      reply.header('Content-Disposition', `attachment; filename="${exportation.nomFichier}"`);
+      return reply.send(exportation.contenu);
     } catch (erreur) {
       return gererErreurArticle(erreur, reply);
     }

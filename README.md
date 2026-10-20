@@ -74,6 +74,7 @@
 - Fil trié (date, note, titre, source), filtré, avec recherche plein texte et chargement au défilement
 - Lu / non lu : lecture automatique à l'ouverture, filtre « Non lus », compteurs par source, « Tout marquer lu »
 - Lecture en place : le contenu de l'article, extrait et nettoyé côté serveur, s'ouvre dans une fenêtre sans quitter le fil
+- Liste de lecture « à lire plus tard » et export de toutes les annotations en JSON ou CSV
 - Paramètres avancés par source
 - Thème clair, sombre ou automatique en un clic dans l'en-tête, mémorisé dans le navigateur
 - Raccourci `/` vers la recherche, retour en haut du fil, navigation compacte sur mobile

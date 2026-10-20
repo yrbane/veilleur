@@ -171,6 +171,24 @@ export interface AnnotationArticle {
   favori: boolean;
   /** L'utilisateur a ouvert ou marqué l'article comme lu */
   lu: boolean;
+  /** Mis de côté dans la liste de lecture */
+  aLire: boolean;
+}
+
+/**
+ * Annotation accompagnée de l'article, telle qu'exportée (JSON / CSV)
+ */
+export interface AnnotationExportee {
+  articleId: string;
+  titre: string;
+  lien: string;
+  source: string;
+  datePublication: Date;
+  note: number | null;
+  favori: boolean;
+  aLire: boolean;
+  lu: boolean;
+  dateMiseAJour: Date;
 }
 
 /**

@@ -4,6 +4,23 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.11.0 — 2026-10-21 · « Liste de lecture et export des annotations »
+
+### Ajouté
+- Liste de lecture : bouton « Lire plus tard » (signet) sur chaque carte,
+  puce « À lire » dans la barre du fil pour n'afficher que les articles mis de
+  côté. Colonne `a_lire` (migration `0009`).
+- Export des annotations depuis Paramètres › Mes données, en JSON ou CSV
+  (titre, lien, source, date, note, favori, à lire, lu, dernière mise à jour).
+  CSV RFC 4180, séparateur « ; », BOM UTF-8 pour Excel.
+- API : `PUT /api/v1/articles/:id/a-lire`, `GET /api/v1/articles/export?format=json|csv`,
+  paramètre `aLire=true` sur le fil, champ `aLire` sur chaque article.
+
+### Modifié
+- Boutons favori et liste de lecture construits par un même composant à deux
+  états ; téléchargement de fichier factorisé entre l'export OPML et celui des
+  annotations.
+
 ## 0.10.2 — 2026-10-21 · « Images du lecteur en local, quota assaini »
 
 ### Corrigé

@@ -608,7 +608,8 @@
   font-size: var(--taille-base);
 }
 
-.btn-favori {
+.btn-favori,
+.btn-a-lire {
   display: inline-flex;
   background: none;
   border: none;
@@ -622,6 +623,15 @@
 
 .btn-favori:hover {
   color: #e0245e;
+  transform: scale(1.15);
+}
+
+.btn-a-lire:hover,
+.btn-a-lire.active {
+  color: var(--couleur-primaire);
+}
+
+.btn-a-lire:hover {
   transform: scale(1.15);
 }
 
@@ -852,4 +862,11 @@ body.modal-ouverte {
   .lecteur-contenu {
     font-size: var(--taille-base);
   }
+}
+
+.parametres-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espace-3);
+  margin-top: var(--espace-4);
 }

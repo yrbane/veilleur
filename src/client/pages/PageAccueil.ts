@@ -37,10 +37,11 @@ interface FiltresFil {
   noteMin?: number;
   favoris: boolean;
   nonLus: boolean;
+  aLire: boolean;
   motCle?: string;
 }
 
-const FILTRES_DEFAUT: FiltresFil = { recherche: '', tri: 'date', ordre: 'desc', favoris: false, nonLus: false };
+const FILTRES_DEFAUT: FiltresFil = { recherche: '', tri: 'date', ordre: 'desc', favoris: false, nonLus: false, aLire: false };
 
 let filtres: FiltresFil = { ...FILTRES_DEFAUT };
 let pageCourante = 1;
@@ -204,6 +205,20 @@ function creerBarreOutils(): HTMLElement {
     },
   });
 
+  // Liste de lecture
+  const btnALire = creerElement('button', {
+    classes: ['la-chip chip-filtre', filtres.aLire ? 'active' : ''],
+    attrs: { type: 'button', id: 'fil-a-lire', 'aria-pressed': String(filtres.aLire) },
+    icone: 'bookmark',
+    texte: 'À lire',
+    onClick: () => {
+      filtres.aLire = !filtres.aLire;
+      btnALire.classList.toggle('active', filtres.aLire);
+      btnALire.setAttribute('aria-pressed', String(filtres.aLire));
+      appliquerFiltres();
+    },
+  });
+
   // Tout marquer comme lu (borné à l'instant du clic)
   const btnToutLu = creerElement('button', {
     classes: ['la-btn', 'ghost', 'sm', 'btn-tout-lu'],
@@ -225,7 +240,7 @@ function creerBarreOutils(): HTMLElement {
     },
   });
 
-  barre.append(labelTri, selectTri, labelNote, selectNote, btnFavoris, btnNonLus, btnToutLu, motsClesFiltre);
+  barre.append(labelTri, selectTri, labelNote, selectNote, btnFavoris, btnALire, btnNonLus, btnToutLu, motsClesFiltre);
   return barre;
 }
 
@@ -305,7 +320,7 @@ function chargerFiltres(): FiltresFil {
 function sauvegarderFiltres(): void {
   try {
     // La recherche n'est pas mémorisée : on revient toujours sur le fil complet
-    const persistants = { tri: filtres.tri, ordre: filtres.ordre, noteMin: filtres.noteMin, favoris: filtres.favoris, nonLus: filtres.nonLus, motCle: filtres.motCle };
+    const persistants = { tri: filtres.tri, ordre: filtres.ordre, noteMin: filtres.noteMin, favoris: filtres.favoris, nonLus: filtres.nonLus, aLire: filtres.aLire, motCle: filtres.motCle };
     localStorage.setItem(CLE_FILTRES, JSON.stringify(persistants));
   } catch {
     // Stockage indisponible : les filtres ne survivent pas au rechargement, sans gravité
@@ -426,6 +441,7 @@ async function chargerArticles(page: number): Promise<void> {
     noteMin: filtres.noteMin,
     favoris: filtres.favoris,
     nonLus: filtres.nonLus,
+    aLire: filtres.aLire,
     motCle: filtres.motCle,
   };
 
@@ -486,7 +502,7 @@ function afficherArticles(container: Element, articlesData: Article[]): void {
  * Affiche un message quand il n'y a pas d'articles
  */
 function afficherMessageVide(container: Element): void {
-  const filtresActifs = filtres.recherche || filtres.noteMin || filtres.favoris || filtres.nonLus || filtres.motCle;
+  const filtresActifs = filtres.recherche || filtres.noteMin || filtres.favoris || filtres.nonLus || filtres.aLire || filtres.motCle;
   if (filtresActifs) {
     container.innerHTML = `
       <div class="la-empty">

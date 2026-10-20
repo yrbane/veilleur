@@ -7,7 +7,8 @@ import { appliquerTheme, themeEnregistre, type Theme } from '../utils/theme';
 import { iconeHtml } from '../utils/icones';
 import { ajouterBasculeMotDePasse } from '../utils/formulaires';
 import { creerElement, $, vider } from '../utils/dom';
-import { auth, estAuthentifie } from '../services/api';
+import { auth, articles, estAuthentifie } from '../services/api';
+import { telechargerFichier, suffixeDate } from '../utils/telechargement';
 import { toast } from '../utils/toast';
 import type { Utilisateur, Preferences, Statut2FA } from '../services/api';
 
@@ -119,7 +120,9 @@ function afficherFormulaires(): void {
   // Section 2FA
   const section2FA = creerSection2FA();
 
-  contenu.append(sectionProfil, sectionPreferences, sectionMotDePasse, section2FA);
+  const sectionDonnees = creerSectionDonnees();
+
+  contenu.append(sectionProfil, sectionPreferences, sectionMotDePasse, section2FA, sectionDonnees);
 }
 
 /**
@@ -159,6 +162,44 @@ function creerSectionProfil(): HTMLElement {
   `;
 
   section.append(titre, info);
+  return section;
+}
+
+/**
+ * Section « Mes données » : export des annotations (notes, favoris, liste de lecture, lus)
+ */
+function creerSectionDonnees(): HTMLElement {
+  const section = creerElement('section', { classes: ['parametres-section'], attrs: { id: 'section-donnees' } });
+  const titre = creerElement('h2', { classes: ['parametres-section-titre'], texte: 'Mes données' });
+  const aide = creerElement('p', {
+    classes: ['la-help'],
+    texte: 'Téléchargez vos notes, favoris, liste de lecture et articles lus. Les sources s\'exportent en OPML depuis la page Mes sources.',
+  });
+  const boutons = creerElement('div', { classes: ['parametres-actions'] });
+
+  const creerBoutonExport = (format: 'json' | 'csv'): HTMLElement =>
+    creerElement('button', {
+      classes: ['la-btn', 'secondary'],
+      attrs: { type: 'button', id: `btn-export-${format}` },
+      icone: 'download',
+      texte: `Exporter en ${format.toUpperCase()}`,
+      onClick: async () => {
+        try {
+          const contenu = await articles.exporterAnnotations(format);
+          telechargerFichier(
+            contenu,
+            `veilleur-annotations-${suffixeDate()}.${format}`,
+            format === 'csv' ? 'text/csv;charset=utf-8' : 'application/json',
+          );
+          toast.succes('Annotations exportées');
+        } catch {
+          toast.erreur('Impossible d\'exporter les annotations');
+        }
+      },
+    });
+
+  boutons.append(creerBoutonExport('json'), creerBoutonExport('csv'));
+  section.append(titre, aide, boutons);
   return section;
 }
 
