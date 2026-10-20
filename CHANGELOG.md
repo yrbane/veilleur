@@ -4,7 +4,15 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
-## 0.4.0 — 2026-10-20 · « Noter, classer, trier et retrouver ses articles »
+## 0.4.1 — 2026-10-20 · « Le fil reflète immédiatement les sources ajoutées »
+
+### Corrigé
+- Après l'ajout, le retrait ou la mise en pause d'une source, le fil restait
+  sur sa version en cache jusqu'à 60 s : un nouvel inscrit qui ajoutait sa
+  première source voyait encore « Aucun article ». Le cache du fil est
+  désormais invalidé en même temps que celui des sources.
+
+ · « Noter, classer, trier et retrouver ses articles »
 
 ### Ajouté
 - **Note par article** (1 à 5 étoiles, personnelle) : cliquer sur l'étoile de
