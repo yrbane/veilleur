@@ -4,6 +4,17 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.12.0 — 2026-10-21 · « Recherche enrichie »
+
+### Ajouté
+- Filtres « Source » (liste de vos sources) et « Période » (24 h, 7 jours,
+  30 jours) dans la barre du fil, mémorisés comme les autres filtres.
+- Surlignage des termes recherchés dans le titre et le résumé des cartes
+  (termes positifs seulement, insensible à la casse, jamais interprété en HTML).
+- Syntaxe de recherche expliquée dans le champ : `-mot` exclut, `"phrase
+  exacte"`, `préfixe*` (mode booléen MariaDB déjà en place côté serveur).
+- Paramètre `depuis` envoyé par le client sur `GET /api/v1/articles/fil`.
+
 ## 0.11.0 — 2026-10-21 · « Liste de lecture et export des annotations »
 
 ### Ajouté

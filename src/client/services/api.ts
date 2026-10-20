@@ -279,6 +279,8 @@ export interface OptionsFil {
   page?: number;
   limite?: number;
   sourceId?: string;
+  /** Date ISO : articles publiés depuis */
+  depuis?: string;
   recherche?: string;
   tri?: TriFil;
   ordre?: 'asc' | 'desc';
@@ -531,6 +533,7 @@ export const articles = {
     params.set('page', String(options.page ?? 1));
     params.set('limite', String(options.limite ?? 20));
     if (options.sourceId) params.set('sourceId', options.sourceId);
+    if (options.depuis) params.set('depuis', options.depuis);
     if (options.recherche) params.set('recherche', options.recherche);
     if (options.tri) params.set('tri', options.tri);
     if (options.ordre) params.set('ordre', options.ordre);

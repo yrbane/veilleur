@@ -7,6 +7,7 @@ import { creerElement } from '../utils/dom';
 import { icone, iconeHtml } from '../utils/icones';
 import { urlFaviconLocale } from '../utils/favicons';
 import { formatDateRelative, echapperHtml } from '../utils/format';
+import { surligner } from '../utils/surlignage';
 import { articles as apiArticles } from '../services/api';
 import { toast } from '../utils/toast';
 import { ouvrirLecteur } from './Lecteur';
@@ -22,6 +23,8 @@ export interface OptionsCarteArticle {
   onMotCle?: (mot: string) => void;
   /** Article marqué lu ou non lu */
   onLu?: (article: Article) => void;
+  /** Termes de la recherche courante à surligner dans le titre et le résumé */
+  surligner?: string[];
 }
 
 /**
@@ -291,16 +294,16 @@ export function creerCarteArticle(article: Article, options: OptionsCarteArticle
       target: '_blank',
       rel: 'noopener noreferrer',
     },
-    texte: article.titre,
     // Ouvrir l'article vaut lecture
     onClick: () => void definirLu(article, carte, true, options),
   });
+  titre.append(surligner(article.titre, options.surligner ?? []));
 
   // Résumé
   const resume = article.resume
     ? creerElement('p', {
         classes: ['carte-article-resume'],
-        texte: echapperHtml(article.resume),
+        enfants: [surligner(echapperHtml(article.resume), options.surligner ?? [])],
       })
     : null;
 
