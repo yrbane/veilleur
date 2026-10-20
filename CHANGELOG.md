@@ -4,7 +4,15 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
-## 0.5.0 — 2026-10-20 · « Classement automatique par mots-clés »
+## 0.5.1 — 2026-10-20 · « Mots-clés plus justes »
+
+### Corrigé
+- Les finales invariables en -ès (procès, succès, accès) ne sont plus
+  tronquées, et les noms propres gardent leur forme (« Limoges », « Rennes »).
+- Les mots creux des titres de presse (comment, pourquoi, face, gens, façon,
+  fois, cas, point…) sont écartés des mots-clés.
+
+ · « Classement automatique par mots-clés »
 
 ### Modifié
 - **Le classement des articles ne dépend plus de l'utilisateur** : à chaque

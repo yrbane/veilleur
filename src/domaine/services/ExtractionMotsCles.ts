@@ -26,6 +26,7 @@ moi toi lui leur leurs eux mon ton son ma ta sa mes tes ses notre votre nos vos
 selon malgré hors sauf dès jusque jusqu afin ainsi alors aussi autant bien très trop peu plus moins
 tout tous toute toutes autre autres même mêmes tel telle tels telles quel quelle quels quelles
 ne pas non oui si comme quand lorsque puis encore déjà toujours jamais souvent parfois ici là
+comment pourquoi combien face gens chose choses façon fois cas point part partie lors via
 est sont été être étant suis es êtes sommes était étaient sera seront serait seraient soit soient
 ai as avons avez ont avait avaient aura auront aurait avoir ayant eu eut
 fait faire faits font faisait fera fait fais ferait peut peuvent pouvait pourra pourrait pu
@@ -79,7 +80,8 @@ export function extraireMotsCles(texte: TexteArticle, nombre = NOMBRE_MOTS_CLES)
 
       const debutDePhrase = estDebutDePhrase(nettoye, match.index);
       const capitalise = mot[0] !== minuscule[0];
-      const cle = singulariser(minuscule);
+      // Un nom propre (majuscule hors début de phrase) garde sa forme : « Limoges » n'est pas un pluriel
+      const cle = capitalise && !debutDePhrase ? minuscule : singulariser(minuscule);
 
       const candidat = candidats.get(cle) ?? {
         score: 0,
@@ -108,7 +110,7 @@ export function extraireMotsCles(texte: TexteArticle, nombre = NOMBRE_MOTS_CLES)
     })
     .sort((a, b) => b.score - a.score || a.c.premierePosition - b.c.premierePosition)
     .slice(0, nombre)
-    .map(({ cle, c, nomPropre }) => (nomPropre ? singulariserForme(c.formeOriginale) : cle));
+    .map(({ cle, c, nomPropre }) => (nomPropre ? c.formeOriginale : cle));
 }
 
 /**
@@ -120,16 +122,11 @@ function estDebutDePhrase(texte: string, index: number): boolean {
 }
 
 /**
- * Pluriel régulier en -s retiré (sauf finales invariables : -ss, -us, -is, -os, -as)
+ * Pluriel régulier en -s retiré (sauf finales invariables : -ss, -us, -is, -os, -as, -ès)
  */
 function singulariser(mot: string): string {
-  if (mot.length > 4 && mot.endsWith('s') && !/(ss|us|is|os|as)$/.test(mot)) {
+  if (mot.length > 4 && mot.endsWith('s') && !/(ss|us|is|os|as|ès)$/.test(mot)) {
     return mot.slice(0, -1);
   }
   return mot;
-}
-
-function singulariserForme(mot: string): string {
-  const minuscule = mot.toLowerCase();
-  return singulariser(minuscule) === minuscule ? mot : mot.slice(0, -1);
 }

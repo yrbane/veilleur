@@ -56,6 +56,24 @@ describe('extraireMotsCles', () => {
     expect(mots).toContain('climate');
   });
 
+  it('ne singularise ni les finales invariables en -ès ni les noms propres', () => {
+    const mots = extraireMotsCles({
+      titre: 'Au procès de Limoges, le succès des avocats',
+      resume: 'Le procès se tient à Limoges. Les avocats saluent un succès.',
+    });
+
+    expect(mots).toContain('procès');
+    expect(mots).toContain('Limoges');
+    expect(mots).toContain('succès');
+    expect(mots).toContain('avocat');
+  });
+
+  it('écarte les mots creux des titres de presse', () => {
+    const mots = extraireMotsCles({ titre: 'Pourquoi et comment les gens font face à la canicule', resume: null });
+
+    expect(mots).toEqual(['canicule']);
+  });
+
   it('retourne une liste vide sans texte exploitable', () => {
     expect(extraireMotsCles({ titre: '', resume: null })).toEqual([]);
     expect(extraireMotsCles({ titre: 'Le la les', resume: 'de du des' })).toEqual([]);
