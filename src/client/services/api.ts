@@ -303,6 +303,13 @@ export interface ContenuLecture {
   lien: string;
 }
 
+export interface Tendance {
+  mot: string;
+  nombreRecents: number;
+  nombreReference: number;
+  score: number;
+}
+
 export interface CompteNonLus {
   total: number;
   parSource: Record<string, number>;
@@ -734,5 +741,21 @@ export const tags = {
     await requete(`/tags/sources/${sourceId}/tags/${tagId}`, {
       method: 'DELETE',
     });
+  },
+};
+
+// ============================================
+// API Tendances
+// ============================================
+
+export const tendances = {
+  /** Mots en hausse sur tous les articles (public) */
+  async globales(limite = 10): Promise<{ donnees: Tendance[] }> {
+    return requete(`/tendances/?limite=${limite}`);
+  },
+
+  /** Mots en hausse dans le fil de l'utilisateur */
+  async fil(limite = 10): Promise<{ donnees: Tendance[] }> {
+    return requete(`/tendances/fil?limite=${limite}`);
   },
 };

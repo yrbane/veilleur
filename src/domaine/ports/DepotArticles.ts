@@ -64,6 +64,14 @@ export interface ResultatPagineArticles {
 /**
  * Articles non lus du fil d'un utilisateur, en tout et par source
  */
+export interface CriteresMotsCles {
+  utilisateurId?: string;
+  depuis: Date;
+  jusqua: Date;
+  mots?: string[];
+  limite?: number;
+}
+
 export interface CompteNonLus {
   total: number;
   parSource: Record<string, number>;
@@ -134,6 +142,12 @@ export interface DepotArticles {
    * Mots-clés les plus fréquents dans le fil d'un utilisateur
    */
   listerMotsClesFil(utilisateurId: string, limite?: number): Promise<MotCleFil[]>;
+
+  /**
+   * Nombre d'articles par mot-clé sur une fenêtre de publication [depuis, jusqua[,
+   * pour tous les articles ou pour les sources actives d'un utilisateur ; `mots` restreint la liste
+   */
+  compterMotsCles(options: CriteresMotsCles): Promise<MotCleFil[]>;
 
   /**
    * Articles sans aucun mot-clé (rattrapage des articles antérieurs à l'extraction)

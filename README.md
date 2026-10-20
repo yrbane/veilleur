@@ -85,6 +85,7 @@
 
 ### 🌐 Communauté
 - Découverte de sources populaires
+- Mots-clés tendance (24 h contre 7 jours) sur le fil et sur toute la plateforme
 - Filtrage par tags
 - Notes moyennes communautaires
 
