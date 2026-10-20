@@ -4,7 +4,18 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
-## 0.6.1 — 2026-10-20 · « Détection plus robuste des tags »
+## 0.6.2 — 2026-10-20 · « Tags de source réellement posés »
+
+### Corrigé
+- Les tags d'une source (déduits ou saisis à la main) étaient liés à
+  l'identifiant de la source au lieu de celui de l'abonnement : ils
+  n'apparaissaient jamais. Les routes `POST/DELETE/GET /api/v1/tags/sources/:id/tags`
+  et l'ajout automatique passent désormais par l'abonnement
+  (`SourceUtilisateur.utilisateurSourceId`).
+- Les tags suggérés mémorisés sur la source sont relus correctement avec MariaDB,
+  qui renvoie la colonne JSON sous forme de chaîne.
+
+ · « Détection plus robuste des tags »
 
 ### Corrigé
 - Un flux dont les `<category>` portent des attributs (`domain=…`, cas de

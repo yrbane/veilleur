@@ -146,7 +146,7 @@ export class ServiceSources {
     );
 
     // Tags déduits automatiquement : l'utilisateur n'a rien à saisir
-    sourceUtilisateur.tags = await this.appliquerTagsSuggeres(sourceUtilisateur.id, source.tagsSuggeres ?? []);
+    sourceUtilisateur.tags = await this.appliquerTagsSuggeres(sourceUtilisateur.utilisateurSourceId, source.tagsSuggeres ?? []);
 
     await this.invaliderCaches(utilisateurId);
 

@@ -56,6 +56,15 @@ export async function routesTags(fastify: FastifyInstance): Promise<void> {
   const depotTags = obtenirDepotTags();
   const depotSources = new DepotSourcesMariaDB();
 
+  /**
+   * Abonnement de l'utilisateur à une source : l'id public est celui de la source,
+   * mais les tags sont liés à l'abonnement (utilisateurs_sources)
+   */
+  const trouverAbonnement = async (utilisateurId: string, sourceId: string) => {
+    const sources = await depotSources.listerPourUtilisateur(utilisateurId, { page: 1, limite: 1000 });
+    return sources.donnees.find(s => s.id === sourceId) ?? null;
+  };
+
   // Toutes les routes nécessitent une authentification
   fastify.addHook('preHandler', verifierAuthentification);
 
@@ -278,14 +287,8 @@ export async function routesTags(fastify: FastifyInstance): Promise<void> {
       const params = schemaParams.parse(request.params);
       const body = schemaAjoutTagSource.parse(request.body);
 
-      // Vérifier que la source utilisateur existe
-      const sources = await depotSources.listerPourUtilisateur(request.utilisateur.sub, {
-        page: 1,
-        limite: 1000,
-      });
-
-      const sourceUtilisateur = sources.donnees.find((s: { id: string }) => s.id === params.id);
-      if (!sourceUtilisateur) {
+      const abonnement = await trouverAbonnement(request.utilisateur.sub, params.id);
+      if (!abonnement) {
         return reply.status(404).send({
           erreur: 'SOURCE_NON_TROUVEE',
           message: 'Source non trouvée',
@@ -295,8 +298,8 @@ export async function routesTags(fastify: FastifyInstance): Promise<void> {
       // Trouver ou créer le tag
       const tag = await depotTags.trouverOuCreer(body.tagNom);
 
-      // Associer le tag à la source
-      await depotTags.ajouterTagSource(params.id, tag.id);
+      // Associer le tag à l'abonnement de l'utilisateur
+      await depotTags.ajouterTagSource(abonnement.utilisateurSourceId, tag.id);
 
       return reply.send({
         tag: {
@@ -345,7 +348,11 @@ export async function routesTags(fastify: FastifyInstance): Promise<void> {
 
       const params = schemaParamsTagSource.parse(request.params);
 
-      await depotTags.retirerTagSource(params.id, params.tagId);
+      const abonnement = await trouverAbonnement(request.utilisateur.sub, params.id);
+      if (!abonnement) {
+        return reply.status(404).send({ erreur: 'SOURCE_NON_TROUVEE', message: 'Source non trouvée' });
+      }
+      await depotTags.retirerTagSource(abonnement.utilisateurSourceId, params.tagId);
 
       return reply.status(204).send();
     } catch (erreur) {
@@ -395,7 +402,11 @@ export async function routesTags(fastify: FastifyInstance): Promise<void> {
 
       const params = schemaParams.parse(request.params);
 
-      const tags = await depotTags.listerTagsSource(params.id);
+      const abonnement = await trouverAbonnement(request.utilisateur.sub, params.id);
+      if (!abonnement) {
+        return reply.status(404).send({ erreur: 'SOURCE_NON_TROUVEE', message: 'Source non trouvée' });
+      }
+      const tags = await depotTags.listerTagsSource(abonnement.utilisateurSourceId);
 
       return reply.send({
         donnees: tags.map(tag => ({

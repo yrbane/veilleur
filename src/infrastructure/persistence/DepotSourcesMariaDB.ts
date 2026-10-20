@@ -13,6 +13,7 @@ import type {
   TagPopulaire,
 } from '@/domaine/ports/DepotSources';
 import type { Source, SourceUtilisateur, TypeSource, StatutSource } from '@/domaine/entites/Source';
+import { parserTagsSuggeres } from '@/domaine/entites/Source';
 import type { ParametresSource, MiseAJourParametres, FiltresMotsCles, PlageHoraire } from '@/domaine/entites/ParametresSource';
 import { PARAMETRES_DEFAUT } from '@/domaine/entites/ParametresSource';
 import { obtenirBdd } from './connexion';
@@ -267,6 +268,7 @@ export class DepotSourcesMariaDB implements DepotSources {
 
       return {
         ...source,
+        utilisateurSourceId: id,
         dateAjout: new Date(),
         note: null,
         estEnPause: false,
@@ -632,7 +634,7 @@ export class DepotSourcesMariaDB implements DepotSources {
       dateDerniereSynchro: row.dateDerniereSynchro,
       hashUrlNormalise: row.hashUrlNormalise,
       nombreEchecs: row.nombreEchecs ?? 0,
-      tagsSuggeres: row.tagsSuggeres ?? undefined,
+      tagsSuggeres: parserTagsSuggeres(row.tagsSuggeres),
     };
   }
 
@@ -643,6 +645,7 @@ export class DepotSourcesMariaDB implements DepotSources {
   ): SourceUtilisateur {
     return {
       ...this.versSource(sourceRow),
+      utilisateurSourceId: usRow.id,
       dateAjout: usRow.dateAjout,
       note: usRow.note,
       estEnPause: usRow.estEnPause ?? false,
