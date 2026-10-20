@@ -29,6 +29,13 @@
       "when": 1792486051130,
       "tag": "0003_image_cache_column",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1792490520581,
+      "tag": "0004_totp_utilisateurs",
+      "breakpoints": true
     }
   ]
 }

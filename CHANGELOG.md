@@ -4,6 +4,15 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.2.2 — 2026-10-20 · « Inscription réparée »
+
+### Corrigé
+- **Inscription et connexion impossibles en production** (erreur 500
+  `Unknown column 'totp_secret'`) : les colonnes 2FA `totp_secret` et
+  `totp_actif` de `utilisateurs` étaient déclarées dans le schéma Drizzle mais
+  n'avaient jamais eu de migration (posées en dev par `drizzle-kit push`).
+  Migration `0004_totp_utilisateurs` idempotente.
+
 ## 0.2.1 — 2026-10-20 · « Déploiement continu »
 
 ### Ajouté
