@@ -6,24 +6,19 @@
   <meta name="description" content="Veilleur - Votre sentinelle de l'information">
   <title>Veilleur</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="/styles/reset.css">
-  <link rel="stylesheet" href="/styles/variables.css">
-  <link rel="stylesheet" href="/styles/base.css">
-  <link rel="stylesheet" href="/styles/composants.css">
-  <link rel="stylesheet" href="/styles/pages.css">
 </head>
 <body>
   <div id="app">
     <header class="entete">
       <nav class="navigation">
         <a href="/" class="logo" data-nav>
-          <span class="logo-icone">📰</span>
+          <span class="logo-icone icone material-symbols-outlined plein" aria-hidden="true">newspaper</span>
           <span class="logo-texte">Veilleur</span>
         </a>
         <div class="nav-principale" id="nav-liens">
-          <a href="/" class="nav-lien" data-nav>Fil d'actualités</a>
-          <a href="/sources" class="nav-lien" data-nav>Mes sources</a>
-          <a href="/decouverte" class="nav-lien" data-nav>Découverte</a>
+          <a href="/" class="nav-lien" data-nav><span class="icone material-symbols-outlined" aria-hidden="true">feed</span>Fil d'actualités</a>
+          <a href="/sources" class="nav-lien" data-nav><span class="icone material-symbols-outlined" aria-hidden="true">rss_feed</span>Mes sources</a>
+          <a href="/decouverte" class="nav-lien" data-nav><span class="icone material-symbols-outlined" aria-hidden="true">explore</span>Découverte</a>
         </div>
         <div class="nav-actions" id="nav-auth">
           <!-- Contenu dynamique selon l'état d'authentification -->
@@ -34,7 +29,7 @@
     <main class="contenu-principal" id="app-contenu">
       <!-- Contenu des pages chargé dynamiquement -->
       <div class="chargement">
-        <div class="spinner"></div>
+        <div class="la-spinner lg" role="status" aria-label="Chargement"></div>
         <p>Chargement...</p>
       </div>
     </main>
@@ -45,7 +40,7 @@
   </div>
 
   <div id="modal-container"></div>
-  <div id="toast-container"></div>
+  <div id="toast-container" class="la-toast-region bottom-end" role="region" aria-label="Notifications"></div>
 
   <script type="module" src="/main.ts"></script>
 </body>

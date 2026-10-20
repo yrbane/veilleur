@@ -3,6 +3,7 @@
  * Affiche une source dans la liste avec tags et note
  */
 
+import { icone, iconeHtml } from '../utils/icones';
 import { creerElement } from '../utils/dom';
 import { extraireDomaine } from '../utils/format';
 import { sources, articles, tags as apiTags } from '../services/api';
@@ -26,8 +27,8 @@ function creerNotation(note: number | undefined, sourceId: string): HTMLElement 
   for (let i = 1; i <= 5; i++) {
     const etoile = creerElement('button', {
       classes: ['btn-etoile', note && i <= note ? 'active' : ''],
-      attrs: { 'data-note': String(i), title: `${i} étoile${i > 1 ? 's' : ''}` },
-      texte: note && i <= note ? '★' : '☆',
+      attrs: { 'data-note': String(i), type: 'button', title: `${i} étoile${i > 1 ? 's' : ''}`, 'aria-label': `Noter ${i} étoile${i > 1 ? 's' : ''}` },
+      enfants: [icone('star', { plein: !!(note && i <= note) })],
       onClick: async () => {
         try {
           await sources.noter(sourceId, i);
@@ -35,7 +36,7 @@ function creerNotation(note: number | undefined, sourceId: string): HTMLElement 
           conteneur.querySelectorAll('.btn-etoile').forEach((btn, index) => {
             const isActive = index < i;
             btn.classList.toggle('active', isActive);
-            btn.textContent = isActive ? '★' : '☆';
+            btn.replaceChildren(icone('star', { plein: isActive }));
           });
           toast.succes(`Note mise à jour : ${i}/5`);
         } catch {
@@ -66,15 +67,15 @@ function creerSectionTags(sourceId: string, tagsInitiaux: Tag[] = []): HTMLEleme
     listeTags.innerHTML = '';
     tagsList.forEach(tag => {
       const badge = creerElement('span', {
-        classes: ['badge-tag'],
+        classes: ['la-badge primary badge-tag'],
         attrs: { 'data-tag-id': tag.id },
       });
 
       const nomTag = creerElement('span', { texte: tag.nom });
       const btnRetirer = creerElement('button', {
         classes: ['btn-retirer-tag'],
-        attrs: { title: 'Retirer ce tag' },
-        texte: '×',
+        attrs: { type: 'button', title: 'Retirer ce tag', 'aria-label': `Retirer le tag ${tag.nom}` },
+        icone: 'close',
         onClick: async (e) => {
           e.stopPropagation();
           try {
@@ -108,8 +109,9 @@ function creerSectionTags(sourceId: string, tagsInitiaux: Tag[] = []): HTMLEleme
   }) as HTMLInputElement;
 
   const btnAjouter = creerElement('button', {
-    classes: ['btn', 'btn-sm'],
-    texte: '+',
+    classes: ['la-btn', 'sm', 'icon-only'],
+    attrs: { type: 'button', 'aria-label': 'Ajouter le tag' },
+    icone: 'add',
     onClick: async () => {
       const nom = inputTag.value.trim();
       if (!nom) return;
@@ -119,15 +121,15 @@ function creerSectionTags(sourceId: string, tagsInitiaux: Tag[] = []): HTMLEleme
 
         // Ajouter visuellement le nouveau tag
         const badge = creerElement('span', {
-          classes: ['badge-tag'],
+          classes: ['la-badge primary badge-tag'],
           attrs: { 'data-tag-id': tag.id },
         });
 
         const nomTag = creerElement('span', { texte: tag.nom });
         const btnRetirer = creerElement('button', {
           classes: ['btn-retirer-tag'],
-          attrs: { title: 'Retirer ce tag' },
-          texte: '×',
+          attrs: { type: 'button', title: 'Retirer ce tag', 'aria-label': `Retirer le tag ${tag.nom}` },
+          icone: 'close',
           onClick: async (e) => {
             e.stopPropagation();
             try {
@@ -190,11 +192,11 @@ export function creerCarteSource(
       },
     });
     img.onerror = () => {
-      favicon.innerHTML = '<span class="carte-source-favicon-placeholder">🌐</span>';
+      favicon.innerHTML = `<span class="carte-source-favicon-placeholder">${iconeHtml('public')}</span>`;
     };
     favicon.append(img);
   } else {
-    favicon.innerHTML = '<span class="carte-source-favicon-placeholder">🌐</span>';
+    favicon.innerHTML = `<span class="carte-source-favicon-placeholder">${iconeHtml('public')}</span>`;
   }
 
   // Infos
@@ -225,7 +227,7 @@ export function creerCarteSource(
   // Badges de statut
   if (source.estEnPause) {
     const badge = creerElement('span', {
-      classes: ['badge', 'badge-neutre'],
+      classes: ['la-badge', 'secondary'],
       texte: 'En pause',
     });
     info.append(badge);
@@ -242,17 +244,18 @@ export function creerCarteSource(
 
   // Bouton pause/reprendre
   const btnPause = creerElement('button', {
-    classes: ['btn', 'btn-icone', 'btn-ghost'],
+    classes: ['la-btn', 'icon-only', 'ghost'],
     attrs: {
+      type: 'button',
       title: source.estEnPause ? 'Reprendre' : 'Mettre en pause',
     },
-    texte: source.estEnPause ? '▶️' : '⏸️',
+    enfants: [icone(source.estEnPause ? 'play_arrow' : 'pause')],
     onClick: async () => {
       try {
         const nouvelEtat = !source.estEnPause;
         await sources.mettreEnPause(source.id, nouvelEtat);
         source.estEnPause = nouvelEtat;
-        btnPause.textContent = nouvelEtat ? '▶️' : '⏸️';
+        btnPause.replaceChildren(icone(nouvelEtat ? 'play_arrow' : 'pause'));
         btnPause.title = nouvelEtat ? 'Reprendre' : 'Mettre en pause';
         toast.succes(nouvelEtat ? 'Source mise en pause' : 'Source réactivée');
         options.onPause?.(source.id, nouvelEtat);
@@ -264,17 +267,17 @@ export function creerCarteSource(
 
   // Bouton synchroniser
   const btnSync = creerElement('button', {
-    classes: ['btn', 'btn-icone', 'btn-ghost'],
-    attrs: { title: 'Synchroniser' },
-    texte: '🔄',
+    classes: ['la-btn', 'icon-only', 'ghost'],
+    attrs: { title: 'Synchroniser', type: 'button', 'aria-label': 'Synchroniser' },
+    icone: 'sync',
     onClick: async () => {
       try {
-        btnSync.textContent = '⏳';
+        btnSync.replaceChildren(icone('hourglass_top'));
         const result = await articles.synchroniser(source.id);
-        btnSync.textContent = '🔄';
+        btnSync.replaceChildren(icone('sync'));
         toast.succes(`${result.nouveauxArticles} nouveaux articles`);
       } catch {
-        btnSync.textContent = '🔄';
+        btnSync.replaceChildren(icone('sync'));
         toast.erreur('Erreur lors de la synchronisation');
       }
     },
@@ -282,9 +285,9 @@ export function creerCarteSource(
 
   // Bouton paramètres
   const btnParams = creerElement('button', {
-    classes: ['btn', 'btn-icone', 'btn-ghost'],
-    attrs: { title: 'Paramètres avancés' },
-    texte: '⚙️',
+    classes: ['la-btn', 'icon-only', 'ghost'],
+    attrs: { title: 'Paramètres avancés', type: 'button', 'aria-label': 'Paramètres avancés' },
+    icone: 'settings',
     onClick: () => {
       // Vérifier si un panneau est déjà ouvert
       const panneauExistant = carte.querySelector('.panneau-parametres');
@@ -302,9 +305,9 @@ export function creerCarteSource(
 
   // Bouton supprimer
   const btnSupprimer = creerElement('button', {
-    classes: ['btn', 'btn-icone', 'btn-ghost'],
-    attrs: { title: 'Supprimer' },
-    texte: '🗑️',
+    classes: ['la-btn', 'icon-only', 'ghost'],
+    attrs: { title: 'Supprimer', type: 'button', 'aria-label': 'Supprimer' },
+    icone: 'delete',
     onClick: async () => {
       if (!confirm(`Supprimer la source "${source.nom}" ?`)) return;
 

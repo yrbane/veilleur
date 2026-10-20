@@ -4,6 +4,33 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.7.0 — 2026-10-20 · « Interface Lunar Aurora et icônes Material »
+
+### Ajouté
+- L'interface repose désormais sur le framework CSS [Lunar Aurora](https://github.com/yrbane/lunar-aurora)
+  (boutons, champs, badges, puces, toasts, états vides, squelettes, spinner,
+  statistiques) importé avec ses `@layer`, ce qui laisse la main aux styles
+  propres à Veilleur.
+- Icônes Google Material Symbols (police auto-hébergée, aucune requête externe)
+  à la place des emojis : navigation, actions des cartes, étoiles de notation,
+  favoris, états vides, toasts. Helper `icone()` / `iconeHtml()` et option
+  `icone` de `creerElement`.
+- Thème clair / sombre / automatique réellement appliqué : mémorisé dans le
+  navigateur et restauré au chargement (attribut `data-theme` lu par Lunar).
+
+### Modifié
+- Les variables CSS de Veilleur (`--couleur-*`, `--espace-*`, `--rayon-*`…)
+  sont des alias des tokens Lunar : les thèmes sombres et clairs s'appliquent à
+  tout, sans doublon de palette.
+- Boutons d'action des cartes et de retrait de tag dotés de libellés
+  accessibles (`aria-label`), toasts avec rôle `status` / `alert`.
+- Les tests E2E repèrent les étoiles par leur classe active plutôt que par le
+  caractère « ★ ».
+
+### Supprimé
+- `reset.css` et les blocs CSS devenus redondants (boutons, formulaires,
+  badges, toasts, squelettes, spinner, messages vides).
+
 ## 0.6.3 — 2026-10-20 · « Carte complète dès l'ajout »
 
 ### Corrigé

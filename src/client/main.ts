@@ -3,7 +3,18 @@
  * Router et initialisation de l'application
  */
 
+// Lunar Aurora (framework CSS, source avec ses @layer pour que nos styles non couchés
+// gardent la main), puis Material Symbols, puis les styles propres à Veilleur
+import 'lunar-aurora/src/aurora.css';
+import '@material-symbols/font-400/outlined.css';
+import './styles/variables.css';
+import './styles/base.css';
+import './styles/composants.css';
+import './styles/pages.css';
+
 import { $, $$ } from './utils/dom';
+import { iconeHtml } from './utils/icones';
+import { appliquerTheme, themeEnregistre } from './utils/theme';
 import { estAuthentifie, auth, setOnDeconnexion } from './services/api';
 import { afficherPageAccueil } from './pages/PageAccueil';
 import { afficherPageSources } from './pages/PageSources';
@@ -101,11 +112,11 @@ async function router(): Promise<void> {
       } catch (error) {
         console.error('Erreur lors du chargement de la page:', error);
         container.innerHTML = `
-          <div class="message-vide">
-            <div class="message-vide-icone">❌</div>
-            <div class="message-vide-titre">Erreur</div>
+          <div class="la-empty">
+            <div class="la-empty-icon">${iconeHtml('error')}</div>
+            <div class="la-empty-title">Erreur</div>
             <p>Une erreur est survenue lors du chargement de la page.</p>
-            <button class="btn btn-primaire" onclick="location.reload()">Réessayer</button>
+            <button class="la-btn primary" onclick="location.reload()">Réessayer</button>
           </div>
         `;
       }
@@ -118,11 +129,11 @@ async function router(): Promise<void> {
 
   // 404 - Page non trouvée
   container.innerHTML = `
-    <div class="message-vide">
-      <div class="message-vide-icone">🔍</div>
-      <div class="message-vide-titre">Page non trouvée</div>
+    <div class="la-empty">
+      <div class="la-empty-icon">${iconeHtml('search_off')}</div>
+      <div class="la-empty-title">Page non trouvée</div>
       <p>La page que vous recherchez n'existe pas.</p>
-      <a href="/" class="btn btn-primaire" data-nav>Retour à l'accueil</a>
+      <a href="/" class="la-btn primary" data-nav>Retour à l'accueil</a>
     </div>
   `;
 }
@@ -153,9 +164,9 @@ function mettreAJourAuth(): void {
 
   if (estAuthentifie()) {
     navAuth.innerHTML = `
-      <a href="/parametres" class="btn btn-ghost" data-nav>Paramètres</a>
-      <button class="btn btn-ghost" id="btn-deconnexion">
-        Se déconnecter
+      <a href="/parametres" class="la-btn ghost" data-nav>${iconeHtml('settings')}Paramètres</a>
+      <button class="la-btn ghost" id="btn-deconnexion" type="button">
+        ${iconeHtml('logout')}Se déconnecter
       </button>
     `;
 
@@ -174,8 +185,8 @@ function mettreAJourAuth(): void {
     navSources?.classList.remove('masque');
   } else {
     navAuth.innerHTML = `
-      <a href="/connexion" class="btn btn-ghost" data-nav>Connexion</a>
-      <a href="/inscription" class="btn btn-primaire" data-nav>Inscription</a>
+      <a href="/connexion" class="la-btn ghost" data-nav>Connexion</a>
+      <a href="/inscription" class="la-btn primary" data-nav>Inscription</a>
     `;
 
     navSources?.classList.add('masque');
@@ -220,6 +231,8 @@ function afficherVersion(): void {
  * Initialise l'application
  */
 async function initialiser(): Promise<void> {
+  // Thème choisi par l'utilisateur, avant tout rendu pour éviter un flash
+  appliquerTheme(themeEnregistre());
   // Configurer le callback de déconnexion automatique
   setOnDeconnexion(() => {
     toast.info('Session expirée, veuillez vous reconnecter');

@@ -4,6 +4,7 @@
  */
 
 import { creerElement } from '../utils/dom';
+import { icone, iconeHtml } from '../utils/icones';
 import { formatDateRelative, echapperHtml } from '../utils/format';
 import { articles as apiArticles } from '../services/api';
 import { toast } from '../utils/toast';
@@ -32,7 +33,7 @@ function creerNotationArticle(article: Article, options: OptionsCarteArticle): H
     conteneur.querySelectorAll<HTMLButtonElement>('.btn-etoile').forEach((btn, index) => {
       const active = typeof article.note === 'number' && index < article.note;
       btn.classList.toggle('active', active);
-      btn.textContent = active ? '★' : '☆';
+      btn.replaceChildren(icone('star', { plein: active }));
     });
   };
 
@@ -70,7 +71,7 @@ function creerBoutonFavori(article: Article, options: OptionsCarteArticle): HTML
 
   const rafraichir = () => {
     bouton.classList.toggle('active', !!article.favori);
-    bouton.textContent = article.favori ? '♥' : '♡';
+    bouton.replaceChildren(icone('favorite', { plein: !!article.favori }));
     bouton.setAttribute('aria-label', article.favori ? 'Retirer des favoris' : 'Ajouter aux favoris');
     bouton.setAttribute('aria-pressed', article.favori ? 'true' : 'false');
     bouton.title = article.favori ? 'Retirer des favoris' : 'Ajouter aux favoris';
@@ -147,12 +148,12 @@ export function creerCarteArticle(article: Article, options: OptionsCarteArticle
         img.src = article.urlImageOriginale;
       } else {
         // Fallback final: placeholder
-        imageContainer.innerHTML = '<div class="carte-article-image-placeholder">📰</div>';
+        imageContainer.innerHTML = `<div class="carte-article-image-placeholder">${iconeHtml('newspaper')}</div>`;
       }
     };
     imageContainer.append(img);
   } else {
-    imageContainer.innerHTML = '<div class="carte-article-image-placeholder">📰</div>';
+    imageContainer.innerHTML = `<div class="carte-article-image-placeholder">${iconeHtml('newspaper')}</div>`;
   }
 
   // Contenu
@@ -242,12 +243,12 @@ export function creerSqueletteCarteArticle(): HTMLElement {
   });
 
   carte.innerHTML = `
-    <div class="carte-article-image squelette-bloc"></div>
+    <div class="carte-article-image la-skeleton image"></div>
     <div class="carte-article-contenu">
-      <div class="squelette-ligne" style="width: 30%"></div>
-      <div class="squelette-ligne" style="width: 90%"></div>
-      <div class="squelette-ligne" style="width: 70%"></div>
-      <div class="squelette-ligne" style="width: 40%"></div>
+      <div class="la-skeleton text" style="width: 30%"></div>
+      <div class="la-skeleton title" style="width: 90%"></div>
+      <div class="la-skeleton text" style="width: 70%"></div>
+      <div class="la-skeleton text" style="width: 40%"></div>
     </div>
   `;
 

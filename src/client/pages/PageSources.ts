@@ -3,6 +3,7 @@
  * Gestion des sources de l'utilisateur
  */
 
+import { iconeHtml } from '../utils/icones';
 import { creerElement, $, vider } from '../utils/dom';
 import { sources, estAuthentifie } from '../services/api';
 import { creerCarteSource } from '../composants/CarteSource';
@@ -20,11 +21,11 @@ export async function afficherPageSources(container: Element): Promise<void> {
 
   if (!estAuthentifie()) {
     container.innerHTML = `
-      <div class="message-vide">
-        <div class="message-vide-icone">🔒</div>
-        <div class="message-vide-titre">Connexion requise</div>
+      <div class="la-empty">
+        <div class="la-empty-icon">${iconeHtml('lock')}</div>
+        <div class="la-empty-title">Connexion requise</div>
         <p>Connectez-vous pour gérer vos sources.</p>
-        <a href="/connexion" class="btn btn-primaire" data-nav>Se connecter</a>
+        <a href="/connexion" class="la-btn primary" data-nav>Se connecter</a>
       </div>
     `;
     return;
@@ -59,14 +60,16 @@ export async function afficherPageSources(container: Element): Promise<void> {
   });
 
   const btnExporter = creerElement('button', {
-    classes: ['btn', 'btn-secondaire'],
+    classes: ['la-btn', 'secondary'],
+    icone: 'download',
     texte: 'Exporter OPML',
     attrs: { title: 'Exporter toutes vos sources au format OPML' },
   });
   btnExporter.addEventListener('click', exporterOPML);
 
   const btnImporter = creerElement('button', {
-    classes: ['btn', 'btn-secondaire'],
+    classes: ['la-btn', 'secondary'],
+    icone: 'upload',
     texte: 'Importer OPML',
     attrs: { title: 'Importer des sources depuis un fichier OPML' },
   });
@@ -134,7 +137,7 @@ async function chargerSources(): Promise<void> {
 
   liste.innerHTML = `
     <div class="chargement">
-      <div class="spinner"></div>
+      <div class="la-spinner lg"></div>
       <p>Chargement des sources...</p>
     </div>
   `;
@@ -146,9 +149,9 @@ async function chargerSources(): Promise<void> {
   } catch {
     toast.erreur('Erreur lors du chargement des sources');
     liste.innerHTML = `
-      <div class="message-vide">
-        <div class="message-vide-icone">❌</div>
-        <div class="message-vide-titre">Erreur de chargement</div>
+      <div class="la-empty">
+        <div class="la-empty-icon">${iconeHtml('error')}</div>
+        <div class="la-empty-title">Erreur de chargement</div>
         <p>Impossible de charger les sources.</p>
       </div>
     `;
@@ -172,9 +175,9 @@ function mettreAJourListeSources(): void {
 
   if (sourcesList.length === 0) {
     liste.innerHTML = `
-      <div class="message-vide">
-        <div class="message-vide-icone">📡</div>
-        <div class="message-vide-titre">Aucune source</div>
+      <div class="la-empty">
+        <div class="la-empty-icon">${iconeHtml('rss_feed')}</div>
+        <div class="la-empty-title">Aucune source</div>
         <p>Ajoutez votre première source pour commencer.</p>
       </div>
     `;

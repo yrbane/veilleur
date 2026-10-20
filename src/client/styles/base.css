@@ -47,6 +47,7 @@ body {
 
 .logo-icone {
   font-size: var(--taille-2xl);
+  vertical-align: 0;
 }
 
 .nav-liens {
@@ -55,6 +56,8 @@ body {
 }
 
 .nav-lien {
+  display: inline-flex;
+  align-items: center;
   padding: var(--espace-2) var(--espace-3);
   border-radius: var(--rayon-md);
   font-weight: var(--poids-medium);
@@ -97,6 +100,52 @@ body {
   color: var(--couleur-texte-muted);
 }
 
+/* Liens : neutres par défaut, soulignés seulement dans le texte courant */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a.lien,
+.auth-lien a,
+p a {
+  color: var(--couleur-primaire);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* États vides dans une grille ou une liste : sur toute la largeur */
+.la-empty {
+  grid-column: 1 / -1;
+}
+
+/* Icônes Material Symbols : calées sur la ligne de texte */
+.icone {
+  font-size: 1.25em;
+  line-height: 1;
+  vertical-align: -0.25em;
+  flex-shrink: 0;
+}
+
+.icone.plein {
+  font-variation-settings: 'FILL' 1;
+}
+
+.la-btn > .icone {
+  font-size: 1.4em;
+  margin: -0.2em 0;
+}
+
+.nav-lien > .icone,
+.la-chip > .icone {
+  margin-right: var(--espace-1);
+}
+
+.la-empty-icon .icone {
+  font-size: 1em;
+  vertical-align: 0;
+}
+
 /* Chargement */
 .chargement {
   display: flex;
@@ -106,39 +155,6 @@ body {
   gap: var(--espace-4);
   padding: var(--espace-16) 0;
   color: var(--couleur-texte-secondaire);
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--couleur-bordure);
-  border-top-color: var(--couleur-primaire);
-  border-radius: var(--rayon-full);
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Messages vides */
-.message-vide {
-  text-align: center;
-  padding: var(--espace-12) var(--espace-4);
-  color: var(--couleur-texte-secondaire);
-}
-
-.message-vide-icone {
-  font-size: 3rem;
-  margin-bottom: var(--espace-4);
-}
-
-.message-vide-titre {
-  font-size: var(--taille-lg);
-  font-weight: var(--poids-semibold);
-  margin-bottom: var(--espace-2);
 }
 
 /* Titres */

@@ -1,87 +1,100 @@
 /**
  * Veilleur - Variables CSS
- * Design tokens et thème
+ * Les tokens de Veilleur sont des alias des tokens Lunar Aurora (--la-*), ce qui
+ * garde les feuilles existantes lisibles tout en suivant les thèmes du framework
+ * (data-theme sur <html> : light, dark, ou préférence système sans attribut).
  */
 
 :root {
   /* Couleurs principales */
-  --couleur-primaire: #2563eb;
-  --couleur-primaire-hover: #1d4ed8;
-  --couleur-primaire-light: #dbeafe;
+  --couleur-primaire: var(--la-primary);
+  --couleur-primaire-hover: var(--la-primary-dark);
+  --couleur-primaire-light: var(--la-primary-subtle);
 
-  --couleur-secondaire: #64748b;
-  --couleur-secondaire-hover: #475569;
+  --couleur-secondaire: var(--la-secondary);
+  --couleur-secondaire-hover: var(--la-text-secondary);
 
-  --couleur-succes: #22c55e;
-  --couleur-succes-light: #dcfce7;
+  --couleur-succes: var(--la-success);
+  --couleur-succes-light: color-mix(in oklch, var(--la-success) 15%, var(--la-surface-1));
+  --couleur-erreur: var(--la-error);
+  --couleur-erreur-light: color-mix(in oklch, var(--la-error) 15%, var(--la-surface-1));
+  --couleur-attention: var(--la-warning);
+  --couleur-attention-light: color-mix(in oklch, var(--la-warning) 15%, var(--la-surface-1));
 
-  --couleur-erreur: #ef4444;
-  --couleur-erreur-light: #fee2e2;
+  /* Alias historiques encore présents dans quelques règles */
+  --couleur-success: var(--la-success);
+  --couleur-danger: var(--la-error);
+  --couleur-warning: var(--la-warning);
 
-  --couleur-attention: #f59e0b;
-  --couleur-attention-light: #fef3c7;
-
-  /* Couleurs neutres */
-  --couleur-fond: #f8fafc;
-  --couleur-fond-carte: #ffffff;
-  --couleur-fond-hover: #f1f5f9;
-  --couleur-bordure: #e2e8f0;
-  --couleur-bordure-focus: #94a3b8;
+  /* Surfaces */
+  --couleur-fond: var(--la-surface-0);
+  --couleur-fond-carte: var(--la-surface-1);
+  --couleur-fond-secondaire: var(--la-surface-2);
+  --couleur-fond-hover: var(--la-surface-2);
+  --couleur-bg-primaire: var(--la-surface-1);
+  --couleur-bg-secondaire: var(--la-surface-2);
+  --couleur-bg-tertiaire: var(--la-surface-3);
+  --couleur-bordure: var(--la-border);
+  --couleur-bordure-focus: var(--la-border-focus);
 
   /* Textes */
-  --couleur-texte: #1e293b;
-  --couleur-texte-secondaire: #64748b;
-  --couleur-texte-muted: #94a3b8;
-  --couleur-texte-inverse: #ffffff;
+  --couleur-texte: var(--la-text);
+  --couleur-texte-secondaire: var(--la-text-secondary);
+  --couleur-texte-muted: var(--la-text-muted);
+  --couleur-texte-inverse: var(--la-text-on-primary);
 
   /* Typographie */
-  --police-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --police-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+  --police-sans: var(--la-font-sans);
+  --police-mono: var(--la-font-mono);
+  --fonte-mono: var(--la-font-mono);
 
-  --taille-xs: 0.75rem;
-  --taille-sm: 0.875rem;
-  --taille-base: 1rem;
-  --taille-lg: 1.125rem;
-  --taille-xl: 1.25rem;
-  --taille-2xl: 1.5rem;
-  --taille-3xl: 1.875rem;
-  --taille-4xl: 2.25rem;
+  --taille-xs: var(--la-text-xs);
+  --taille-sm: var(--la-text-sm);
+  --taille-base: var(--la-text-base);
+  --taille-lg: var(--la-text-lg);
+  --taille-xl: var(--la-text-xl);
+  --taille-2xl: var(--la-text-2xl);
+  --taille-3xl: var(--la-text-3xl);
+  --taille-4xl: var(--la-text-4xl);
 
-  --poids-normal: 400;
-  --poids-medium: 500;
-  --poids-semibold: 600;
-  --poids-bold: 700;
+  --poids-normal: var(--la-weight-normal);
+  --poids-medium: var(--la-weight-medium);
+  --poids-semibold: var(--la-weight-semibold);
+  --poids-bold: var(--la-weight-bold);
 
   /* Espacements */
-  --espace-1: 0.25rem;
-  --espace-2: 0.5rem;
-  --espace-3: 0.75rem;
-  --espace-4: 1rem;
-  --espace-5: 1.25rem;
-  --espace-6: 1.5rem;
-  --espace-8: 2rem;
-  --espace-10: 2.5rem;
-  --espace-12: 3rem;
-  --espace-16: 4rem;
+  --espace-1: var(--la-space-1);
+  --espace-2: var(--la-space-2);
+  --espace-3: var(--la-space-3);
+  --espace-4: var(--la-space-4);
+  --espace-5: var(--la-space-5);
+  --espace-6: var(--la-space-6);
+  --espace-8: var(--la-space-8);
+  --espace-10: var(--la-space-10);
+  --espace-12: var(--la-space-12);
+  --espace-16: var(--la-space-16);
 
   /* Bordures */
-  --rayon-sm: 0.25rem;
-  --rayon-md: 0.375rem;
-  --rayon-lg: 0.5rem;
-  --rayon-xl: 0.75rem;
-  --rayon-2xl: 1rem;
-  --rayon-full: 9999px;
+  --rayon-sm: var(--la-radius-sm);
+  --rayon-md: var(--la-radius-md);
+  --rayon-lg: var(--la-radius-lg);
+  --rayon-xl: var(--la-radius-xl);
+  --rayon-2xl: var(--la-radius-2xl);
+  --rayon-full: var(--la-radius-full);
+  --radius-sm: var(--la-radius-sm);
+  --radius-md: var(--la-radius-md);
+  --radius-lg: var(--la-radius-lg);
 
   /* Ombres */
-  --ombre-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --ombre-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --ombre-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --ombre-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --ombre-sm: var(--la-shadow-sm);
+  --ombre-md: var(--la-shadow-md);
+  --ombre-lg: var(--la-shadow-lg);
+  --ombre-xl: var(--la-shadow-xl);
 
   /* Transitions */
-  --transition-rapide: 150ms ease;
-  --transition-normale: 200ms ease;
-  --transition-lente: 300ms ease;
+  --transition-rapide: var(--la-transition-fast);
+  --transition-normale: var(--la-transition);
+  --transition-lente: var(--la-transition-slow);
 
   /* Largeurs */
   --largeur-max-contenu: 1200px;
@@ -89,28 +102,8 @@
   --largeur-sidebar: 280px;
 
   /* Z-index */
-  --z-dropdown: 100;
-  --z-sticky: 200;
-  --z-modal: 300;
-  --z-toast: 400;
-}
-
-/* Thème sombre (préparé pour plus tard) */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --couleur-fond: #0f172a;
-    --couleur-fond-carte: #1e293b;
-    --couleur-fond-hover: #334155;
-    --couleur-bordure: #334155;
-    --couleur-bordure-focus: #64748b;
-
-    --couleur-texte: #f1f5f9;
-    --couleur-texte-secondaire: #94a3b8;
-    --couleur-texte-muted: #64748b;
-
-    --couleur-primaire-light: #1e3a5f;
-    --couleur-succes-light: #14532d;
-    --couleur-erreur-light: #7f1d1d;
-    --couleur-attention-light: #78350f;
-  }
+  --z-dropdown: var(--la-z-dropdown);
+  --z-sticky: var(--la-z-sticky);
+  --z-modal: var(--la-z-modal);
+  --z-toast: var(--la-z-toast);
 }

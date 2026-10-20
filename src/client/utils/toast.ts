@@ -1,8 +1,9 @@
 /**
- * Veilleur - Système de notifications toast
+ * Veilleur - Notifications éphémères (composant la-toast de Lunar Aurora)
  */
 
 import { $, creerElement } from './dom';
+import { icone } from './icones';
 
 type TypeToast = 'succes' | 'erreur' | 'info';
 
@@ -14,6 +15,12 @@ interface OptionsToast {
   };
 }
 
+const GRAVITES: Record<TypeToast, { classe: string; icone: string; role: string }> = {
+  succes: { classe: 'success', icone: 'check_circle', role: 'status' },
+  erreur: { classe: 'error', icone: 'error', role: 'alert' },
+  info: { classe: 'info', icone: 'info', role: 'status' },
+};
+
 /**
  * Affiche une notification toast
  */
@@ -22,78 +29,62 @@ export function afficherToast(
   type: TypeToast = 'info',
   options: OptionsToast = {},
 ): void {
-  const container = $('#toast-container');
-  if (!container) return;
+  const region = $('#toast-container');
+  if (!region) return;
 
   const duree = options.duree ?? 5000;
-
-  const icones: Record<TypeToast, string> = {
-    succes: '✓',
-    erreur: '✕',
-    info: 'ℹ',
-  };
+  const gravite = GRAVITES[type];
 
   const toast = creerElement('div', {
-    classes: ['toast', `toast-${type}`],
+    classes: ['la-toast', gravite.classe, `toast-${type}`],
+    attrs: { role: gravite.role },
   });
+  toast.append(icone(gravite.icone, { classes: ['la-toast-icon'] }));
 
-  const icone = creerElement('span', {
-    classes: ['toast-icone'],
-    texte: icones[type],
-  });
-
-  const texte = creerElement('span', {
-    classes: ['toast-message'],
-    texte: message,
-  });
-
-  const fermer = creerElement('button', {
-    classes: ['toast-fermer'],
-    texte: '✕',
-    onClick: () => supprimerToast(toast),
-  });
-
-  toast.append(icone, texte);
-
+  const contenu = creerElement('div', { classes: ['la-toast-content'] });
+  contenu.append(creerElement('div', { classes: ['la-toast-title', 'toast-message'], texte: message }));
   if (options.action) {
-    const actionBtn = creerElement('button', {
-      classes: ['btn', 'btn-sm', 'btn-ghost'],
-      texte: options.action.texte,
-      onClick: () => {
-        options.action!.onClick();
-        supprimerToast(toast);
-      },
-    });
-    toast.append(actionBtn);
+    contenu.append(
+      creerElement('button', {
+        classes: ['la-btn', 'ghost', 'sm'],
+        attrs: { type: 'button' },
+        texte: options.action.texte,
+        onClick: () => {
+          options.action!.onClick();
+          supprimerToast(toast);
+        },
+      }),
+    );
   }
+  toast.append(contenu);
 
-  toast.append(fermer);
-  container.append(toast);
+  toast.append(
+    creerElement('button', {
+      classes: ['la-toast-close', 'toast-fermer'],
+      attrs: { type: 'button', 'aria-label': 'Fermer la notification' },
+      texte: '×',
+      onClick: () => supprimerToast(toast),
+    }),
+  );
 
-  // Auto-suppression après la durée
+  region.append(toast);
+
   if (duree > 0) {
     setTimeout(() => supprimerToast(toast), duree);
   }
 }
 
 /**
- * Supprime un toast avec animation
+ * Retire un toast après son animation de sortie (classe .leaving de Lunar Aurora)
  */
 function supprimerToast(toast: Element): void {
-  toast.classList.add('sortie');
+  if (toast.classList.contains('leaving')) return;
+  toast.classList.add('leaving');
   setTimeout(() => toast.remove(), 300);
 }
 
-/**
- * Raccourcis pour les types de toast
- */
 export const toast = {
-  succes: (message: string, options?: OptionsToast) =>
-    afficherToast(message, 'succes', options),
-
-  erreur: (message: string, options?: OptionsToast) =>
-    afficherToast(message, 'erreur', options),
-
-  info: (message: string, options?: OptionsToast) =>
-    afficherToast(message, 'info', options),
+  succes: (message: string, options?: OptionsToast) => afficherToast(message, 'succes', options),
+  erreur: (message: string, options?: OptionsToast) => afficherToast(message, 'erreur', options),
+  info: (message: string, options?: OptionsToast) => afficherToast(message, 'info', options),
 };

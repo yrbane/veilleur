@@ -1,6 +1,6 @@
 {
   "name": "veilleur",
-  "version": "0.6.3",
+  "version": "0.7.0",
   "description": "Agrégateur d'actualités libre - Votre sentinelle de l'information",
   "type": "module",
   "scripts": {
@@ -58,6 +58,7 @@
     "@fastify/sensible": "^6.0.1",
     "@fastify/swagger": "^9.4.2",
     "@fastify/swagger-ui": "^5.2.1",
+    "@material-symbols/font-400": "^0.48.0",
     "@paralleldrive/cuid2": "^2.2.2",
     "bullmq": "^5.34.8",
     "cheerio": "^1.0.0",
@@ -66,6 +67,7 @@
     "fastify-plugin": "^5.0.1",
     "ioredis": "^5.4.2",
     "jose": "^5.9.6",
+    "lunar-aurora": "github:yrbane/lunar-aurora",
     "mysql2": "^3.12.0",
     "otpauth": "^9.4.1",
     "pino": "^9.6.0",

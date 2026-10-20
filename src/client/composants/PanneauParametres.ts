@@ -3,6 +3,7 @@
  * Permet de configurer les paramètres avancés d'une source
  */
 
+import { iconeHtml } from '../utils/icones';
 import { creerElement, vider } from '../utils/dom';
 import { sources } from '../services/api';
 import { toast } from '../utils/toast';
@@ -38,9 +39,9 @@ export function creerPanneauParametres(
   });
 
   const btnFermer = creerElement('button', {
-    classes: ['btn', 'btn-ghost', 'btn-icone'],
-    texte: '✕',
-    attrs: { 'aria-label': 'Fermer' },
+    classes: ['la-btn', 'ghost', 'icon-only'],
+    attrs: { type: 'button', 'aria-label': 'Fermer les paramètres' },
+    icone: 'close',
   });
   btnFermer.addEventListener('click', options.onFermer);
 
@@ -54,7 +55,7 @@ export function creerPanneauParametres(
 
   contenu.innerHTML = `
     <div class="chargement">
-      <div class="spinner"></div>
+      <div class="la-spinner lg"></div>
       <p>Chargement des paramètres...</p>
     </div>
   `;
@@ -81,8 +82,8 @@ async function chargerParametres(
   } catch {
     toast.erreur('Erreur lors du chargement des paramètres');
     contenu.innerHTML = `
-      <div class="message-vide">
-        <div class="message-vide-icone">❌</div>
+      <div class="la-empty">
+        <div class="la-empty-icon">${iconeHtml('error')}</div>
         <p>Impossible de charger les paramètres.</p>
       </div>
     `;
@@ -120,7 +121,7 @@ function afficherFormulaire(
 
       <div class="param-groupe">
         <label for="param-frequence-${sourceId}">Fréquence de synchronisation</label>
-        <select id="param-frequence-${sourceId}" name="frequenceMinutes" class="form-select">
+        <select id="param-frequence-${sourceId}" name="frequenceMinutes" class="la-select">
           <option value="5" ${parametres.frequenceMinutes === 5 ? 'selected' : ''}>5 minutes</option>
           <option value="15" ${parametres.frequenceMinutes === 15 ? 'selected' : ''}>15 minutes</option>
           <option value="30" ${parametres.frequenceMinutes === 30 ? 'selected' : ''}>30 minutes</option>
@@ -134,12 +135,12 @@ function afficherFormulaire(
 
       <div class="param-groupe">
         <label for="param-mode-${sourceId}">Mode d'extraction</label>
-        <select id="param-mode-${sourceId}" name="modeExtraction" class="form-select">
+        <select id="param-mode-${sourceId}" name="modeExtraction" class="la-select">
           <option value="auto" ${parametres.modeExtraction === 'auto' ? 'selected' : ''}>Automatique</option>
           <option value="rss" ${parametres.modeExtraction === 'rss' ? 'selected' : ''}>RSS/Atom uniquement</option>
           <option value="scraping" ${parametres.modeExtraction === 'scraping' ? 'selected' : ''}>Scraping HTML</option>
         </select>
-        <small class="form-aide">Le mode automatique utilise RSS si disponible, sinon scraping</small>
+        <small class="la-help">Le mode automatique utilise RSS si disponible, sinon scraping</small>
       </div>
     </div>
 
@@ -149,25 +150,25 @@ function afficherFormulaire(
       <div class="param-groupe">
         <label for="param-max-articles-${sourceId}">Nombre max d'articles</label>
         <input type="number" id="param-max-articles-${sourceId}" name="nombreMaxArticles"
-               class="form-input" min="1" max="100" value="${parametres.nombreMaxArticles}">
-        <small class="form-aide">Maximum d'articles à conserver (1-100)</small>
+               class="la-input" min="1" max="100" value="${parametres.nombreMaxArticles}">
+        <small class="la-help">Maximum d'articles à conserver (1-100)</small>
       </div>
 
       <div class="param-groupe">
         <label for="param-retention-${sourceId}">Rétention (jours)</label>
         <input type="number" id="param-retention-${sourceId}" name="retentionJours"
-               class="form-input" min="1" max="365" value="${parametres.retentionJours}">
-        <small class="form-aide">Durée de conservation des articles (1-365 jours)</small>
+               class="la-input" min="1" max="365" value="${parametres.retentionJours}">
+        <small class="la-help">Durée de conservation des articles (1-365 jours)</small>
       </div>
 
       <div class="param-groupe">
         <label for="param-priorite-${sourceId}">Priorité d'affichage</label>
-        <select id="param-priorite-${sourceId}" name="priorite" class="form-select">
+        <select id="param-priorite-${sourceId}" name="priorite" class="la-select">
           <option value="haute" ${parametres.priorite === 'haute' ? 'selected' : ''}>Haute</option>
           <option value="normale" ${parametres.priorite === 'normale' ? 'selected' : ''}>Normale</option>
           <option value="basse" ${parametres.priorite === 'basse' ? 'selected' : ''}>Basse</option>
         </select>
-        <small class="form-aide">Les sources prioritaires apparaissent en premier</small>
+        <small class="la-help">Les sources prioritaires apparaissent en premier</small>
       </div>
     </div>
 
@@ -177,15 +178,15 @@ function afficherFormulaire(
       <div class="param-groupe">
         <label for="param-filtres-inclure-${sourceId}">Mots à inclure</label>
         <input type="text" id="param-filtres-inclure-${sourceId}" name="filtresInclure"
-               class="form-input" placeholder="tech, innovation, IA" value="${filtresInclure}">
-        <small class="form-aide">Séparez les mots par des virgules. Seuls les articles contenant au moins un de ces mots seront affichés.</small>
+               class="la-input" placeholder="tech, innovation, IA" value="${filtresInclure}">
+        <small class="la-help">Séparez les mots par des virgules. Seuls les articles contenant au moins un de ces mots seront affichés.</small>
       </div>
 
       <div class="param-groupe">
         <label for="param-filtres-exclure-${sourceId}">Mots à exclure</label>
         <input type="text" id="param-filtres-exclure-${sourceId}" name="filtresExclure"
-               class="form-input" placeholder="pub, sponsorisé" value="${filtresExclure}">
-        <small class="form-aide">Les articles contenant ces mots seront masqués.</small>
+               class="la-input" placeholder="pub, sponsorisé" value="${filtresExclure}">
+        <small class="la-help">Les articles contenant ces mots seront masqués.</small>
       </div>
     </div>
 
@@ -204,12 +205,12 @@ function afficherFormulaire(
           <div>
             <label for="param-plage-debut-${sourceId}">De</label>
             <input type="time" id="param-plage-debut-${sourceId}" name="plageDebut"
-                   class="form-input" value="${plageDebut}">
+                   class="la-input" value="${plageDebut}">
           </div>
           <div>
             <label for="param-plage-fin-${sourceId}">À</label>
             <input type="time" id="param-plage-fin-${sourceId}" name="plageFin"
-                   class="form-input" value="${plageFin}">
+                   class="la-input" value="${plageFin}">
           </div>
         </div>
 
@@ -232,7 +233,7 @@ function afficherFormulaire(
 
       <div class="param-groupe">
         <label for="param-notif-${sourceId}">Niveau de notifications</label>
-        <select id="param-notif-${sourceId}" name="notifications" class="form-select">
+        <select id="param-notif-${sourceId}" name="notifications" class="la-select">
           <option value="aucune" ${parametres.notifications === 'aucune' ? 'selected' : ''}>Aucune</option>
           <option value="nouveaux" ${parametres.notifications === 'nouveaux' ? 'selected' : ''}>Nouveaux articles</option>
           <option value="tous" ${parametres.notifications === 'tous' ? 'selected' : ''}>Toutes les mises à jour</option>
@@ -241,10 +242,10 @@ function afficherFormulaire(
     </div>
 
     <div class="panneau-parametres-actions">
-      <button type="button" class="btn btn-ghost" id="btn-reinit-${sourceId}">Réinitialiser</button>
+      <button type="button" class="la-btn ghost" id="btn-reinit-${sourceId}">Réinitialiser</button>
       <div class="btn-group">
-        <button type="button" class="btn btn-secondaire" id="btn-annuler-${sourceId}">Annuler</button>
-        <button type="submit" class="btn btn-primaire">Enregistrer</button>
+        <button type="button" class="la-btn secondary" id="btn-annuler-${sourceId}">Annuler</button>
+        <button type="submit" class="la-btn primary">Enregistrer</button>
       </div>
     </div>
   `;

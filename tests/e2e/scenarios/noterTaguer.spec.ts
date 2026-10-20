@@ -42,7 +42,7 @@ test.describe('US3 - Noter et taguer les sources', () => {
       await expect(page.getByText(/note.*4|4.*5/i)).toBeVisible({ timeout: 5000 });
 
       // Vérifier que les 4 premières étoiles sont remplies
-      const etoilesRemplies = page.locator('button:has-text("★")');
+      const etoilesRemplies = page.locator('.btn-etoile.active');
       const countRemplies = await etoilesRemplies.count();
       expect(countRemplies).toBeGreaterThanOrEqual(4);
     });
@@ -175,7 +175,7 @@ test.describe('US3 - Noter et taguer les sources', () => {
       await page.getByRole('button', { name: '+' }).click();
 
       // Vérifier les deux
-      const etoilesRemplies = page.locator('button:has-text("★")');
+      const etoilesRemplies = page.locator('.btn-etoile.active');
       expect(await etoilesRemplies.count()).toBeGreaterThanOrEqual(4);
       await expect(page.getByText('favori')).toBeVisible();
     });

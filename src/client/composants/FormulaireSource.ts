@@ -37,17 +37,17 @@ export function creerFormulaireSource(
 
   // Champ URL
   const champUrl = creerElement('div', {
-    classes: ['champ'],
+    classes: ['la-form-group'],
   });
 
   const labelUrl = creerElement('label', {
-    classes: ['champ-label', 'requis'],
+    classes: ['la-label', 'requis'],
     attrs: { for: 'source-url' },
     texte: 'URL du flux RSS ou site',
   });
 
   const inputUrl = creerElement('input', {
-    classes: ['champ-input'],
+    classes: ['la-input'],
     attrs: {
       type: 'text',
       inputmode: 'url',
@@ -61,7 +61,7 @@ export function creerFormulaireSource(
   }) as HTMLInputElement;
 
   const aideUrl = creerElement('span', {
-    classes: ['champ-aide'],
+    classes: ['la-help'],
     texte: 'Adresse du site ou du flux : le flux RSS/Atom et le protocole sont détectés automatiquement',
   });
 
@@ -69,17 +69,17 @@ export function creerFormulaireSource(
 
   // Champ nom (optionnel)
   const champNom = creerElement('div', {
-    classes: ['champ'],
+    classes: ['la-form-group'],
   });
 
   const labelNom = creerElement('label', {
-    classes: ['champ-label'],
+    classes: ['la-label'],
     attrs: { for: 'source-nom' },
     texte: 'Nom personnalisé',
   });
 
   const inputNom = creerElement('input', {
-    classes: ['champ-input'],
+    classes: ['la-input'],
     attrs: {
       type: 'text',
       id: 'source-nom',
@@ -89,7 +89,7 @@ export function creerFormulaireSource(
   }) as HTMLInputElement;
 
   const aideNom = creerElement('span', {
-    classes: ['champ-aide'],
+    classes: ['la-help'],
     texte: 'Optionnel, sinon détecté automatiquement',
   });
 
@@ -99,7 +99,8 @@ export function creerFormulaireSource(
 
   // Bouton submit
   const btnSubmit = creerElement('button', {
-    classes: ['btn', 'btn-primaire'],
+    classes: ['la-btn', 'primary'],
+    icone: 'add',
     attrs: { type: 'submit' },
     texte: 'Ajouter la source',
   }) as HTMLButtonElement;
