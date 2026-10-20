@@ -5,7 +5,7 @@
 
 // Lunar Aurora (framework CSS, source avec ses @layer pour que nos styles non couchés
 // gardent la main), puis les styles propres à Veilleur (dont la police Material Symbols)
-import 'lunar-aurora/src/aurora.css';
+import './styles/aurora.css';
 import './styles/variables.css';
 import './styles/base.css';
 import './styles/composants.css';

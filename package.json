@@ -1,6 +1,6 @@
 {
   "name": "veilleur",
-  "version": "0.17.0",
+  "version": "0.17.1",
   "description": "Agrégateur d'actualités libre - Votre sentinelle de l'information",
   "type": "module",
   "scripts": {
