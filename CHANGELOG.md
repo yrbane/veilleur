@@ -4,6 +4,14 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.9.1 — 2026-10-21 · « Verrou npm complété »
+
+### Corrigé
+- `package-lock.json` ne listait pas `fflate` (dépendance de `@vitest/ui`),
+  ce qui faisait échouer `npm ci` en CI et bloquait le déploiement de la 0.9.0.
+  Le verrou est régénéré avec `npm install --package-lock-only` et validé par
+  `npm ci --dry-run`.
+
 ## 0.9.0 — 2026-10-21 · « Lu, non lu »
 
 ### Ajouté
