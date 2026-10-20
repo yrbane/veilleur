@@ -6,6 +6,8 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { verifierAuthentification } from '@/api/middlewares/authentification';
+import { env } from '@/config/environnement';
+import { ServiceLecture } from '@/infrastructure/lecture/ServiceLecture';
 import { ServiceArticles, ErreurArticle } from '@/domaine/services/ServiceArticles';
 import { ServiceAnnotationsArticles, ErreurAnnotation } from '@/domaine/services/ServiceAnnotationsArticles';
 import { TRIS_ARTICLES, NOTE_ARTICLE_MIN, NOTE_ARTICLE_MAX } from '@/domaine/entites/Article';
@@ -80,6 +82,19 @@ function obtenirDepotArticles(): DepotArticlesMariaDB {
     depotArticlesPartage = new DepotArticlesMariaDB();
   }
   return depotArticlesPartage;
+}
+
+let serviceLecture: ServiceLecture | null = null;
+
+function obtenirServiceLecture(): ServiceLecture {
+  if (!serviceLecture) {
+    serviceLecture = new ServiceLecture({
+      userAgent: env.SCRAPING_USER_AGENT,
+      timeoutMs: env.SCRAPING_TIMEOUT_MS,
+      serviceCache: obtenirServiceCache(),
+    });
+  }
+  return serviceLecture;
 }
 
 function obtenirServiceArticles(): ServiceArticles {
@@ -602,6 +617,49 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       return reply.send(await obtenirServiceAnnotations().compterNonLus(request.utilisateur!.sub));
+    } catch (erreur) {
+      return gererErreurArticle(erreur, reply);
+    }
+  });
+
+  /**
+   * GET /api/v1/articles/:id/lecture — contenu de l'article extrait pour la lecture en place
+   */
+  fastify.get<{ Params: { id: string } }>('/:id/lecture', {
+    schema: {
+      tags: ['Articles'],
+      summary: 'Contenu lisible d\'un article (lecture en place)',
+      security: [{ bearerAuth: [] }],
+      params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            titre: { type: 'string' },
+            contenuHtml: { type: 'string' },
+            extrait: { type: 'string', nullable: true },
+            auteur: { type: 'string', nullable: true },
+            nombreMots: { type: 'number' },
+            dureeLectureMin: { type: 'number' },
+            lien: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    try {
+      const article = await obtenirServiceArticles().obtenirArticle(request.params.id);
+      if (!article) {
+        return reply.status(404).send({ erreur: 'ARTICLE_INTROUVABLE', message: 'Article introuvable' });
+      }
+      const contenu = await obtenirServiceLecture().extraire(article.id, article.lien);
+      if (!contenu) {
+        return reply.status(422).send({
+          erreur: 'CONTENU_INDISPONIBLE',
+          message: 'Impossible d\'extraire le contenu de cet article',
+        });
+      }
+      return reply.send({ ...contenu, lien: article.lien });
     } catch (erreur) {
       return gererErreurArticle(erreur, reply);
     }

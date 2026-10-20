@@ -9,6 +9,7 @@ import { urlFaviconLocale } from '../utils/favicons';
 import { formatDateRelative, echapperHtml } from '../utils/format';
 import { articles as apiArticles } from '../services/api';
 import { toast } from '../utils/toast';
+import { ouvrirLecteur } from './Lecteur';
 import type { Article } from '../services/api';
 
 /**
@@ -39,6 +40,21 @@ async function definirLu(article: Article, carte: HTMLElement, lu: boolean, opti
     carte.classList.toggle('lu', !lu);
     toast.erreur('Impossible d\'enregistrer la lecture');
   }
+}
+
+/**
+ * Bouton « Lire ici » : ouvre le lecteur et marque l'article lu
+ */
+function creerBoutonLire(article: Article, carte: HTMLElement, options: OptionsCarteArticle): HTMLElement {
+  return creerElement('button', {
+    classes: ['btn-lire'],
+    attrs: { type: 'button', 'aria-label': 'Lire ici', title: 'Lire ici' },
+    icone: 'menu_book',
+    onClick: () => {
+      ouvrirLecteur(article);
+      void definirLu(article, carte, true, options);
+    },
+  });
 }
 
 /**
@@ -264,7 +280,12 @@ export function creerCarteArticle(article: Article, options: OptionsCarteArticle
 
   // Annotations personnelles : note, favori, tags
   const annotations = creerElement('div', { classes: ['carte-article-annotations'] });
-  annotations.append(creerNotationArticle(article, options), creerBoutonFavori(article, options), creerBoutonLu(article, carte, options));
+  annotations.append(
+    creerNotationArticle(article, options),
+    creerBoutonFavori(article, options),
+    creerBoutonLire(article, carte, options),
+    creerBoutonLu(article, carte, options),
+  );
 
   // Assemblage
   contenu.append(source, titre);

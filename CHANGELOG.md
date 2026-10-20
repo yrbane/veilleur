@@ -4,6 +4,23 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.10.0 — 2026-10-21 · « Lecture en place »
+
+### Ajouté
+- Bouton « Lire ici » sur chaque carte : l'article s'ouvre dans une fenêtre de
+  lecture sans quitter le fil, avec source, date, auteur, durée de lecture
+  estimée et lien vers l'original. Échap ou un clic à côté referme ; l'article
+  est marqué lu.
+- Extraction côté serveur (`ServiceLecture`) : page téléchargée avec les
+  garde-fous du scraping (anti-SSRF, redirections validées, 2 Mo max, HTML
+  seulement), contenu principal isolé par Readability puis nettoyé par
+  sanitize-html (balises de mise en forme uniquement, images en https, liens
+  absolus ouverts dans un nouvel onglet). Résultat en cache Redis 24 h.
+- API : `GET /api/v1/articles/:id/lecture` (422 `CONTENU_INDISPONIBLE` quand le
+  site ne s'y prête pas).
+- Récupération HTTP avec redirections validées factorisée
+  (`recupererAvecRedirections`), partagée avec le cache des favicons.
+
 ## 0.9.3 — 2026-10-21 · « Tout marquer lu, vraiment »
 
 ### Corrigé
