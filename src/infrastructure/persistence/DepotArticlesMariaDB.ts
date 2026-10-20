@@ -595,7 +595,31 @@ export class DepotArticlesMariaDB implements DepotArticles {
         parSource[ligne.sourceId] = nombre;
         total += nombre;
       }
-      return { total, parSource };
+      // Par rubrique : mêmes non-lus, regroupés par tag de source
+      const lignesTags = await db
+        .select({ slug: tags.slug, nombre: sql<number>`COUNT(*)` })
+        .from(articles)
+        .innerJoin(
+          utilisateursSources,
+          and(
+            eq(utilisateursSources.sourceId, articles.sourceId),
+            eq(utilisateursSources.utilisateurId, utilisateurId),
+            eq(utilisateursSources.estEnPause, false),
+          ),
+        )
+        .innerJoin(utilisateursSourcesTags, eq(utilisateursSourcesTags.utilisateurSourceId, utilisateursSources.id))
+        .innerJoin(tags, eq(tags.id, utilisateursSourcesTags.tagId))
+        .leftJoin(
+          utilisateursArticles,
+          and(eq(utilisateursArticles.articleId, articles.id), eq(utilisateursArticles.utilisateurId, utilisateurId)),
+        )
+        .where(sql`${utilisateursArticles.luLe} IS NULL`)
+        .groupBy(tags.slug);
+      const parTag: Record<string, number> = {};
+      for (const ligne of lignesTags) {
+        parTag[ligne.slug] = Number(ligne.nombre);
+      }
+      return { total, parSource, parTag };
     } catch (erreur) {
       loggerBdd.error({ erreur, utilisateurId }, 'Erreur lors du comptage des non-lus');
       throw erreur;

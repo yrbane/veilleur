@@ -69,7 +69,7 @@
 
 ### 🎯 Personnalisation
 - Notation des sources (1-5 étoiles)
-- Tags de sources déduits automatiquement, modifiables à la main
+- Tags de sources déduits automatiquement, modifiables à la main ; ils forment les rubriques du fil, avec le compte de non-lus
 - Articles notés et mis en favoris, classés automatiquement par cinq mots-clés extraits du texte
 - Fil trié (date, note, titre, source), filtré par source, période, note, favoris, liste de lecture, non lus et mots-clés, avec chargement au défilement
 - Recherche plein texte avec exclusions (`-mot`), phrases exactes et préfixes, termes surlignés dans les cartes

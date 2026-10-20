@@ -855,6 +855,23 @@
   margin-bottom: var(--espace-4);
 }
 
+/* Rubriques : tags de sources en puces, au-dessus des outils (0.13.0) */
+.fil-rubriques {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espace-2);
+  margin-bottom: var(--espace-3);
+}
+
+.fil-rubriques.masque {
+  display: none;
+}
+
+.chip-rubrique .badge-non-lus {
+  margin-left: var(--espace-1);
+}
+
 .fil-outils-label {
   font-size: var(--taille-sm);
   color: var(--couleur-texte-secondaire);

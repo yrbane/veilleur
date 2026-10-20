@@ -67,6 +67,8 @@ export interface ResultatPagineArticles {
 export interface CompteNonLus {
   total: number;
   parSource: Record<string, number>;
+  /** Par rubrique (slug du tag de source) ; une source à plusieurs tags compte dans chacun */
+  parTag: Record<string, number>;
 }
 
 export interface DepotArticles {

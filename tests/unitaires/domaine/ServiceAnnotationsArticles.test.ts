@@ -131,9 +131,9 @@ describe('ServiceAnnotationsArticles', () => {
 
   describe('compterNonLus', () => {
     it('délègue au dépôt des articles', async () => {
-      depotArticles.compterNonLus.mockResolvedValue({ total: 3, parSource: { 'src-1': 3 } });
+      depotArticles.compterNonLus.mockResolvedValue({ total: 3, parSource: { 'src-1': 3 }, parTag: { actu: 3 } });
 
-      expect(await creerService().compterNonLus('u1')).toEqual({ total: 3, parSource: { 'src-1': 3 } });
+      expect(await creerService().compterNonLus('u1')).toEqual({ total: 3, parSource: { 'src-1': 3 }, parTag: { actu: 3 } });
     });
   });
 

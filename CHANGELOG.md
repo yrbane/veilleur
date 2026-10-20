@@ -4,6 +4,16 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.13.0 — 2026-10-21 · « Rubriques »
+
+### Ajouté
+- Rubriques dans le fil : les tags posés sur vos sources deviennent une barre
+  de puces au-dessus des outils (« Toutes » + une puce par rubrique, avec le
+  nombre d'articles non lus). Un clic restreint le fil aux sources de la
+  rubrique ; le choix est mémorisé.
+- `GET /api/v1/articles/non-lus` renvoie aussi `parTag` (non-lus par rubrique) ;
+  le client envoie `tag` sur le fil (critère déjà géré côté serveur).
+
 ## 0.12.0 — 2026-10-21 · « Recherche enrichie »
 
 ### Ajouté

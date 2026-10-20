@@ -680,6 +680,7 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
           properties: {
             total: { type: 'number' },
             parSource: { type: 'object', additionalProperties: { type: 'number' } },
+            parTag: { type: 'object', additionalProperties: { type: 'number' } },
           },
         },
       },

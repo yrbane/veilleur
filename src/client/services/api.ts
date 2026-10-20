@@ -279,6 +279,8 @@ export interface OptionsFil {
   page?: number;
   limite?: number;
   sourceId?: string;
+  /** Rubrique : slug d'un tag de source */
+  tag?: string;
   /** Date ISO : articles publiés depuis */
   depuis?: string;
   recherche?: string;
@@ -304,6 +306,7 @@ export interface ContenuLecture {
 export interface CompteNonLus {
   total: number;
   parSource: Record<string, number>;
+  parTag: Record<string, number>;
 }
 
 export interface MotCleFil {
@@ -534,6 +537,7 @@ export const articles = {
     params.set('limite', String(options.limite ?? 20));
     if (options.sourceId) params.set('sourceId', options.sourceId);
     if (options.depuis) params.set('depuis', options.depuis);
+    if (options.tag) params.set('tag', options.tag);
     if (options.recherche) params.set('recherche', options.recherche);
     if (options.tri) params.set('tri', options.tri);
     if (options.ordre) params.set('ordre', options.ordre);
