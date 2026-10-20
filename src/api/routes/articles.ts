@@ -12,6 +12,7 @@ import { DepotSourcesMariaDB } from '@/infrastructure/persistence/DepotSourcesMa
 import { obtenirServiceCache } from '@/infrastructure/cache/ServiceCacheRedis';
 import { obtenirServiceScraping } from '@/infrastructure/scraping/ServiceScraping';
 import { loggerHttp } from '@/infrastructure/logging/logger';
+import { ServiceImagesCache } from '@/infrastructure/images';
 
 /**
  * Schémas de validation
@@ -22,6 +23,9 @@ const schemaCriteresFil = z.object({
   sourceId: z.string().optional(),
   tag: z.string().optional(),
   depuis: z.string().datetime().optional().transform(val => val ? new Date(val) : undefined),
+  recherche: z.string().optional(),
+  curseur: z.string().optional(),
+  direction: z.enum(['avant', 'apres']).optional(),
 });
 
 /**
@@ -44,6 +48,35 @@ function obtenirServiceArticles(): ServiceArticles {
     );
   }
   return serviceArticles;
+}
+
+/**
+ * Transforme l'URL d'image en URL cachée locale
+ */
+function transformerUrlImage(urlImage: string | null): { urlImage: string | null; urlImageOriginale: string | null } {
+  if (!urlImage) {
+    return { urlImage: null, urlImageOriginale: null };
+  }
+  // Retourner l'URL vers le cache d'images local (taille 'sm' par défaut)
+  const hash = ServiceImagesCache.hashUrl(urlImage);
+  return {
+    urlImage: `/api/v1/images/${hash}/sm`,
+    urlImageOriginale: urlImage,
+  };
+}
+
+/**
+ * Transforme les articles pour utiliser les URLs cachées
+ */
+function transformerArticlesPourReponse<T extends { urlImage: string | null }>(articles: T[]): (Omit<T, 'urlImage'> & { urlImage: string | null; urlImageOriginale: string | null })[] {
+  return articles.map(article => {
+    const { urlImage, urlImageOriginale } = transformerUrlImage(article.urlImage);
+    return {
+      ...article,
+      urlImage,
+      urlImageOriginale,
+    };
+  });
 }
 
 /**
@@ -158,7 +191,11 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
         utilisateurId: utilisateur.sub,
       });
 
-      return reply.send(resultat);
+      // Transformer les URLs d'images pour utiliser le cache local
+      return reply.send({
+        ...resultat,
+        donnees: transformerArticlesPourReponse(resultat.donnees),
+      });
     } catch (erreur) {
       return gererErreurArticle(erreur, reply);
     }
@@ -209,7 +246,13 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      return reply.send(article);
+      // Transformer l'URL d'image pour utiliser le cache local
+      const { urlImage, urlImageOriginale } = transformerUrlImage(article.urlImage);
+      return reply.send({
+        ...article,
+        urlImage,
+        urlImageOriginale,
+      });
     } catch (erreur) {
       return gererErreurArticle(erreur, reply);
     }
@@ -263,7 +306,8 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
         const service = obtenirServiceArticles();
         const articles = await service.listerArticlesSource(request.params.sourceId, limite);
 
-        return reply.send(articles);
+        // Transformer les URLs d'images pour utiliser le cache local
+        return reply.send(transformerArticlesPourReponse(articles));
       } catch (erreur) {
         return gererErreurArticle(erreur, reply);
       }
@@ -356,17 +400,16 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
       debutSemaine.setDate(debutSemaine.getDate() - 7);
 
       const [totalArticles, articlesJour, articlesSemaine] = await Promise.all([
-        service.listerFil(utilisateur.sub, { limite: 1 }),
-        service.listerFil(utilisateur.sub, { limite: 1, depuis: debutJour }),
-        service.listerFil(utilisateur.sub, { limite: 1, depuis: debutSemaine }),
+        service.listerFil(utilisateur.sub, { page: 1, limite: 1 }),
+        service.listerFil(utilisateur.sub, { page: 1, limite: 1, depuis: debutJour }),
+        service.listerFil(utilisateur.sub, { page: 1, limite: 1, depuis: debutSemaine }),
       ]);
 
       return reply.send({
-        totalArticles: totalArticles.pagination.total,
-        articlesAujourdhui: articlesJour.pagination.total,
-        articlesCetteSemaine: articlesSemaine.pagination.total,
-      });
-    } catch (erreur) {
+        totalArticles: totalArticles.pagination?.total ?? 0,
+        articlesAujourdhui: articlesJour.pagination?.total ?? 0,
+        articlesCetteSemaine: articlesSemaine.pagination?.total ?? 0,
+      });    } catch (erreur) {
       return gererErreurArticle(erreur, reply);
     }
   });

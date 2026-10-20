@@ -8,6 +8,27 @@
       "when": 1764937130202,
       "tag": "0000_messy_nextwave",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1769442706945,
+      "tag": "0001_broad_bastion",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1772886516935,
+      "tag": "0002_add_fulltext_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1792486051130,
+      "tag": "0003_image_cache_column",
+      "breakpoints": true
     }
   ]
 }

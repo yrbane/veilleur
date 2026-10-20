@@ -1,0 +1,32 @@
+# Service systemd de Veilleur sur nethttp.net — installé par deploy/nethttp/installer.sh
+[Unit]
+Description=Veilleur — agrégateur d'actualités (news.nethttp.net)
+Documentation=https://github.com/yrbane/veilleur
+After=network-online.target mariadb.service redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=veilleur
+Group=veilleur
+WorkingDirectory=/var/www/nethttp.net/news/app
+EnvironmentFile=/var/www/nethttp.net/news/.env
+ExecStart=/opt/nodejs/current/bin/node dist/serveur.js
+Restart=always
+RestartSec=5
+SyslogIdentifier=veilleur
+LimitNOFILE=65536
+
+# Durcissement : seul le cache d'images est inscriptible
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+ReadWritePaths=/var/www/nethttp.net/news/data
+
+[Install]
+WantedBy=multi-user.target

@@ -10,6 +10,7 @@ import { ServiceSources, ErreurSource } from '@/domaine/services/ServiceSources'
 import { DepotSourcesMariaDB, DepotParametresSourcesMariaDB } from '@/infrastructure/persistence/DepotSourcesMariaDB';
 import { loggerHttp } from '@/infrastructure/logging/logger';
 import { genererOPML, parserOPML, type SourceOPML } from '@/domaine/services/ServiceOPML';
+import { obtenirServiceCache } from '@/infrastructure/cache/ServiceCacheRedis';
 
 /**
  * Schémas de validation
@@ -52,7 +53,8 @@ function obtenirServiceSources(): ServiceSources {
   if (!serviceSources) {
     const depotSources = new DepotSourcesMariaDB();
     const depotParametres = new DepotParametresSourcesMariaDB();
-    serviceSources = new ServiceSources(depotSources, depotParametres);
+    const serviceCache = obtenirServiceCache();
+    serviceSources = new ServiceSources(depotSources, depotParametres, undefined, serviceCache);
   }
   return serviceSources;
 }

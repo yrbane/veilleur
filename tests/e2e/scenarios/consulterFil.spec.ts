@@ -98,7 +98,7 @@ test.describe('US2 - Consulter le fil d\'actualités', () => {
   });
 
   test.describe('Interactions articles', () => {
-    test('cliquer sur un article ouvre le lien externe', async ({ page, context }) => {
+    test('cliquer sur un article ouvre le lien externe', async ({ page }) => {
       await inscrireUtilisateur(page);
       await ajouterSource(page, SOURCES_TEST.bbcNews.url, SOURCES_TEST.bbcNews.nom);
       await page.goto('/');

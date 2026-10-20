@@ -11,11 +11,11 @@ import { z } from 'zod';
 const schemaEnvironnement = z.object({
   // Serveur
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.coerce.number().default(3000),
+  PORT: z.coerce.number().default(8080),
   HOST: z.string().default('0.0.0.0'),
 
   // CORS - Liste des origines autorisées (séparées par des virgules)
-  CORS_ALLOWED_ORIGINS: z.string().default('http://localhost:5173,http://localhost:3000'),
+  CORS_ALLOWED_ORIGINS: z.string().default('http://localhost:5173,http://localhost:8080'),
 
   // Base de données MariaDB
   DATABASE_URL: z.string().url().optional(),
@@ -54,6 +54,11 @@ const schemaEnvironnement = z.object({
 
   // Signature HMAC pour les requêtes API-to-API
   API_HMAC_SECRET: z.string().min(32).optional(),
+
+  // Cache d'images
+  IMAGES_CHEMIN_STOCKAGE: z.string().default('./data/images'),
+  IMAGES_MAX_TAILLE_MO: z.coerce.number().default(5),
+  IMAGES_RETENTION_JOURS: z.coerce.number().default(90),
 });
 
 export type Environnement = z.infer<typeof schemaEnvironnement>;

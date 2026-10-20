@@ -21,8 +21,10 @@
 </p>
 
 <p align="center">
+  <a href="https://news.nethttp.net">Démo</a> •
   <a href="#-fonctionnalités">Fonctionnalités</a> •
   <a href="#-démarrage-rapide">Démarrage</a> •
+  <a href="#-déploiement">Déploiement</a> •
   <a href="#-stack-technique">Stack</a> •
   <a href="#-documentation">Documentation</a>
 </p>
@@ -34,6 +36,7 @@
   <img src="https://img.shields.io/badge/MariaDB-11.x-003545?style=flat-square&logo=mariadb&logoColor=white" alt="MariaDB"/>
   <img src="https://img.shields.io/badge/Redis-7.x-DC382D?style=flat-square&logo=redis&logoColor=white" alt="Redis"/>
   <img src="https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker"/>
+  <a href="https://news.nethttp.net"><img src="https://img.shields.io/badge/En_ligne-news.nethttp.net-8B5CF6?style=flat-square&logo=rss&logoColor=white" alt="En ligne"/></a>
 </p>
 
 <p align="center">
@@ -177,8 +180,20 @@ npm install
 cp .env.example .env
 # Configurer MariaDB et Redis localement
 npm run db:migrate
+npm run db:seed      # sources par défaut (optionnel)
 npm run dev
 ```
+
+### Build de production
+
+```bash
+npm run build        # typecheck + bundle serveur (esbuild) + client (Vite)
+npm run db:migrate:prod   # migrations via dist/migrer.js (sans drizzle-kit)
+npm start            # node dist/serveur.js — API + workers + frontend sur :8080
+```
+
+Le bundle esbuild (`scripts/build-serveur.mjs`) résout les alias `@/` et produit
+`dist/serveur.js`, `dist/migrer.js` et `dist/seed.js`, exécutables directement par Node.
 
 ---
 
@@ -314,6 +329,42 @@ graph LR
 |:-------|:--------|
 | `veilleur-mariadb-data` | Données MariaDB |
 | `veilleur-redis-data` | Données Redis (AOF) |
+
+---
+
+## 🚀 Déploiement
+
+L'instance publique tourne sur **https://news.nethttp.net** (Debian 13, sans Docker :
+MariaDB et Redis natifs, Apache en reverse proxy derrière le pare-feu applicatif websec).
+
+```bash
+npm run deploy:nethttp
+```
+
+Le script `scripts/deploy-nethttp.sh` construit l'application, envoie `dist/`, les
+migrations et les manifestes par rsync, puis exécute `deploy/nethttp/installer.sh`
+en root sur le serveur. Cet installeur est **idempotent** :
+
+| Étape | Premier passage | Passages suivants |
+|:------|:----------------|:------------------|
+| Node 22 LTS dans `/opt/nodejs` | téléchargé, somme SHA-256 vérifiée | conservé |
+| Utilisateur système `veilleur` | créé | conservé |
+| `/var/www/nethttp.net/news/.env` | généré (mot de passe BDD, secrets JWT) | jamais écrasé |
+| Base MariaDB `veilleur` | créée | mot de passe resynchronisé |
+| Code + `npm ci --omit=dev` | installé | mis à jour |
+| Migrations Drizzle | appliquées | appliquées |
+| Sources par défaut | insérées | ignorées (`.seed-fait`) |
+| Service systemd `veilleur` | installé, activé | redémarré |
+| Vhost Apache `015-news.nethttp.net.conf` | activé | rechargé |
+
+Fichiers : `deploy/nethttp/veilleur.service` (service durci, seul `data/images` est
+inscriptible), `deploy/nethttp/015-news.nethttp.net.conf` (proxy vers `127.0.0.1:8090`),
+`deploy/nethttp/env.production` (modèle d'environnement).
+
+```bash
+ssh nethttp 'journalctl -u veilleur -n 100 -f'   # logs
+ssh nethttp 'sudo systemctl status veilleur'      # état du service
+```
 
 ---
 

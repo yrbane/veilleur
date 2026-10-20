@@ -161,6 +161,7 @@ export const articles = mysqlTable(
     datePublication: timestamp('date_publication').notNull(),
     resume: text('resume'),
     urlImage: varchar('url_image', { length: 2048 }),
+    urlImageCache: char('url_image_cache', { length: 32 }),
     auteur: varchar('auteur', { length: 255 }),
     metaOpenGraph: json('meta_open_graph').$type<MetaOpenGraph>().default({}),
     metaTwitter: json('meta_twitter').$type<MetaTwitter>().default({}),
@@ -293,6 +294,41 @@ export const cachesSources = mysqlTable(
   table => ({
     // Index pour nettoyage des entrées expirées
     idxExpiration: index('idx_cache_expiration').on(table.dateExpiration),
+  }),
+);
+
+/**
+ * Statut du cache d'image
+ */
+export type StatutImageCache = 'en_attente' | 'en_cours' | 'termine' | 'echec';
+
+/**
+ * Table des images cachées
+ */
+export const imagesCachees = mysqlTable(
+  'images_cachees',
+  {
+    id: varchar('id', { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    hashUrl: char('hash_url', { length: 32 }).notNull().unique(),
+    urlOriginale: varchar('url_originale', { length: 2048 }).notNull(),
+    cheminLocal: varchar('chemin_local', { length: 512 }),
+    cheminMiniatureSm: varchar('chemin_miniature_sm', { length: 512 }),
+    cheminMiniatureMd: varchar('chemin_miniature_md', { length: 512 }),
+    typeMime: varchar('type_mime', { length: 50 }),
+    tailleFichier: int('taille_fichier'),
+    largeur: int('largeur'),
+    hauteur: int('hauteur'),
+    statut: mysqlEnum('statut', ['en_attente', 'en_cours', 'termine', 'echec']).default('en_attente'),
+    nombreUtilisations: int('nombre_utilisations').default(1),
+    dateCreation: timestamp('date_creation').notNull().defaultNow(),
+    dateDernierAcces: timestamp('date_dernier_acces'),
+  },
+  table => ({
+    idxHash: uniqueIndex('idx_image_hash').on(table.hashUrl),
+    idxStatut: index('idx_image_statut').on(table.statut),
+    idxDernierAcces: index('idx_image_dernier_acces').on(table.dateDernierAcces),
   }),
 );
 

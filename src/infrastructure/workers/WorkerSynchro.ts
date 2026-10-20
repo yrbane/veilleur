@@ -9,6 +9,8 @@ import { obtenirServiceScraping } from '../scraping/ServiceScraping';
 import { DepotSourcesMariaDB } from '../persistence/DepotSourcesMariaDB';
 import { DepotArticlesMariaDB } from '../persistence/DepotArticlesMariaDB';
 import { loggerJobs as loggerWorker } from '../logging/logger';
+import { creerQueueImages, ajouterJobImage } from './WorkerImages';
+import type { DonneesJobImage } from '../images';
 
 /**
  * Nom de la queue de synchronisation
@@ -75,6 +77,7 @@ export function creerWorkerSynchro(): Worker<DonneesJob, ResultatSynchro | Resul
   const serviceScraping = obtenirServiceScraping();
   const depotSources = new DepotSourcesMariaDB();
   const depotArticles = new DepotArticlesMariaDB();
+  const queueImages = creerQueueImages();
 
   const worker = new Worker<DonneesJob, ResultatSynchro | ResultatSynchro[]>(
     NOM_QUEUE_SYNCHRO,
@@ -82,11 +85,11 @@ export function creerWorkerSynchro(): Worker<DonneesJob, ResultatSynchro | Resul
       loggerWorker.info({ jobId: job.id, type: job.data.type }, 'Traitement du job');
 
       if (job.data.type === 'synchro-source') {
-        return traiterSynchroSource(job.data, serviceScraping, depotSources, depotArticles);
+        return traiterSynchroSource(job.data, serviceScraping, depotSources, depotArticles, queueImages);
       }
 
       if (job.data.type === 'synchro-toutes') {
-        return traiterSynchroToutes(job.data, serviceScraping, depotSources, depotArticles);
+        return traiterSynchroToutes(job.data, serviceScraping, depotSources, depotArticles, queueImages);
       }
 
       throw new Error(`Type de job inconnu: ${(job.data as DonneesJob).type}`);
@@ -127,6 +130,7 @@ async function traiterSynchroSource(
   serviceScraping: ReturnType<typeof obtenirServiceScraping>,
   depotSources: DepotSourcesMariaDB,
   depotArticles: DepotArticlesMariaDB,
+  queueImages?: Queue<DonneesJobImage>,
 ): Promise<ResultatSynchro> {
   const { sourceId } = donnees;
 
@@ -142,10 +146,12 @@ async function traiterSynchroSource(
 
     // Sauvegarder les nouveaux articles
     let nouveauxArticles = 0;
+    const imagesACacher: Array<{ url: string; articleId?: string }> = [];
+
     for (const articleBrut of resultat.articles) {
       const existe = await depotArticles.existeParLien(articleBrut.lien);
       if (!existe) {
-        await depotArticles.creer({
+        const article = await depotArticles.creer({
           sourceId,
           titre: articleBrut.titre,
           lien: articleBrut.lien,
@@ -158,7 +164,25 @@ async function traiterSynchroSource(
           hashContenu: null,
         });
         nouveauxArticles++;
+
+        // Ajouter l'image à cacher si présente
+        if (articleBrut.urlImage) {
+          imagesACacher.push({ url: articleBrut.urlImage, articleId: article.id });
+        }
       }
+    }
+
+    // Ajouter les jobs de cache d'images
+    if (queueImages && imagesACacher.length > 0) {
+      for (const img of imagesACacher) {
+        await ajouterJobImage(queueImages, img.url, img.articleId).catch(err => {
+          loggerWorker.warn({ erreur: err, url: img.url }, 'Échec ajout job image');
+        });
+      }
+      loggerWorker.debug(
+        { sourceId, imagesAjoutees: imagesACacher.length },
+        'Jobs images ajoutés',
+      );
     }
 
     // Mettre à jour la date de dernière synchro
@@ -195,6 +219,7 @@ async function traiterSynchroToutes(
   serviceScraping: ReturnType<typeof obtenirServiceScraping>,
   depotSources: DepotSourcesMariaDB,
   depotArticles: DepotArticlesMariaDB,
+  queueImages?: Queue<DonneesJobImage>,
 ): Promise<ResultatSynchro[]> {
   // Récupérer les sources actives à synchroniser
   const sources = await depotSources.listerSourcesARafraichir();
@@ -210,6 +235,7 @@ async function traiterSynchroToutes(
       serviceScraping,
       depotSources,
       depotArticles,
+      queueImages,
     );
     resultats.push(resultat);
 

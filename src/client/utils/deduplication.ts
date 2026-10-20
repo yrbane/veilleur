@@ -131,7 +131,7 @@ class GestionnaireDeduplication {
    * Annule toutes les requêtes en cours
    */
   annulerTout(): void {
-    for (const [_cle, requete] of this.requetesEnCours) {
+    for (const requete of this.requetesEnCours.values()) {
       requete.abortController.abort();
     }
     this.requetesEnCours.clear();

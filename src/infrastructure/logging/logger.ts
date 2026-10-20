@@ -5,6 +5,7 @@
 
 import pino from 'pino';
 import { env, estDeveloppement } from '@/config/environnement';
+import { VERSION } from '@/config/version';
 
 /**
  * Configuration du transport selon l'environnement
@@ -29,7 +30,7 @@ export const logger = pino({
   transport: transportConfig,
   base: {
     service: 'veilleur',
-    version: '0.1.0',
+    version: VERSION,
   },
   timestamp: pino.stdTimeFunctions.isoTime,
   formatters: {

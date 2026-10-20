@@ -12,6 +12,9 @@ import { afficherPageParametres } from './pages/PageParametres';
 import { afficherPageDecouverte } from './pages/PageDecouverte';
 import { toast } from './utils/toast';
 
+// Version injectée par Vite (define) depuis package.json
+declare const __VERSION_APP__: string;
+
 // Types
 interface Route {
   pattern: RegExp;
@@ -201,6 +204,16 @@ function initialiserNavigation(): void {
 }
 
 /**
+ * Affiche la version de l'application dans le pied de page
+ */
+function afficherVersion(): void {
+  const element = document.getElementById('version-app');
+  if (element) {
+    element.textContent = `v${__VERSION_APP__}`;
+  }
+}
+
+/**
  * Initialise l'application
  */
 async function initialiser(): Promise<void> {
@@ -213,6 +226,9 @@ async function initialiser(): Promise<void> {
 
   // Initialiser la navigation
   initialiserNavigation();
+
+  // Afficher la version dans le pied de page
+  afficherVersion();
 
   // Mettre à jour l'interface d'authentification
   mettreAJourAuth();

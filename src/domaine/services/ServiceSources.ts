@@ -8,6 +8,8 @@ import type { Source, SourceUtilisateur, TypeSource } from '@/domaine/entites/So
 import { normaliserUrl, SEUIL_ECHECS_SOURCE } from '@/domaine/entites/Source';
 import type { ParametresSource, MiseAJourParametres } from '@/domaine/entites/ParametresSource';
 import { createHash } from 'crypto';
+import type { ServiceCache } from '@/domaine/ports/ServiceCache';
+import { cleSourcesUtilisateur, TTL_DEFAUT } from '@/domaine/ports/ServiceCache';
 
 /**
  * Résultat de la détection du type de source
@@ -50,6 +52,7 @@ export class ServiceSources {
     private readonly depotSources: DepotSources,
     private readonly depotParametres: DepotParametresSources,
     private readonly detecteurSource?: (url: string) => Promise<ResultatDetection>,
+    private readonly serviceCache?: ServiceCache,
   ) {}
 
   /**
@@ -108,6 +111,11 @@ export class ServiceSources {
       source.id,
     );
 
+    // Invalider le cache des sources de l'utilisateur
+    if (this.serviceCache) {
+      await this.serviceCache.supprimer(cleSourcesUtilisateur(utilisateurId));
+    }
+
     return sourceUtilisateur;
   }
 
@@ -120,7 +128,14 @@ export class ServiceSources {
       throw new ErreurSource('Source introuvable', 'SOURCE_INTROUVABLE');
     }
 
-    return this.depotSources.retirerPourUtilisateur(utilisateurId, sourceId);
+    const resultat = await this.depotSources.retirerPourUtilisateur(utilisateurId, sourceId);
+
+    // Invalider le cache
+    if (this.serviceCache && resultat) {
+      await this.serviceCache.supprimer(cleSourcesUtilisateur(utilisateurId));
+    }
+
+    return resultat;
   }
 
   /**
@@ -130,7 +145,24 @@ export class ServiceSources {
     utilisateurId: string,
     criteres?: CriteresSources,
   ): Promise<ResultatPagine<SourceUtilisateur>> {
-    return this.depotSources.listerPourUtilisateur(utilisateurId, criteres);
+    // N'utiliser le cache que si pas de critères spécifiques (page 1, etc.)
+    const estRequeteParDefaut = !criteres || (criteres.page === 1 && (!criteres.limite || criteres.limite === 50));
+    const cleCache = cleSourcesUtilisateur(utilisateurId);
+
+    if (this.serviceCache && estRequeteParDefaut) {
+      const cache = await this.serviceCache.obtenir<ResultatPagine<SourceUtilisateur>>(cleCache);
+      if (cache) {
+        return cache;
+      }
+    }
+
+    const resultat = await this.depotSources.listerPourUtilisateur(utilisateurId, criteres);
+
+    if (this.serviceCache && estRequeteParDefaut) {
+      await this.serviceCache.stocker(cleCache, resultat, { ttl: TTL_DEFAUT.SOURCES });
+    }
+
+    return resultat;
   }
 
   /**
@@ -140,6 +172,17 @@ export class ServiceSources {
     const suit = await this.depotSources.utilisateurSuitSource(utilisateurId, sourceId);
     if (!suit) {
       return null;
+    }
+
+    // Essayer de trouver dans le cache global des sources de l'utilisateur d'abord
+    if (this.serviceCache) {
+      const cache = await this.serviceCache.obtenir<ResultatPagine<SourceUtilisateur>>(
+        cleSourcesUtilisateur(utilisateurId)
+      );
+      if (cache) {
+        const source = cache.donnees.find(s => s.id === sourceId);
+        if (source) return source;
+      }
     }
 
     const resultat = await this.depotSources.listerPourUtilisateur(utilisateurId, { limite: 1000 });
@@ -163,7 +206,13 @@ export class ServiceSources {
       throw new ErreurSource('Source introuvable', 'SOURCE_INTROUVABLE');
     }
 
-    return this.depotSources.noterSource(utilisateurId, sourceId, note);
+    const resultat = await this.depotSources.noterSource(utilisateurId, sourceId, note);
+
+    if (this.serviceCache && resultat) {
+      await this.serviceCache.supprimer(cleSourcesUtilisateur(utilisateurId));
+    }
+
+    return resultat;
   }
 
   /**
@@ -179,7 +228,13 @@ export class ServiceSources {
       throw new ErreurSource('Source introuvable', 'SOURCE_INTROUVABLE');
     }
 
-    return this.depotSources.basculerPause(utilisateurId, sourceId, enPause);
+    const resultat = await this.depotSources.basculerPause(utilisateurId, sourceId, enPause);
+
+    if (this.serviceCache && resultat) {
+      await this.serviceCache.supprimer(cleSourcesUtilisateur(utilisateurId));
+    }
+
+    return resultat;
   }
 
   /**

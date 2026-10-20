@@ -148,6 +148,7 @@ export class ServiceArticles {
 
       let nouveauxArticles = 0;
       let articlesIgnores = 0;
+      const articlesACreer: Omit<Article, 'id' | 'dateExtraction'>[] = [];
 
       // Traiter chaque article
       for (const articleBrut of extraction.articles.slice(0, maxArticles)) {
@@ -171,8 +172,8 @@ export class ServiceArticles {
             metaTwitter = meta.twitter;
           }
 
-          // Créer l'article
-          await this.depotArticles.creer({
+          // Préparer l'article pour insertion par lot
+          articlesACreer.push({
             sourceId,
             titre: articleBrut.titre,
             lien: articleBrut.lien,
@@ -188,10 +189,14 @@ export class ServiceArticles {
           nouveauxArticles++;
         } catch (erreur) {
           // Continuer avec les autres articles en cas d'erreur
-          // Log silencieux pour ne pas polluer les logs
-          console.warn('Erreur création article:', (erreur as Error).message);
+          console.warn('Erreur préparation article:', (erreur as Error).message);
           articlesIgnores++;
         }
+      }
+
+      // Insertion par lot si nouveaux articles
+      if (articlesACreer.length > 0) {
+        await this.depotArticles.creerPlusieurs(articlesACreer);
       }
 
       // Invalider le cache

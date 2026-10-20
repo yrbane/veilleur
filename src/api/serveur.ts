@@ -11,12 +11,10 @@ import fastifySensible from '@fastify/sensible';
 import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
 import fastifyStatic from '@fastify/static';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join, resolve } from 'path';
 import { existsSync, readFileSync } from 'fs';
 import { env, estDeveloppement, obtenirOriginesCORS } from '@/config/environnement';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
+import { VERSION } from '@/config/version';
 import { logger } from '@/infrastructure/logging/logger';
 import { creerConnexion, fermerConnexion, verifierConnexion } from '@/infrastructure/persistence/connexion';
 import { creerConnexionRedis, fermerConnexionRedis, verifierConnexionRedis, obtenirStatsRedis } from '@/infrastructure/cache/connexionRedis';
@@ -25,6 +23,7 @@ import { routesSources } from './routes/sources';
 import { routesArticles } from './routes/articles';
 import { routesTags } from './routes/tags';
 import { routesCommunaute } from './routes/communaute';
+import { routesImages } from './routes/images';
 import { pluginAuthentification } from './middlewares/authentification';
 import { protectionCSRF } from './middlewares/csrf';
 
@@ -160,7 +159,7 @@ export async function creerServeur(): Promise<FastifyInstance> {
       info: {
         title: 'Veilleur API',
         description: 'API de l\'agrégateur d\'actualités Veilleur',
-        version: '0.1.0',
+        version: VERSION,
       },
       servers: [
         {
@@ -220,7 +219,7 @@ export async function creerServeur(): Promise<FastifyInstance> {
     return {
       statut: bddOk && cacheOk ? 'ok' : 'degraded',
       timestamp: new Date().toISOString(),
-      version: '0.1.0',
+      version: VERSION,
       services: {
         base_de_donnees: bddOk,
         cache: cacheOk,
@@ -239,7 +238,8 @@ export async function creerServeur(): Promise<FastifyInstance> {
   });
 
   // En production, servir les fichiers statiques du frontend
-  const clientDistPath = join(__dirname, '../../dist/client');
+  // Résolu depuis le répertoire de travail : valable en dev (tsx), en bundle (dist/serveur.js) et en Docker
+  const clientDistPath = resolve('dist/client');
   const indexHtmlPath = join(clientDistPath, 'index.html');
 
   if (!estDeveloppement() && existsSync(clientDistPath)) {
@@ -257,6 +257,14 @@ export async function creerServeur(): Promise<FastifyInstance> {
         return reply.status(404).send({
           erreur: 'ROUTE_NON_TROUVEE',
           message: `Route ${request.method} ${request.url} non trouvée`,
+        });
+      }
+
+      // Un asset absent est un vrai 404 (jamais l'index, que le proxy met en cache un an)
+      if (request.url.startsWith('/assets/')) {
+        return reply.status(404).send({
+          erreur: 'ASSET_NON_TROUVE',
+          message: `Asset ${request.url} non trouvé`,
         });
       }
 
@@ -279,7 +287,7 @@ export async function creerServeur(): Promise<FastifyInstance> {
       return {
         nom: 'Veilleur',
         description: 'Votre sentinelle de l\'information',
-        version: '0.1.0',
+        version: VERSION,
         documentation: '/api/v1/docs',
         mode: 'developpement',
         frontend: 'http://localhost:5173',
@@ -304,6 +312,9 @@ export async function creerServeur(): Promise<FastifyInstance> {
 
   // Routes de découverte communautaire
   await serveur.register(routesCommunaute, { prefix: '/api/v1/communaute' });
+
+  // Routes des images cachées (pas d'authentification requise pour les images)
+  await serveur.register(routesImages, { prefix: '/api/v1/images' });
 
   // Gestion des erreurs
   serveur.setErrorHandler((erreur, request, reply) => {
@@ -404,10 +415,3 @@ export async function demarrerServeur(): Promise<FastifyInstance> {
   return serveur;
 }
 
-// Point d'entrée si exécuté directement
-if (import.meta.url === `file://${process.argv[1]}`) {
-  demarrerServeur().catch(erreur => {
-    logger.error({ erreur }, 'Échec du démarrage');
-    process.exit(1);
-  });
-}

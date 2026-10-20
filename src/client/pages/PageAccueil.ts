@@ -7,6 +7,7 @@ import { creerElement, $, vider } from '../utils/dom';
 import { formatNombre } from '../utils/format';
 import { articles, estAuthentifie } from '../services/api';
 import { creerCarteArticle } from '../composants/CarteArticle';
+import { creerListeSkeletons } from '../composants/SkeletonArticle';
 import { toast } from '../utils/toast';
 import type { Article, Statistiques } from '../services/api';
 
@@ -54,6 +55,9 @@ export async function afficherPageAccueil(container: Element): Promise<void> {
     classes: ['fil-liste'],
     attrs: { id: 'fil-liste' },
   });
+
+  // Afficher skeletons au chargement initial
+  liste.appendChild(creerListeSkeletons(6));
 
   // Pagination
   const pagination = creerElement('div', {
@@ -180,7 +184,7 @@ async function chargerArticles(page = 1): Promise<void> {
       afficherArticles(liste, result.donnees);
       mettreAJourPagination();
     }
-  } catch (error) {
+  } catch {
     toast.erreur('Erreur lors du chargement des articles');
     if (page === 1) {
       vider(liste);

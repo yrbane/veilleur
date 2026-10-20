@@ -16,7 +16,7 @@ export function creerCarteArticle(article: Article): HTMLElement {
     attrs: { 'data-id': article.id },
   });
 
-  // Image
+  // Image avec fallback: URL cachée -> URL originale -> placeholder
   const imageContainer = creerElement('div', {
     classes: ['carte-article-image'],
   });
@@ -28,9 +28,19 @@ export function creerCarteArticle(article: Article): HTMLElement {
         alt: '',
         loading: 'lazy',
       },
-    });
+    }) as HTMLImageElement;
+
+    // Mécanisme de fallback en cascade
+    let fallbackTente = false;
     img.onerror = () => {
-      imageContainer.innerHTML = '<div class="carte-article-image-placeholder">📰</div>';
+      // Si on n'a pas encore tenté le fallback et qu'on a une URL originale
+      if (!fallbackTente && article.urlImageOriginale) {
+        fallbackTente = true;
+        img.src = article.urlImageOriginale;
+      } else {
+        // Fallback final: placeholder
+        imageContainer.innerHTML = '<div class="carte-article-image-placeholder">📰</div>';
+      }
     };
     imageContainer.append(img);
   } else {

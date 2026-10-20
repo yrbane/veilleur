@@ -13,8 +13,14 @@ export interface CriteresArticles {
   sourceId?: string;
   tag?: string;
   depuis?: Date;
+  // Recherche full-text
+  recherche?: string;
+  // Pagination offset (legacy)
   page?: number;
   limite?: number;
+  // Pagination curseur (nouvelle)
+  curseur?: string;
+  direction?: 'avant' | 'apres';
 }
 
 /**
@@ -22,11 +28,23 @@ export interface CriteresArticles {
  */
 export interface ResultatPagineArticles {
   donnees: ArticleAvecSource[];
-  pagination: {
+  // Pagination classique (offset)
+  pagination?: {
     page: number;
     limite: number;
     total: number;
     totalPages: number;
+  };
+  // Pagination par curseur
+  curseurs?: {
+    debut: string | null;
+    fin: string | null;
+    suivant: string | null;
+    precedent: string | null;
+  };
+  aPlus?: {
+    avant: boolean;
+    apres: boolean;
   };
 }
 

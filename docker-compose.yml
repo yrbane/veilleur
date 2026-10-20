@@ -13,7 +13,8 @@ services:
     container_name: veilleur-app
     restart: unless-stopped
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-8080}:8080"
+      - "5173:5173"
     volumes:
       # Code source monté pour hot reload
       - .:/app
@@ -33,7 +34,7 @@ services:
       # JWT
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production-32chars}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-refresh-secret-change-in-production32}
-      PORT: 3000
+      PORT: 8080
       SCRAPING_USER_AGENT: Veilleur/1.0 (+https://github.com/yrbane/veilleur)
       SCRAPING_RATE_LIMIT_MS: 5000
     depends_on:
@@ -44,7 +45,7 @@ services:
     networks:
       - veilleur-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/v1/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -128,7 +129,7 @@ services:
     container_name: veilleur-adminer
     restart: unless-stopped
     ports:
-      - "${ADMINER_PORT:-8080}:8080"
+      - "${ADMINER_PORT:-8082}:8080"
     environment:
       ADMINER_DEFAULT_SERVER: mariadb
       ADMINER_DESIGN: dracula

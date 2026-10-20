@@ -383,7 +383,7 @@ export function depuisEntrees<K extends string, V>(
  * Filtre les valeurs nullish d'un tableau
  */
 export function filtrerNullish<T>(arr: (T | null | undefined)[]): T[] {
-  return arr.filter((item): item is T => item != null);
+  return arr.filter((item): item is T => item !== null && item !== undefined);
 }
 
 /**

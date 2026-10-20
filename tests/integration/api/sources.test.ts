@@ -3,7 +3,10 @@
  * Tests simplifiés pour validation du routage Fastify
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
+
+/** Vérifie qu'une valeur est dans un intervalle fermé */
+const dansIntervalle = (valeur: number, min: number, max: number): boolean => valeur >= min && valeur <= max;
 
 // Ces tests vérifient les schémas de validation et la logique de routing
 // Les tests complets sont fait via E2E avec Playwright
@@ -43,8 +46,8 @@ describe('Routes Sources - Validation', () => {
     });
 
     it('devrait rejeter une note hors limites', () => {
-      expect(0 >= 1 && 0 <= 5).toBe(false);
-      expect(6 >= 1 && 6 <= 5).toBe(false);
+      expect(dansIntervalle(0, 1, 5)).toBe(false);
+      expect(dansIntervalle(6, 1, 5)).toBe(false);
     });
 
     it('devrait accepter null pour retirer une note', () => {
@@ -74,15 +77,15 @@ describe('Routes Sources - Validation', () => {
 
     it('devrait valider les limites des paramètres numériques', () => {
       // nombreMaxArticles: 1-100
-      expect(50 >= 1 && 50 <= 100).toBe(true);
-      expect(500 >= 1 && 500 <= 100).toBe(false);
+      expect(dansIntervalle(50, 1, 100)).toBe(true);
+      expect(dansIntervalle(500, 1, 100)).toBe(false);
 
       // frequenceMinutes: 5-1440
-      expect(60 >= 5 && 60 <= 1440).toBe(true);
-      expect(3 >= 5 && 3 <= 1440).toBe(false);
+      expect(dansIntervalle(60, 5, 1440)).toBe(true);
+      expect(dansIntervalle(3, 5, 1440)).toBe(false);
 
       // retentionJours: 1-365
-      expect(30 >= 1 && 30 <= 365).toBe(true);
+      expect(dansIntervalle(30, 1, 365)).toBe(true);
     });
   });
 });

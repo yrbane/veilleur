@@ -10,8 +10,6 @@ import {
   inscrireUtilisateur,
   ajouterSource,
   SOURCES_TEST,
-  genererEmailTest,
-  MOT_DE_PASSE_TEST,
 } from './helpers';
 
 test.describe('US1 - Ajouter une source', () => {
