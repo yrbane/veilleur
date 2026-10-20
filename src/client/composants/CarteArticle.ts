@@ -5,6 +5,7 @@
 
 import { creerElement } from '../utils/dom';
 import { icone, iconeHtml } from '../utils/icones';
+import { urlFaviconLocale } from '../utils/favicons';
 import { formatDateRelative, echapperHtml } from '../utils/format';
 import { articles as apiArticles } from '../services/api';
 import { toast } from '../utils/toast';
@@ -166,14 +167,13 @@ export function creerCarteArticle(article: Article, options: OptionsCarteArticle
     classes: ['carte-article-source'],
   });
 
-  if (article.source.urlFavicon) {
+  const urlFavicon = urlFaviconLocale({ id: article.sourceId, urlFavicon: article.source.urlFavicon });
+  if (urlFavicon) {
     const favicon = creerElement('img', {
       classes: ['carte-article-source-favicon'],
-      attrs: {
-        src: article.source.urlFavicon,
-        alt: '',
-      },
-    });
+      attrs: { src: urlFavicon, alt: '', loading: 'lazy' },
+    }) as HTMLImageElement;
+    favicon.onerror = () => favicon.remove();
     source.append(favicon);
   }
 

@@ -7,6 +7,21 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import compression from 'vite-plugin-compression';
 import { readFileSync } from 'fs';
+import type { AcceptedPlugin } from 'postcss';
+
+/**
+ * Lunar Aurora déclare « Material Symbols Outlined » depuis fonts.gstatic.com : Veilleur
+ * héberge sa propre police d'icônes et sa CSP interdit les polices tierces, on retire la
+ * déclaration après l'inlining des @import pour éviter une requête bloquée à chaque chargement.
+ */
+const sansPoliceGoogle: AcceptedPlugin = {
+  postcssPlugin: 'veilleur-sans-police-google',
+  AtRule: {
+    'font-face': (regle) => {
+      if (regle.toString().includes('fonts.gstatic.com')) regle.remove();
+    },
+  },
+};
 
 const { version } = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8')) as { version: string };
 
@@ -78,6 +93,7 @@ export default defineConfig({
   },
   css: {
     devSourcemap: true,
+    postcss: { plugins: [sansPoliceGoogle] },
   },
   // Optimisations pour la production
   esbuild: {

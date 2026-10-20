@@ -24,6 +24,7 @@ import { routesArticles } from './routes/articles';
 import { routesTags } from './routes/tags';
 import { routesCommunaute } from './routes/communaute';
 import { routesImages } from './routes/images';
+import { routesFavicons } from './routes/favicons';
 import { pluginAuthentification } from './middlewares/authentification';
 import { protectionCSRF } from './middlewares/csrf';
 
@@ -315,6 +316,9 @@ export async function creerServeur(): Promise<FastifyInstance> {
 
   // Routes des images cachées (pas d'authentification requise pour les images)
   await serveur.register(routesImages, { prefix: '/api/v1/images' });
+
+  // Favicons des sources servis depuis le cache local (publics, comme les images)
+  await serveur.register(routesFavicons, { prefix: '/api/v1/favicons' });
 
   // Gestion des erreurs
   serveur.setErrorHandler((erreur, request, reply) => {

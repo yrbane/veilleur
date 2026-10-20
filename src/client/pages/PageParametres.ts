@@ -3,8 +3,9 @@
  * Gestion du profil et des préférences utilisateur
  */
 
-import { appliquerTheme } from '../utils/theme';
+import { appliquerTheme, type Theme } from '../utils/theme';
 import { iconeHtml } from '../utils/icones';
+import { ajouterBasculeMotDePasse } from '../utils/formulaires';
 import { creerElement, $, vider } from '../utils/dom';
 import { auth, estAuthentifie } from '../services/api';
 import { toast } from '../utils/toast';
@@ -181,6 +182,12 @@ function creerSectionPreferences(): HTMLElement {
 
   const preferences = utilisateurCourant?.preferences ?? {};
 
+  // Le bouton de thème de l'en-tête et ce sélecteur restent d'accord
+  document.addEventListener('veilleur:theme', (e) => {
+    const select = form.querySelector<HTMLSelectElement>('#pref-theme');
+    if (select) select.value = (e as CustomEvent<Theme>).detail;
+  });
+
   form.innerHTML = `
     <div class="la-form-group">
       <label for="pref-theme">Thème</label>
@@ -293,6 +300,7 @@ function creerSectionMotDePasse(): HTMLElement {
 
     <button type="submit" class="la-btn secondary">Changer le mot de passe</button>
   `;
+  ajouterBasculeMotDePasse(form);
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();

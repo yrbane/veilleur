@@ -75,7 +75,8 @@ body {
   color: var(--couleur-primaire);
 }
 
-.nav-actions {
+.nav-actions,
+.nav-auth {
   display: flex;
   align-items: center;
   gap: var(--espace-2);
@@ -156,7 +157,6 @@ p a {
   margin: -0.2em 0;
 }
 
-.nav-lien > .icone,
 .la-chip > .icone {
   margin-right: var(--espace-1);
 }
@@ -241,5 +241,88 @@ a.lien:hover {
 
   .contenu-principal {
     padding: var(--espace-4) var(--espace-3);
+  }
+}
+
+/* ============================================
+   Confort : bouton de thème, retour en haut, mots de passe, navigation compacte
+   ============================================ */
+
+.btn-haut {
+  position: fixed;
+  left: var(--espace-4);
+  bottom: var(--espace-4);
+  z-index: var(--z-sticky);
+  border-radius: var(--rayon-full);
+  box-shadow: var(--ombre-lg);
+  transition: opacity var(--transition-normale), transform var(--transition-normale);
+}
+
+.btn-haut.masque {
+  display: inline-flex;
+  opacity: 0;
+  transform: translateY(1rem);
+  pointer-events: none;
+}
+
+.champ-mdp {
+  position: relative;
+  display: flex;
+}
+
+.champ-mdp .la-input {
+  flex: 1;
+  padding-right: 2.75rem;
+}
+
+.btn-visibilite {
+  position: absolute;
+  right: var(--espace-2);
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  padding: var(--espace-1);
+  border: none;
+  border-radius: var(--rayon-full);
+  background: none;
+  color: var(--couleur-texte-muted);
+  cursor: pointer;
+}
+
+.btn-visibilite:hover,
+.btn-visibilite:focus-visible {
+  color: var(--couleur-primaire);
+  background-color: var(--couleur-fond-hover);
+}
+
+.nav-libelle {
+  margin-left: var(--espace-1);
+}
+
+@media (max-width: 640px) {
+  /* Navigation en icônes seules : les libellés restent lus par les lecteurs d'écran */
+  .nav-libelle {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .nav-lien,
+  .nav-actions .la-btn {
+    padding-inline: var(--espace-3);
+  }
+
+  .nav-lien > .icone,
+  .nav-actions .la-btn > .icone {
+    font-size: 1.5em;
+    margin: 0;
+  }
+
+  .nav-liens {
+    gap: var(--espace-2);
   }
 }
