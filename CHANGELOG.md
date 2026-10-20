@@ -4,6 +4,16 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.7.1 — 2026-10-20 · « Icônes servies par Veilleur »
+
+### Corrigé
+- Les icônes s'affichaient par leur nom (« star », « settings »…) en production :
+  Lunar Aurora déclare aussi « Material Symbols Outlined » depuis
+  fonts.gstatic.com, que la CSP (`font-src 'self'`) bloque, et le navigateur ne
+  retombait pas sur la police locale. La police auto-hébergée est désormais
+  déclarée sous le nom « Material Symbols Veilleur » et portée par la seule
+  classe `.icone`.
+
 ## 0.7.0 — 2026-10-20 · « Interface Lunar Aurora et icônes Material »
 
 ### Ajouté
