@@ -4,6 +4,12 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.8.1 — 2026-10-20 · « Fichier de verrou resynchronisé »
+
+### Corrigé
+- `package-lock.json` était désynchronisé après l'ajout de jsdom (`iconv-lite`),
+  ce qui faisait échouer `npm ci` en CI et bloquait le déploiement de la 0.8.0.
+
 ## 0.8.0 — 2026-10-20 · « Favicons en cache, thème en un clic »
 
 ### Ajouté
