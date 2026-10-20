@@ -302,23 +302,23 @@ export const utilisateursArticles = mysqlTable(
 );
 
 /**
- * Table de liaison utilisateur-article-tag (classement personnel des articles)
+ * Table des mots-clés extraits automatiquement des articles (classement sans intervention)
  */
-export const utilisateursArticlesTags = mysqlTable(
-  'utilisateurs_articles_tags',
+export const articlesMotsCles = mysqlTable(
+  'articles_mots_cles',
   {
     id: varchar('id', { length: 36 })
       .primaryKey()
       .$defaultFn(() => createId()),
-    utilisateurId: varchar('utilisateur_id', { length: 36 }).notNull(),
     articleId: varchar('article_id', { length: 36 }).notNull(),
-    tagId: varchar('tag_id', { length: 36 }).notNull(),
-    dateCreation: timestamp('date_creation').notNull().defaultNow(),
+    mot: varchar('mot', { length: 50 }).notNull(),
+    // Rang d'importance (0 = le plus significatif)
+    position: tinyint('position').notNull().default(0),
   },
   table => ({
-    idxUnique: uniqueIndex('idx_uat_unique').on(table.utilisateurId, table.articleId, table.tagId),
-    idxUtilisateurTag: index('idx_uat_utilisateur_tag').on(table.utilisateurId, table.tagId),
-    idxArticle: index('idx_uat_article').on(table.articleId),
+    idxUnique: uniqueIndex('idx_article_mot_unique').on(table.articleId, table.mot),
+    idxMot: index('idx_article_mot_mot').on(table.mot),
+    idxArticle: index('idx_article_mot_article').on(table.articleId),
   }),
 );
 

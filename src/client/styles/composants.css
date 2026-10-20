@@ -904,14 +904,29 @@
   color: #e0245e;
 }
 
-.carte-article-tags {
+.carte-article-mots-cles {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--espace-2);
-  margin-top: var(--espace-2);
+  gap: var(--espace-1);
+  margin: var(--espace-2) 0 0;
+  padding: 0;
+  list-style: none;
 }
 
-.carte-article-tags .form-ajout-tag input {
-  width: 7rem;
+.badge-mot-cle {
+  padding: 2px var(--espace-2);
+  font-size: var(--taille-xs);
+  font-family: var(--police-sans);
+  color: var(--couleur-primaire);
+  background-color: var(--couleur-primaire-light);
+  border: 1px solid transparent;
+  border-radius: var(--rayon-full);
+  cursor: pointer;
+  transition: all var(--transition-rapide);
+}
+
+.badge-mot-cle:hover {
+  border-color: var(--couleur-primaire);
+  background-color: var(--couleur-primaire);
+  color: white;
 }

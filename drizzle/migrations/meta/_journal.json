@@ -43,6 +43,13 @@
       "when": 1792527041175,
       "tag": "0005_annotations_articles",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1792528346363,
+      "tag": "0006_mots_cles_articles",
+      "breakpoints": true
     }
   ]
 }

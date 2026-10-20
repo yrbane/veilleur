@@ -4,7 +4,26 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
-## 0.4.1 — 2026-10-20 · « Le fil reflète immédiatement les sources ajoutées »
+## 0.5.0 — 2026-10-20 · « Classement automatique par mots-clés »
+
+### Modifié
+- **Le classement des articles ne dépend plus de l'utilisateur** : à chaque
+  synchronisation, Veilleur extrait les cinq mots-clés les plus significatifs
+  du titre et du résumé (titre pondéré, noms propres favorisés, mots vides
+  français et anglais écartés, pluriels regroupés, sans modèle externe).
+  Ils s'affichent sur chaque carte et un clic filtre le fil dessus ; les
+  quinze mots-clés les plus fréquents du fil servent de filtres en haut de
+  page (`GET /api/v1/articles/mots-cles`, paramètre `motCle` du fil).
+- Les tags manuels d'articles introduits en 0.4.0 sont retirés (routes
+  `PUT /api/v1/articles/:id/tags` et `GET /api/v1/articles/tags`, table
+  `utilisateurs_articles_tags` supprimée par la migration
+  `0006_mots_cles_articles`). Les tags de sources sont inchangés.
+
+### Ajouté
+- `npm run mots-cles:rattraper:prod` (`dist/rattraper-mots-cles.js`) : extrait
+  les mots-clés des articles déjà en base.
+
+ · « Le fil reflète immédiatement les sources ajoutées »
 
 ### Corrigé
 - Après l'ajout, le retrait ou la mise en pause d'une source, le fil restait

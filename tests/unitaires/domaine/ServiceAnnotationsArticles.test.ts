@@ -1,5 +1,5 @@
 /**
- * Veilleur - Tests du service d'annotations d'articles (note et tags par utilisateur)
+ * Veilleur - Tests du service d'annotations d'articles (note et favori par utilisateur)
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -9,26 +9,17 @@ describe('ServiceAnnotationsArticles', () => {
   const depotAnnotations = {
     noter: vi.fn(),
     definirFavori: vi.fn(),
-    definirTags: vi.fn(),
     obtenirAnnotations: vi.fn(),
-    listerTagsUtilises: vi.fn(),
   };
   const depotArticles = { trouverParId: vi.fn() };
-  const depotTags = { trouverOuCreer: vi.fn() };
   const serviceCache = { supprimerPattern: vi.fn() };
 
   const creerService = () =>
-    new ServiceAnnotationsArticles(depotAnnotations, depotArticles, depotTags, serviceCache as never);
+    new ServiceAnnotationsArticles(depotAnnotations, depotArticles, serviceCache as never);
 
   beforeEach(() => {
     vi.clearAllMocks();
     depotArticles.trouverParId.mockResolvedValue({ id: 'art-1', titre: 'Un article' });
-    depotTags.trouverOuCreer.mockImplementation(async (nom: string) => ({
-      id: `tag-${nom.toLowerCase()}`,
-      nom,
-      slug: nom.toLowerCase(),
-      dateCreation: new Date(),
-    }));
     serviceCache.supprimerPattern.mockResolvedValue(0);
   });
 
@@ -77,40 +68,6 @@ describe('ServiceAnnotationsArticles', () => {
     });
   });
 
-  describe('definirTags', () => {
-    it('crée ou retrouve chaque tag, dédoublonne et remplace la liste', async () => {
-      const tags = await creerService().definirTags('user-1', 'art-1', [' Écologie ', 'ecologie', 'Politique', '']);
-
-      expect(tags.map(t => t.nom)).toEqual(['Écologie', 'Politique']);
-      expect(depotTags.trouverOuCreer).toHaveBeenCalledTimes(2);
-      expect(depotAnnotations.definirTags).toHaveBeenCalledWith('user-1', 'art-1', ['tag-écologie', 'tag-politique']);
-      expect(serviceCache.supprimerPattern).toHaveBeenCalled();
-    });
-
-    it('accepte une liste vide pour tout retirer', async () => {
-      const tags = await creerService().definirTags('user-1', 'art-1', []);
-
-      expect(tags).toEqual([]);
-      expect(depotAnnotations.definirTags).toHaveBeenCalledWith('user-1', 'art-1', []);
-    });
-
-    it('refuse plus de 10 tags', async () => {
-      const noms = Array.from({ length: 11 }, (_, i) => `tag${i}`);
-
-      await expect(creerService().definirTags('user-1', 'art-1', noms)).rejects.toMatchObject({ code: 'TROP_DE_TAGS' });
-    });
-
-    it('refuse un tag trop long', async () => {
-      await expect(creerService().definirTags('user-1', 'art-1', ['x'.repeat(51)])).rejects.toMatchObject({ code: 'TAG_INVALIDE' });
-    });
-
-    it('refuse un article inconnu', async () => {
-      depotArticles.trouverParId.mockResolvedValue(null);
-
-      await expect(creerService().definirTags('user-1', 'inconnu', ['a'])).rejects.toMatchObject({ code: 'ARTICLE_INTROUVABLE' });
-    });
-  });
-
   describe('obtenirAnnotations', () => {
     it('ne consulte pas la base pour une liste vide', async () => {
       const annotations = await creerService().obtenirAnnotations('user-1', []);
@@ -120,7 +77,7 @@ describe('ServiceAnnotationsArticles', () => {
     });
 
     it('délègue au dépôt sinon', async () => {
-      const attendu = new Map([['art-1', { note: 3, favori: false, tags: [] }]]);
+      const attendu = new Map([['art-1', { note: 3, favori: false }]]);
       depotAnnotations.obtenirAnnotations.mockResolvedValue(attendu);
 
       expect(await creerService().obtenirAnnotations('user-1', ['art-1'])).toBe(attendu);

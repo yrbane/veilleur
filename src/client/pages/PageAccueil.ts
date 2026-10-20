@@ -1,6 +1,6 @@
 /**
  * Veilleur - Page Accueil
- * Fil d'actualités de l'utilisateur : recherche, tri, filtres (note, favoris, tags)
+ * Fil d'actualités de l'utilisateur : recherche, tri, filtres (note, favoris, mots-clés)
  * et chargement au défilement
  */
 
@@ -10,7 +10,7 @@ import { articles, estAuthentifie } from '../services/api';
 import { creerCarteArticle } from '../composants/CarteArticle';
 import { creerListeSkeletons } from '../composants/SkeletonArticle';
 import { toast } from '../utils/toast';
-import type { Article, OptionsFil, Statistiques, TagArticle, TriFil } from '../services/api';
+import type { Article, MotCleFil, OptionsFil, Statistiques, TriFil } from '../services/api';
 
 const TAILLE_PAGE = 20;
 const CLE_FILTRES = 'veilleur.fil.filtres';
@@ -35,7 +35,7 @@ interface FiltresFil {
   ordre: 'asc' | 'desc';
   noteMin?: number;
   favoris: boolean;
-  tagArticle?: string;
+  motCle?: string;
 }
 
 const FILTRES_DEFAUT: FiltresFil = { recherche: '', tri: 'date', ordre: 'desc', favoris: false };
@@ -88,7 +88,7 @@ export async function afficherPageAccueil(container: Element): Promise<void> {
   observerDefilement(sentinelle);
 
   // Charger les données
-  await Promise.all([chargerStatistiques(), chargerTagsFiltre(), chargerArticles(1)]);
+  await Promise.all([chargerStatistiques(), chargerMotsClesFiltre(), chargerArticles(1)]);
 }
 
 /**
@@ -181,51 +181,68 @@ function creerBarreOutils(): HTMLElement {
     },
   });
 
-  // Tags d'articles (remplis après chargement)
-  const tagsFiltre = creerElement('div', { classes: ['fil-outils-tags'], attrs: { id: 'fil-tags' } });
+  // Mots-clés du fil (remplis après chargement)
+  const motsClesFiltre = creerElement('div', {
+    classes: ['fil-outils-tags'],
+    attrs: { id: 'fil-mots-cles', 'aria-label': 'Filtrer par mot-clé' },
+  });
 
-  barre.append(labelTri, selectTri, labelNote, selectNote, btnFavoris, tagsFiltre);
+  barre.append(labelTri, selectTri, labelNote, selectNote, btnFavoris, motsClesFiltre);
   return barre;
 }
 
 /**
- * Charge les tags posés sur les articles et les affiche comme filtres
+ * Charge les mots-clés les plus fréquents du fil et les affiche comme filtres
  */
-async function chargerTagsFiltre(): Promise<void> {
-  const conteneur = $('#fil-tags');
+async function chargerMotsClesFiltre(): Promise<void> {
+  const conteneur = $('#fil-mots-cles');
   if (!conteneur) return;
 
   try {
-    const { donnees } = await articles.listerTags();
-    afficherTagsFiltre(conteneur, donnees);
+    const { donnees } = await articles.listerMotsCles(15);
+    afficherMotsClesFiltre(conteneur, donnees);
   } catch {
-    // Les tags ne sont pas critiques
+    // Les mots-clés ne sont pas critiques
   }
 }
 
-function afficherTagsFiltre(conteneur: Element, tags: TagArticle[]): void {
+function afficherMotsClesFiltre(conteneur: Element, motsCles: MotCleFil[]): void {
   vider(conteneur);
-  if (filtres.tagArticle && !tags.some(t => t.slug === filtres.tagArticle)) {
-    filtres.tagArticle = undefined;
-    sauvegarderFiltres();
-  }
-  for (const tag of tags) {
+  // Le mot-clé filtré vient peut-être d'une carte et n'est pas dans les plus fréquents : on l'affiche quand même
+  const liste = filtres.motCle && !motsCles.some(m => m.mot === filtres.motCle)
+    ? [{ mot: filtres.motCle, nombreArticles: 0 }, ...motsCles]
+    : motsCles;
+  for (const { mot, nombreArticles } of liste) {
     const chip = creerElement('button', {
-      classes: ['chip-filtre', filtres.tagArticle === tag.slug ? 'active' : ''],
-      attrs: { type: 'button', 'data-tag': tag.slug, 'aria-pressed': String(filtres.tagArticle === tag.slug) },
-      texte: `${tag.nom} (${tag.nombreArticles})`,
-      onClick: () => {
-        filtres.tagArticle = filtres.tagArticle === tag.slug ? undefined : tag.slug;
-        conteneur.querySelectorAll('.chip-filtre').forEach(c => {
-          const actif = c.getAttribute('data-tag') === filtres.tagArticle;
-          c.classList.toggle('active', actif);
-          c.setAttribute('aria-pressed', String(actif));
-        });
-        appliquerFiltres();
-      },
+      classes: ['chip-filtre', filtres.motCle === mot ? 'active' : ''],
+      attrs: { type: 'button', 'data-mot': mot, 'aria-pressed': String(filtres.motCle === mot) },
+      texte: nombreArticles ? `${mot} (${nombreArticles})` : mot,
+      onClick: () => filtrerParMotCle(filtres.motCle === mot ? undefined : mot),
     });
     conteneur.append(chip);
   }
+}
+
+/**
+ * Active (ou retire) le filtre par mot-clé, depuis un bouton de la barre ou depuis une carte
+ */
+function filtrerParMotCle(mot: string | undefined): void {
+  filtres.motCle = mot;
+  const conteneur = $('#fil-mots-cles');
+  if (conteneur) {
+    const present = [...conteneur.querySelectorAll('.chip-filtre')].some(c => c.getAttribute('data-mot') === mot);
+    if (mot && !present) {
+      void chargerMotsClesFiltre();
+    } else {
+      conteneur.querySelectorAll('.chip-filtre').forEach(c => {
+        const actif = c.getAttribute('data-mot') === mot;
+        c.classList.toggle('active', actif);
+        c.setAttribute('aria-pressed', String(actif));
+      });
+    }
+  }
+  appliquerFiltres();
+  if (mot) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 /**
@@ -250,7 +267,7 @@ function chargerFiltres(): FiltresFil {
 function sauvegarderFiltres(): void {
   try {
     // La recherche n'est pas mémorisée : on revient toujours sur le fil complet
-    const persistants = { tri: filtres.tri, ordre: filtres.ordre, noteMin: filtres.noteMin, favoris: filtres.favoris, tagArticle: filtres.tagArticle };
+    const persistants = { tri: filtres.tri, ordre: filtres.ordre, noteMin: filtres.noteMin, favoris: filtres.favoris, motCle: filtres.motCle };
     localStorage.setItem(CLE_FILTRES, JSON.stringify(persistants));
   } catch {
     // Stockage indisponible : les filtres ne survivent pas au rechargement, sans gravité
@@ -369,7 +386,7 @@ async function chargerArticles(page: number): Promise<void> {
     ordre: filtres.ordre,
     noteMin: filtres.noteMin,
     favoris: filtres.favoris,
-    tagArticle: filtres.tagArticle,
+    motCle: filtres.motCle,
   };
 
   try {
@@ -418,8 +435,7 @@ async function chargerArticles(page: number): Promise<void> {
 function afficherArticles(container: Element, articlesData: Article[]): void {
   for (const article of articlesData) {
     const carte = creerCarteArticle(article, {
-      // Un tag ajouté ou retiré change la liste des filtres disponibles
-      onAnnotation: () => void chargerTagsFiltre(),
+      onMotCle: mot => filtrerParMotCle(mot),
     });
     container.append(carte);
   }
@@ -429,7 +445,7 @@ function afficherArticles(container: Element, articlesData: Article[]): void {
  * Affiche un message quand il n'y a pas d'articles
  */
 function afficherMessageVide(container: Element): void {
-  const filtresActifs = filtres.recherche || filtres.noteMin || filtres.favoris || filtres.tagArticle;
+  const filtresActifs = filtres.recherche || filtres.noteMin || filtres.favoris || filtres.motCle;
   if (filtresActifs) {
     container.innerHTML = `
       <div class="message-vide">

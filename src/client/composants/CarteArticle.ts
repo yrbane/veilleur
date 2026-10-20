@@ -7,13 +7,16 @@ import { creerElement } from '../utils/dom';
 import { formatDateRelative, echapperHtml } from '../utils/format';
 import { articles as apiArticles } from '../services/api';
 import { toast } from '../utils/toast';
-import type { Article, Tag } from '../services/api';
+import type { Article } from '../services/api';
 
 /**
- * Callbacks de la carte (le fil les utilise pour rafraîchir ses filtres)
+ * Callbacks de la carte
  */
 export interface OptionsCarteArticle {
+  /** Note ou favori modifié */
   onAnnotation?: (article: Article) => void;
+  /** Clic sur un mot-clé : le fil filtre dessus */
+  onMotCle?: (mot: string) => void;
 }
 
 /**
@@ -89,72 +92,26 @@ function creerBoutonFavori(article: Article, options: OptionsCarteArticle): HTML
 }
 
 /**
- * Tags de classement : badges retirables + champ d'ajout
+ * Mots-clés extraits automatiquement : classement de l'article, cliquables pour filtrer le fil
  */
-function creerTagsArticle(article: Article, options: OptionsCarteArticle): HTMLElement {
-  const conteneur = creerElement('div', { classes: ['carte-article-tags'] });
-  const liste = creerElement('div', { classes: ['liste-tags'] });
-
-  const enregistrer = async (noms: string[]): Promise<void> => {
-    const { tags } = await apiArticles.definirTags(article.id, noms);
-    article.tags = tags;
-    afficher(tags);
-    options.onAnnotation?.(article);
-  };
-
-  const afficher = (tags: Tag[]) => {
-    liste.innerHTML = '';
-    for (const tag of tags) {
-      const badge = creerElement('span', { classes: ['badge-tag'], attrs: { 'data-tag-id': tag.id } });
-      const nom = creerElement('span', { texte: tag.nom });
-      const retirer = creerElement('button', {
-        classes: ['btn-retirer-tag'],
-        attrs: { type: 'button', 'aria-label': `Retirer le tag ${tag.nom}`, title: 'Retirer ce tag' },
-        texte: '×',
-        onClick: async e => {
-          e.stopPropagation();
-          try {
-            await enregistrer((article.tags ?? []).filter(t => t.id !== tag.id).map(t => t.nom));
-            toast.succes(`Tag "${tag.nom}" retiré`);
-          } catch {
-            toast.erreur('Erreur lors du retrait du tag');
-          }
-        },
-      });
-      badge.append(nom, retirer);
-      liste.append(badge);
-    }
-  };
-  afficher(article.tags ?? []);
-
-  const formulaire = creerElement('div', { classes: ['form-ajout-tag'] });
-  const champ = creerElement('input', {
-    attrs: { type: 'text', placeholder: 'Classer…', maxlength: '50', 'aria-label': 'Ajouter un tag à cet article' },
-  }) as HTMLInputElement;
-  const ajouter = creerElement('button', {
-    classes: ['btn', 'btn-sm'],
-    attrs: { type: 'button', 'aria-label': 'Ajouter le tag' },
-    texte: '+',
-    onClick: async () => {
-      const nom = champ.value.trim();
-      if (!nom) return;
-      try {
-        await enregistrer([...(article.tags ?? []).map(t => t.nom), nom]);
-        champ.value = '';
-        toast.succes(`Tag "${nom}" ajouté`);
-      } catch (erreur) {
-        toast.erreur(erreur instanceof Error ? erreur.message : 'Erreur lors de l\'ajout du tag');
-      }
-    },
+function creerMotsClesArticle(article: Article, options: OptionsCarteArticle): HTMLElement | null {
+  const mots = article.motsCles ?? [];
+  if (mots.length === 0) return null;
+  const conteneur = creerElement('ul', {
+    classes: ['carte-article-mots-cles'],
+    attrs: { 'aria-label': 'Mots-clés de l\'article' },
   });
-  champ.addEventListener('keypress', e => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      ajouter.click();
-    }
-  });
-  formulaire.append(champ, ajouter);
-  conteneur.append(liste, formulaire);
+  for (const mot of mots) {
+    const item = creerElement('li');
+    const bouton = creerElement('button', {
+      classes: ['badge-mot-cle'],
+      attrs: { type: 'button', 'data-mot': mot, title: `Voir les articles « ${mot} »` },
+      texte: mot,
+      onClick: () => options.onMotCle?.(mot),
+    });
+    item.append(bouton);
+    conteneur.append(item);
+  }
   return conteneur;
 }
 
@@ -267,7 +224,9 @@ export function creerCarteArticle(article: Article, options: OptionsCarteArticle
   // Assemblage
   contenu.append(source, titre);
   if (resume) contenu.append(resume);
-  contenu.append(meta, annotations, creerTagsArticle(article, options));
+  contenu.append(meta, annotations);
+  const motsCles = creerMotsClesArticle(article, options);
+  if (motsCles) contenu.append(motsCles);
 
   carte.append(imageContainer, contenu);
 

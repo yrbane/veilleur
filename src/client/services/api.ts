@@ -263,7 +263,8 @@ export interface Article {
   };
   note?: number | null;
   favori?: boolean;
-  tags?: Tag[];
+  // Classement automatique : mots-clés extraits de l'article
+  motsCles?: string[];
 }
 
 /**
@@ -279,11 +280,12 @@ export interface OptionsFil {
   tri?: TriFil;
   ordre?: 'asc' | 'desc';
   noteMin?: number;
-  tagArticle?: string;
+  motCle?: string;
   favoris?: boolean;
 }
 
-export interface TagArticle extends Tag {
+export interface MotCleFil {
+  mot: string;
   nombreArticles: number;
 }
 
@@ -513,7 +515,7 @@ export const articles = {
     if (options.tri) params.set('tri', options.tri);
     if (options.ordre) params.set('ordre', options.ordre);
     if (options.noteMin) params.set('noteMin', String(options.noteMin));
-    if (options.tagArticle) params.set('tagArticle', options.tagArticle);
+    if (options.motCle) params.set('motCle', options.motCle);
     if (options.favoris) params.set('favoris', 'true');
 
     return requete<ResultatPagine<Article>>(`/articles/fil?${params.toString()}`);
@@ -527,12 +529,8 @@ export const articles = {
     return requete(`/articles/${id}/favori`, { method: 'PUT', body: JSON.stringify({ favori }) });
   },
 
-  async definirTags(id: string, tags: string[]): Promise<{ tags: Tag[] }> {
-    return requete(`/articles/${id}/tags`, { method: 'PUT', body: JSON.stringify({ tags }) });
-  },
-
-  async listerTags(): Promise<{ donnees: TagArticle[] }> {
-    return requete('/articles/tags');
+  async listerMotsCles(limite = 20): Promise<{ donnees: MotCleFil[] }> {
+    return requete(`/articles/mots-cles?limite=${limite}`);
   },
 
   async obtenir(id: string): Promise<Article> {

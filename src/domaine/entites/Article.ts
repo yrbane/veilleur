@@ -4,7 +4,6 @@
  */
 
 import { z } from 'zod';
-import type { Tag } from './Tag';
 
 /**
  * Schéma des métadonnées Open Graph
@@ -49,6 +48,8 @@ export const schemaArticle = z.object({
   metaTwitter: schemaMetaTwitter.default({}),
   hashContenu: z.string().length(32).nullable(),
   dateExtraction: z.date(),
+  // Mots-clés extraits automatiquement (classement sans intervention de l'utilisateur)
+  motsCles: z.array(z.string().max(50)).optional(),
 });
 
 export type Article = z.infer<typeof schemaArticle>;
@@ -168,12 +169,12 @@ export function estNoteValide(note: unknown): note is number {
 export interface AnnotationArticle {
   note: number | null;
   favori: boolean;
-  tags: Tag[];
 }
 
 /**
- * Tag utilisé sur les articles d'un utilisateur, avec le nombre d'articles classés dessous
+ * Mot-clé présent dans le fil d'un utilisateur, avec le nombre d'articles qui le portent
  */
-export interface TagArticlesUtilise extends Tag {
+export interface MotCleFil {
+  mot: string;
   nombreArticles: number;
 }
