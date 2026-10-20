@@ -64,6 +64,8 @@ export async function routesImages(fastify: FastifyInstance): Promise<void> {
   fastify.get<{
     Params: { hash: string; taille?: string };
   }>('/:hash/:taille?', {
+    // Une page du fil charge des dizaines d'images : hors quota, elles restent servies depuis le cache local
+    config: { rateLimit: false },
     schema: {
       tags: ['Images'],
       summary: 'Récupère une image cachée',

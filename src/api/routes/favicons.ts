@@ -32,6 +32,7 @@ export async function routesFavicons(fastify: FastifyInstance): Promise<void> {
   fastify.get<{ Params: { sourceId: string } }>(
     '/:sourceId',
     {
+      config: { rateLimit: false },
       schema: {
         description: 'Favicon d\'une source, mis en cache par le serveur',
         tags: ['sources'],

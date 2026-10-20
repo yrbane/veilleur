@@ -75,6 +75,27 @@ describe('ServiceLecture', () => {
     expect(contenu!.contenuHtml).not.toContain('http.jpg');
   });
 
+  it('fait passer les images par le résolveur fourni et retire celles qu\'il refuse', async () => {
+    const { fetchImpl } = simulerReseau({ 'https://journal.fr/gare': { corps: PAGE } });
+    const resoudreImage = vi.fn(async (url: string) => (url.endsWith('gare.jpg') ? '/api/v1/images/abc/md' : null));
+
+    const contenu = await new ServiceLecture({ fetchImpl, seuilCaracteres: 50, resoudreImage }).extraire('art-1', 'https://journal.fr/gare');
+
+    expect(resoudreImage).toHaveBeenCalledWith('https://journal.fr/img/gare.jpg');
+    expect(contenu!.contenuHtml).toContain('<img src="/api/v1/images/abc/md" alt="La gare" loading="lazy">');
+    expect(contenu!.contenuHtml).not.toContain('journal.fr/img/');
+  });
+
+  it('retire l\'image quand le résolveur échoue', async () => {
+    const { fetchImpl } = simulerReseau({ 'https://journal.fr/gare': { corps: PAGE } });
+    const resoudreImage = vi.fn(async () => { throw new Error('file indisponible'); });
+
+    const contenu = await new ServiceLecture({ fetchImpl, seuilCaracteres: 50, resoudreImage }).extraire('art-1', 'https://journal.fr/gare');
+
+    expect(contenu!.contenuHtml).not.toContain('<img');
+    expect(contenu!.contenuHtml).toContain('rénovation complète');
+  });
+
   it('refuse une URL bloquée par la validation anti-SSRF sans appel réseau', async () => {
     const { fetchImpl, appels } = simulerReseau({});
 

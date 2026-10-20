@@ -10,6 +10,27 @@ import { icone } from '../utils/icones';
 import { formatDate } from '../utils/format';
 
 const CLASSE_CORPS = 'modal-ouverte';
+const TENTATIVES_IMAGE = 3;
+const DELAI_IMAGE_MS = 2500;
+
+/**
+ * Les images passent par le cache local, rempli en arrière-plan : une image encore absente
+ * répond 404 quelques secondes. On la redemande jusqu'à trois fois avant de la retirer.
+ */
+export function surveillerImages(conteneur: HTMLElement): void {
+  for (const image of Array.from(conteneur.querySelectorAll('img'))) {
+    const source = image.getAttribute('src') ?? '';
+    let tentative = 0;
+    image.addEventListener('error', () => {
+      tentative += 1;
+      if (tentative > TENTATIVES_IMAGE) {
+        image.remove();
+        return;
+      }
+      setTimeout(() => image.setAttribute('src', `${source}?tentative=${tentative}`), DELAI_IMAGE_MS * tentative);
+    });
+  }
+}
 
 let lecteurOuvert: HTMLElement | null = null;
 
@@ -119,6 +140,7 @@ export function ouvrirLecteur(article: Article): HTMLElement {
       vider(contenu);
       // HTML nettoyé côté serveur (sanitize-html), limité aux balises de mise en forme
       contenu.innerHTML = lecture.contenuHtml;
+      surveillerImages(contenu);
     })
     .catch(() => {
       if (lecteurOuvert !== overlay) return;

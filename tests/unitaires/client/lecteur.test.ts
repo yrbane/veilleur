@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const lecture = vi.fn();
 vi.mock('@/client/services/api', () => ({ articles: { lecture: (...args: unknown[]) => lecture(...args) } }));
 
-import { ouvrirLecteur, fermerLecteur } from '@/client/composants/Lecteur';
+import { ouvrirLecteur, fermerLecteur, surveillerImages } from '@/client/composants/Lecteur';
 import type { Article } from '@/client/services/api';
 
 const article = {
@@ -78,5 +78,26 @@ describe('Lecteur', () => {
     ouvrirLecteur({ ...article, id: 'art-2' });
     expect(document.querySelectorAll('.lecteur-overlay')).toHaveLength(1);
     fermerLecteur();
+  });
+
+  it('redemande une image en erreur trois fois puis la retire', () => {
+    vi.useFakeTimers();
+    const conteneur = document.createElement('div');
+    conteneur.innerHTML = '<img src="/api/v1/images/abc/md" alt="">';
+    const image = conteneur.querySelector('img')!;
+    surveillerImages(conteneur);
+
+    image.dispatchEvent(new Event('error'));
+    vi.advanceTimersByTime(2500);
+    expect(image.getAttribute('src')).toBe('/api/v1/images/abc/md?tentative=1');
+    image.dispatchEvent(new Event('error'));
+    vi.advanceTimersByTime(5000);
+    expect(image.getAttribute('src')).toBe('/api/v1/images/abc/md?tentative=2');
+    image.dispatchEvent(new Event('error'));
+    vi.advanceTimersByTime(7500);
+    expect(image.getAttribute('src')).toBe('/api/v1/images/abc/md?tentative=3');
+    image.dispatchEvent(new Event('error'));
+    expect(conteneur.querySelector('img')).toBeNull();
+    vi.useRealTimers();
   });
 });

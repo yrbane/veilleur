@@ -18,6 +18,9 @@ import { obtenirServiceCache } from '@/infrastructure/cache/ServiceCacheRedis';
 import { obtenirServiceScraping } from '@/infrastructure/scraping/ServiceScraping';
 import { loggerHttp } from '@/infrastructure/logging/logger';
 import { ServiceImagesCache } from '@/infrastructure/images';
+import type { DonneesJobImage } from '@/infrastructure/images';
+import { ajouterJobImage, creerQueueImages } from '@/infrastructure/workers/WorkerImages';
+import type { Queue } from 'bullmq';
 
 /**
  * Schémas de validation
@@ -85,6 +88,18 @@ function obtenirDepotArticles(): DepotArticlesMariaDB {
 }
 
 let serviceLecture: ServiceLecture | null = null;
+let queueImages: Queue<DonneesJobImage> | null = null;
+
+/**
+ * Les images du lecteur passent par le cache local (le navigateur ne contacte jamais le site
+ * d'origine, et la CSP n'autorise que nos propres images) : on met leur téléchargement en file.
+ */
+async function resoudreImageLecture(url: string): Promise<string | null> {
+  if (!/^https:\/\//i.test(url)) return null;
+  queueImages ??= creerQueueImages();
+  await ajouterJobImage(queueImages, url);
+  return `/api/v1/images/${ServiceImagesCache.hashUrl(url)}/md`;
+}
 
 function obtenirServiceLecture(): ServiceLecture {
   if (!serviceLecture) {
@@ -92,6 +107,7 @@ function obtenirServiceLecture(): ServiceLecture {
       userAgent: env.SCRAPING_USER_AGENT,
       timeoutMs: env.SCRAPING_TIMEOUT_MS,
       serviceCache: obtenirServiceCache(),
+      resoudreImage: resoudreImageLecture,
     });
   }
   return serviceLecture;

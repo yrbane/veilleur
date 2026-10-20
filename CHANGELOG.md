@@ -4,6 +4,19 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.10.2 — 2026-10-21 · « Images du lecteur en local, quota assaini »
+
+### Corrigé
+- Les images du lecteur passent désormais par le cache local d'images (mise
+  en file du téléchargement à l'extraction, adresse `/api/v1/images/<hash>/md`) :
+  le navigateur ne contacte jamais le site d'origine et la politique de
+  sécurité (`img-src 'self'`) ne les bloque plus. Une image encore absente du
+  cache est redemandée jusqu'à trois fois puis retirée.
+- Limite de requêtes : l'objet levé par le plugin n'avait pas de `statusCode`,
+  le dépassement ressortait en 500 « Erreur non gérée » ; il répond 429 avec
+  `retryAfter`. Les routes d'images et de favicons, appelées par dizaines à
+  chaque page, ne comptent plus dans le quota par IP.
+
 ## 0.10.1 — 2026-10-21 · « jsdom en production »
 
 ### Corrigé
