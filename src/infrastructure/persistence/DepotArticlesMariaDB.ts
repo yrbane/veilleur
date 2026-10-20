@@ -10,8 +10,9 @@ import type {
   CacheArticles,
 } from '@/domaine/ports/DepotArticles';
 import type { Article, ArticleAvecSource, MetaOpenGraph, MetaTwitter } from '@/domaine/entites/Article';
+import { resoudreTri } from '@/domaine/entites/Article';
 import { obtenirBdd } from './connexion';
-import { articles, sources, utilisateursSources, utilisateursSourcesTags, tags } from './schema';
+import { articles, sources, utilisateursSources, utilisateursSourcesTags, tags, utilisateursArticles } from './schema';
 import { loggerBdd } from '../logging/logger';
 import { createId } from '@paralleldrive/cuid2';
 import type { ServiceCache } from '@/domaine/ports/ServiceCache';
@@ -288,8 +289,26 @@ export class DepotArticlesMariaDB implements DepotArticles {
         conditions.push(sql`MATCH(${articles.titre}, ${articles.resume}) AGAINST (${criteres.recherche} IN BOOLEAN MODE)`);
       }
 
+      // Filtres sur les annotations de l'utilisateur (jointure gauche plus bas)
+      if (criteres?.noteMin) {
+        conditions.push(sql`${utilisateursArticles.note} >= ${criteres.noteMin}`);
+      }
+      if (criteres?.favoris) {
+        conditions.push(eq(utilisateursArticles.favori, true));
+      }
+      if (criteres?.tagArticle) {
+        conditions.push(
+          sql`EXISTS (SELECT 1 FROM utilisateurs_articles_tags uat INNER JOIN tags t ON t.id = uat.tag_id
+            WHERE uat.utilisateur_id = ${utilisateurId} AND uat.article_id = ${articles.id} AND t.slug = ${criteres.tagArticle})`,
+        );
+      }
+
+      // Tri : le curseur (clé date+id) n'a de sens que pour le tri par date décroissante
+      const { tri, ordre } = resoudreTri(criteres?.tri, criteres?.ordre);
+      const curseurUtilisable = tri === 'date' && ordre === 'desc';
+
       // Support du curseur
-      const curseur = criteres?.curseur ? decoderCurseur(criteres.curseur) : null;
+      const curseur = curseurUtilisable && criteres?.curseur ? decoderCurseur(criteres.curseur) : null;
       const direction = criteres?.direction ?? 'apres';
 
       if (curseur) {
@@ -302,6 +321,22 @@ export class DepotArticlesMariaDB implements DepotArticles {
       }
 
       // 3. Exécuter la requête
+      const jointureAnnotations = and(
+        eq(utilisateursArticles.articleId, articles.id),
+        eq(utilisateursArticles.utilisateurId, utilisateurId),
+      );
+      const ordonner = ordre === 'desc' ? desc : asc;
+      const ordresTri =
+        tri === 'note'
+          ? [sql`${utilisateursArticles.note} IS NULL`, ordonner(utilisateursArticles.note), desc(articles.datePublication)]
+          : tri === 'titre'
+            ? [ordonner(articles.titre), desc(articles.datePublication)]
+            : tri === 'source'
+              ? [ordonner(sources.nom), desc(articles.datePublication), desc(articles.id)]
+              : curseur && direction === 'avant'
+                ? [asc(articles.datePublication), asc(articles.id)]
+                : [ordonner(articles.datePublication), ordonner(articles.id)];
+
       const query = db
         .select({
           article: articles,
@@ -312,12 +347,13 @@ export class DepotArticlesMariaDB implements DepotArticles {
         })
         .from(articles)
         .innerJoin(sources, eq(articles.sourceId, sources.id))
+        .leftJoin(utilisateursArticles, jointureAnnotations)
         .where(and(...conditions))
-        .orderBy(direction === 'apres' ? desc(articles.datePublication) : asc(articles.datePublication), direction === 'apres' ? desc(articles.id) : asc(articles.id))
+        .orderBy(...ordresTri)
         .limit(limite + 1); // +1 pour détecter s'il y a une suite
 
       // Support de l'offset si pas de curseur (legacy)
-      if (!criteres?.curseur && criteres?.page) {
+      if (!curseur && criteres?.page) {
         const offset = (criteres.page - 1) * limite;
         query.offset(offset);
       }
@@ -341,7 +377,7 @@ export class DepotArticlesMariaDB implements DepotArticles {
       }));
 
       // 4. Construire le résultat
-      if (criteres?.curseur || (!criteres?.page && !criteres?.curseur)) {
+      if (curseur || (!criteres?.page && curseurUtilisable && !criteres?.curseur)) {
         // Mode curseur
         const premier = articlesAvecSource[0];
         const dernier = articlesAvecSource[articlesAvecSource.length - 1];
@@ -363,11 +399,13 @@ export class DepotArticlesMariaDB implements DepotArticles {
           },
         };
       } else {
-        // Mode offset (legacy)
+        // Mode offset : total avec les mêmes filtres que la liste
         const totalResult = await db
           .select({ count: sql<number>`COUNT(*)` })
           .from(articles)
-          .where(and(inArray(articles.sourceId, sourceIds)));
+          .innerJoin(sources, eq(articles.sourceId, sources.id))
+          .leftJoin(utilisateursArticles, jointureAnnotations)
+          .where(and(...conditions));
 
         const total = totalResult[0]?.count ?? 0;
         const page = criteres?.page ?? 1;

@@ -70,6 +70,8 @@
 ### 🎯 Personnalisation
 - Notation des sources (1-5 étoiles)
 - Tags personnalisés
+- Articles notés, classés par tags et mis en favoris
+- Fil trié (date, note, titre, source), filtré, avec recherche plein texte et chargement au défilement
 - Paramètres avancés par source
 
 </td>

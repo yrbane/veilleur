@@ -261,6 +261,30 @@ export interface Article {
     nom: string;
     urlFavicon?: string;
   };
+  note?: number | null;
+  favori?: boolean;
+  tags?: Tag[];
+}
+
+/**
+ * Tri et filtres du fil
+ */
+export type TriFil = 'date' | 'note' | 'titre' | 'source';
+
+export interface OptionsFil {
+  page?: number;
+  limite?: number;
+  sourceId?: string;
+  recherche?: string;
+  tri?: TriFil;
+  ordre?: 'asc' | 'desc';
+  noteMin?: number;
+  tagArticle?: string;
+  favoris?: boolean;
+}
+
+export interface TagArticle extends Tag {
+  nombreArticles: number;
 }
 
 export interface Pagination {
@@ -480,23 +504,35 @@ export const sources = {
 // ============================================
 
 export const articles = {
-  async listerFil(
-    page = 1,
-    limite = 20,
-    sourceId?: string,
-    recherche?: string,
-    curseur?: string,
-    direction?: 'avant' | 'apres'
-  ): Promise<ResultatPagine<Article>> {
+  async listerFil(options: OptionsFil = {}): Promise<ResultatPagine<Article>> {
     const params = new URLSearchParams();
-    if (page) params.set('page', String(page));
-    if (limite) params.set('limite', String(limite));
-    if (sourceId) params.set('sourceId', sourceId);
-    if (recherche) params.set('recherche', recherche);
-    if (curseur) params.set('curseur', curseur);
-    if (direction) params.set('direction', direction);
+    params.set('page', String(options.page ?? 1));
+    params.set('limite', String(options.limite ?? 20));
+    if (options.sourceId) params.set('sourceId', options.sourceId);
+    if (options.recherche) params.set('recherche', options.recherche);
+    if (options.tri) params.set('tri', options.tri);
+    if (options.ordre) params.set('ordre', options.ordre);
+    if (options.noteMin) params.set('noteMin', String(options.noteMin));
+    if (options.tagArticle) params.set('tagArticle', options.tagArticle);
+    if (options.favoris) params.set('favoris', 'true');
 
     return requete<ResultatPagine<Article>>(`/articles/fil?${params.toString()}`);
+  },
+
+  async noter(id: string, note: number | null): Promise<{ note: number | null }> {
+    return requete(`/articles/${id}/note`, { method: 'PUT', body: JSON.stringify({ note }) });
+  },
+
+  async definirFavori(id: string, favori: boolean): Promise<{ favori: boolean }> {
+    return requete(`/articles/${id}/favori`, { method: 'PUT', body: JSON.stringify({ favori }) });
+  },
+
+  async definirTags(id: string, tags: string[]): Promise<{ tags: Tag[] }> {
+    return requete(`/articles/${id}/tags`, { method: 'PUT', body: JSON.stringify({ tags }) });
+  },
+
+  async listerTags(): Promise<{ donnees: TagArticle[] }> {
+    return requete('/articles/tags');
   },
 
   async obtenir(id: string): Promise<Article> {
