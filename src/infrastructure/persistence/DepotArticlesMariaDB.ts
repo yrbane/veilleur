@@ -12,7 +12,6 @@ import type {
 } from '@/domaine/ports/DepotArticles';
 import type { Article, ArticleAvecSource, MetaOpenGraph, MetaTwitter, MotCleFil } from '@/domaine/entites/Article';
 import { resoudreTri } from '@/domaine/entites/Article';
-import { alias } from 'drizzle-orm/mysql-core';
 import { obtenirBdd } from './connexion';
 import { articles, sources, utilisateursSources, utilisateursSourcesTags, tags, utilisateursArticles, articlesMotsCles } from './schema';
 import { loggerBdd } from '../logging/logger';
@@ -545,13 +544,13 @@ export class DepotArticlesMariaDB implements DepotArticles {
    */
   async marquerTousLus(utilisateurId: string, options: { sourceId?: string; avant: Date }): Promise<number> {
     const db = obtenirBdd();
-    const ua = alias(utilisateursArticles, 'ua');
+    // Alias écrit en clair : un alias Drizzle interpolé dans un fragment sql\`\` ne produit que son nom
     const filtreSource = options.sourceId ? sql`AND ${articles.sourceId} = ${options.sourceId}` : sql``;
     const portee = sql`FROM ${articles}
       INNER JOIN ${utilisateursSources} ON ${utilisateursSources.sourceId} = ${articles.sourceId}
         AND ${utilisateursSources.utilisateurId} = ${utilisateurId} AND ${utilisateursSources.estEnPause} = false
-      LEFT JOIN ${ua} ON ${ua.articleId} = ${articles.id} AND ${ua.utilisateurId} = ${utilisateurId}
-      WHERE ${articles.datePublication} <= ${options.avant} AND ${ua.luLe} IS NULL ${filtreSource}`;
+      LEFT JOIN ${utilisateursArticles} AS ua ON ua.article_id = ${articles.id} AND ua.utilisateur_id = ${utilisateurId}
+      WHERE ${articles.datePublication} <= ${options.avant} AND ua.lu_le IS NULL ${filtreSource}`;
     try {
       const [lignes] = await db.execute(sql`SELECT COUNT(*) AS n ${portee}`);
       const nombre = Number((lignes as unknown as { n: number | string }[])[0]?.n ?? 0);
