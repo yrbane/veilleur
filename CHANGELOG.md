@@ -4,6 +4,13 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.9.3 — 2026-10-21 · « Tout marquer lu, vraiment »
+
+### Corrigé
+- Le `ON DUPLICATE KEY UPDATE` de « Tout marquer lu » référençait `lu_le` sans
+  préfixe alors que la table est jointe à elle-même : colonne ambiguë. Les
+  colonnes mises à jour sont qualifiées ; requête validée sur la base de prod.
+
 ## 0.9.2 — 2026-10-21 · « Tout marquer lu réparé »
 
 ### Corrigé
