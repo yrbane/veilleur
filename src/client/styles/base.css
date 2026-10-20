@@ -119,12 +119,32 @@ p a {
   grid-column: 1 / -1;
 }
 
-/* Icônes Material Symbols : calées sur la ligne de texte */
+/* Icônes Material Symbols, police auto-hébergée sous un nom propre : Lunar déclare
+   « Material Symbols Outlined » depuis fonts.gstatic.com, que la CSP bloque */
+@font-face {
+  font-family: 'Material Symbols Veilleur';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('@material-symbols/font-400/material-symbols-outlined.woff2') format('woff2');
+}
+
+/* Icônes : calées sur la ligne de texte, le nom de l'icône est une ligature */
 .icone {
+  display: inline-block;
+  font-family: 'Material Symbols Veilleur';
+  font-weight: normal;
+  font-style: normal;
   font-size: 1.25em;
   line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  direction: ltr;
   vertical-align: -0.25em;
   flex-shrink: 0;
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
 }
 
 .icone.plein {

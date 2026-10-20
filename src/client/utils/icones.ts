@@ -1,6 +1,6 @@
 /**
  * Veilleur - Icônes Material Symbols (Google), police auto-hébergée
- * Le nom est une ligature de la police : <span class="icone material-symbols-outlined">search</span>
+ * Le nom est une ligature de la police : <span class="icone">search</span>
  */
 
 export interface OptionsIcone {
@@ -13,7 +13,7 @@ export interface OptionsIcone {
 
 export function icone(nom: string, options: OptionsIcone = {}): HTMLSpanElement {
   const span = document.createElement('span');
-  span.classList.add('icone', 'material-symbols-outlined', ...(options.classes ?? []));
+  span.classList.add('icone', ...(options.classes ?? []));
   if (options.plein) span.classList.add('plein');
   span.textContent = nom;
   if (options.label) {
