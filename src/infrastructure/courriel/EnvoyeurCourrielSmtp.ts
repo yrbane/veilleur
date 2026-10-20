@@ -14,6 +14,29 @@ export interface ConfigSmtp {
   expediteur: string;
 }
 
+const HOTES_LOCAUX = new Set(['127.0.0.1', 'localhost', '::1']);
+
+/**
+ * Options nodemailer : un relais en boucle locale (Postfix) présente souvent un certificat
+ * auto-signé en STARTTLS ; on lui parle en clair, le trafic ne quitte pas la machine.
+ */
+export function creerOptionsTransport(config: ConfigSmtp): {
+  host: string;
+  port: number;
+  secure: boolean;
+  ignoreTLS: boolean;
+  auth?: { user: string; pass: string };
+} {
+  const hote = config.hote ?? '';
+  return {
+    host: hote,
+    port: config.port,
+    secure: config.secure,
+    ignoreTLS: !config.secure && HOTES_LOCAUX.has(hote),
+    ...(config.utilisateur ? { auth: { user: config.utilisateur, pass: config.motDePasse ?? '' } } : {}),
+  };
+}
+
 export class EnvoyeurCourrielSmtp implements EnvoyeurCourriel {
   private transport: Transporter | null = null;
 
@@ -26,12 +49,7 @@ export class EnvoyeurCourrielSmtp implements EnvoyeurCourriel {
   async envoyer(courriel: Courriel): Promise<void> {
     if (!this.config.hote) throw new Error('SMTP non configuré');
     if (!this.transport) {
-      this.transport = nodemailer.createTransport({
-        host: this.config.hote,
-        port: this.config.port,
-        secure: this.config.secure,
-        auth: this.config.utilisateur ? { user: this.config.utilisateur, pass: this.config.motDePasse ?? '' } : undefined,
-      });
+      this.transport = nodemailer.createTransport(creerOptionsTransport(this.config));
     }
     await this.transport.sendMail({
       from: this.config.expediteur,

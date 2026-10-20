@@ -4,6 +4,15 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.16.1 — 2026-10-21 · « Courriel via le relais local »
+
+### Corrigé
+- Résumé courriel impossible en production (`DEPTH_ZERO_SELF_SIGNED_CERT`) :
+  le Postfix local propose STARTTLS avec un certificat auto-signé. Le transport
+  parle désormais en clair quand `SMTP_HOST` est en boucle locale
+  (`127.0.0.1`, `localhost`, `::1`) et `SMTP_SECURE` est faux ; TLS et
+  authentification inchangés pour un serveur distant.
+
 ## 0.16.0 — 2026-10-21 · « Notifications »
 
 ### Ajouté
