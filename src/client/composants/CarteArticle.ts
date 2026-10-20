@@ -122,33 +122,76 @@ function creerNotationArticle(article: Article, options: OptionsCarteArticle): H
 /**
  * Bouton favori
  */
-function creerBoutonFavori(article: Article, options: OptionsCarteArticle): HTMLElement {
+interface DefinitionBascule {
+  classe: string;
+  icone: string;
+  actif: (article: Article) => boolean;
+  basculer: (article: Article) => Promise<boolean>;
+  libelles: { activer: string; retirer: string; active: string; retiree: string };
+}
+
+/**
+ * Bouton à deux états (favori, liste de lecture) : icône pleine quand actif, bascule côté serveur
+ */
+function creerBoutonBascule(article: Article, options: OptionsCarteArticle, definition: DefinitionBascule): HTMLElement {
   const bouton = creerElement('button', {
-    classes: ['btn-favori'],
+    classes: [definition.classe],
     attrs: { type: 'button' },
   });
 
   const rafraichir = () => {
-    bouton.classList.toggle('active', !!article.favori);
-    bouton.replaceChildren(icone('favorite', { plein: !!article.favori }));
-    bouton.setAttribute('aria-label', article.favori ? 'Retirer des favoris' : 'Ajouter aux favoris');
-    bouton.setAttribute('aria-pressed', article.favori ? 'true' : 'false');
-    bouton.title = article.favori ? 'Retirer des favoris' : 'Ajouter aux favoris';
+    const actif = definition.actif(article);
+    bouton.classList.toggle('active', actif);
+    bouton.replaceChildren(icone(definition.icone, { plein: actif }));
+    const libelle = actif ? definition.libelles.retirer : definition.libelles.activer;
+    bouton.setAttribute('aria-label', libelle);
+    bouton.setAttribute('aria-pressed', String(actif));
+    bouton.title = libelle;
   };
 
   bouton.addEventListener('click', async () => {
     try {
-      const { favori } = await apiArticles.definirFavori(article.id, !article.favori);
-      article.favori = favori;
+      const actif = await definition.basculer(article);
       rafraichir();
-      toast.succes(favori ? 'Ajouté aux favoris' : 'Retiré des favoris');
+      toast.succes(actif ? definition.libelles.active : definition.libelles.retiree);
       options.onAnnotation?.(article);
     } catch {
-      toast.erreur('Erreur lors de la mise en favori');
+      toast.erreur('Impossible d\'enregistrer ce changement');
     }
   });
   rafraichir();
   return bouton;
+}
+
+function creerBoutonFavori(article: Article, options: OptionsCarteArticle): HTMLElement {
+  return creerBoutonBascule(article, options, {
+    classe: 'btn-favori',
+    icone: 'favorite',
+    actif: a => !!a.favori,
+    basculer: async a => {
+      const { favori } = await apiArticles.definirFavori(a.id, !a.favori);
+      a.favori = favori;
+      return favori;
+    },
+    libelles: { activer: 'Ajouter aux favoris', retirer: 'Retirer des favoris', active: 'Ajouté aux favoris', retiree: 'Retiré des favoris' },
+  });
+}
+
+/**
+ * Liste de lecture « à lire plus tard »
+ */
+function creerBoutonALire(article: Article, options: OptionsCarteArticle): HTMLElement {
+  return creerBoutonBascule(article, options, {
+    classe: 'btn-a-lire',
+    icone: 'bookmark',
+    actif: a => !!a.aLire,
+    basculer: async a => {
+      const { aLire } = await apiArticles.definirALire(a.id, !a.aLire);
+      a.aLire = aLire;
+      return aLire;
+    },
+    libelles: { activer: 'Lire plus tard', retirer: 'Retirer de la liste de lecture', active: 'Mis de côté pour plus tard', retiree: 'Retiré de la liste de lecture' },
+  });
 }
 
 /**
@@ -283,6 +326,7 @@ export function creerCarteArticle(article: Article, options: OptionsCarteArticle
   annotations.append(
     creerNotationArticle(article, options),
     creerBoutonFavori(article, options),
+    creerBoutonALire(article, options),
     creerBoutonLire(article, carte, options),
     creerBoutonLu(article, carte, options),
   );

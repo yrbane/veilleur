@@ -7,7 +7,8 @@ import type { DepotAnnotationsArticles } from '@/domaine/ports/DepotAnnotationsA
 import type { CompteNonLus, DepotArticles } from '@/domaine/ports/DepotArticles';
 import type { ServiceCache } from '@/domaine/ports/ServiceCache';
 import { PREFIXES_CACHE } from '@/domaine/ports/ServiceCache';
-import type { AnnotationArticle } from '@/domaine/entites/Article';
+import type { AnnotationArticle, AnnotationExportee } from '@/domaine/entites/Article';
+import { formaterCsv } from '@/shared/utils/csv';
 import { estNoteValide, NOTE_ARTICLE_MAX, NOTE_ARTICLE_MIN } from '@/domaine/entites/Article';
 
 /**
@@ -22,6 +23,18 @@ export class ErreurAnnotation extends Error {
     this.name = 'ErreurAnnotation';
   }
 }
+
+export type FormatExport = 'json' | 'csv';
+
+export interface ExportAnnotations {
+  contenu: string;
+  typeMime: string;
+  nomFichier: string;
+}
+
+const COLONNES_EXPORT: (keyof AnnotationExportee & string)[] = [
+  'titre', 'lien', 'source', 'datePublication', 'note', 'favori', 'aLire', 'lu', 'dateMiseAJour',
+];
 
 export class ServiceAnnotationsArticles {
   constructor(
@@ -69,6 +82,33 @@ export class ServiceAnnotationsArticles {
   /**
    * « Tout marquer comme lu » : borné à l'instant du clic pour ne pas avaler les articles arrivés ensuite
    */
+  async definirALire(utilisateurId: string, articleId: string, aLire: boolean): Promise<{ aLire: boolean }> {
+    await this.verifierArticle(articleId);
+    await this.depotAnnotations.definirALire(utilisateurId, articleId, aLire);
+    await this.invaliderFil(utilisateurId);
+    return { aLire };
+  }
+
+  /**
+   * Export de toutes les annotations (notes, favoris, liste de lecture, lus) en JSON ou CSV
+   */
+  async exporterAnnotations(utilisateurId: string, format: FormatExport, date: Date = new Date()): Promise<ExportAnnotations> {
+    const annotations = await this.depotAnnotations.listerAnnotations(utilisateurId);
+    const jour = date.toISOString().slice(0, 10);
+    if (format === 'csv') {
+      return {
+        contenu: formaterCsv(annotations as unknown as Record<string, unknown>[], COLONNES_EXPORT),
+        typeMime: 'text/csv; charset=utf-8',
+        nomFichier: `veilleur-annotations-${jour}.csv`,
+      };
+    }
+    return {
+      contenu: JSON.stringify({ exporteLe: date.toISOString(), nombre: annotations.length, annotations }, null, 2),
+      typeMime: 'application/json; charset=utf-8',
+      nomFichier: `veilleur-annotations-${jour}.json`,
+    };
+  }
+
   async marquerTousLus(utilisateurId: string, options: { sourceId?: string; avant?: Date }): Promise<{ marques: number }> {
     const marques = await this.depotArticles.marquerTousLus(utilisateurId, {
       sourceId: options.sourceId,

@@ -265,6 +265,7 @@ export interface Article {
   note?: number | null;
   favori?: boolean;
   lu?: boolean;
+  aLire?: boolean;
   // Classement automatique : mots-clés extraits de l'article
   motsCles?: string[];
 }
@@ -285,6 +286,7 @@ export interface OptionsFil {
   motCle?: string;
   favoris?: boolean;
   nonLus?: boolean;
+  aLire?: boolean;
 }
 
 export interface ContenuLecture {
@@ -536,6 +538,7 @@ export const articles = {
     if (options.motCle) params.set('motCle', options.motCle);
     if (options.favoris) params.set('favoris', 'true');
     if (options.nonLus) params.set('nonLus', 'true');
+    if (options.aLire) params.set('aLire', 'true');
 
     return requete<ResultatPagine<Article>>(`/articles/fil?${params.toString()}`);
   },
@@ -546,6 +549,23 @@ export const articles = {
 
   async definirFavori(id: string, favori: boolean): Promise<{ favori: boolean }> {
     return requete(`/articles/${id}/favori`, { method: 'PUT', body: JSON.stringify({ favori }) });
+  },
+
+  async definirALire(id: string, aLire: boolean): Promise<{ aLire: boolean }> {
+    return requete(`/articles/${id}/a-lire`, { method: 'PUT', body: JSON.stringify({ aLire }) });
+  },
+
+  /** Export des annotations : contenu brut (JSON ou CSV) à enregistrer côté navigateur */
+  async exporterAnnotations(format: 'json' | 'csv'): Promise<string> {
+    const headers: Record<string, string> = {};
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+    const response = await fetch(`${API_BASE}/articles/export?format=${format}`, { headers });
+    if (!response.ok) {
+      throw new ErreurAPI('Erreur lors de l\'export', 'EXPORT_ERREUR', response.status);
+    }
+    return response.text();
   },
 
   async marquerLu(id: string, lu: boolean): Promise<{ lu: boolean }> {

@@ -303,6 +303,9 @@ export class DepotArticlesMariaDB implements DepotArticles {
       if (criteres?.nonLus) {
         conditions.push(sql`${utilisateursArticles.luLe} IS NULL`);
       }
+      if (criteres?.aLire) {
+        conditions.push(eq(utilisateursArticles.aLire, true));
+      }
       if (criteres?.favoris) {
         conditions.push(eq(utilisateursArticles.favori, true));
       }

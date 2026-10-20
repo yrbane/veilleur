@@ -9,6 +9,7 @@ import { sources, articles, estAuthentifie } from '../services/api';
 import { creerCarteSource } from '../composants/CarteSource';
 import { creerFormulaireSource } from '../composants/FormulaireSource';
 import { toast } from '../utils/toast';
+import { telechargerFichier, suffixeDate } from '../utils/telechargement';
 import type { Source, ResultatImportOPML } from '../services/api';
 
 let sourcesList: Source[] = [];
@@ -211,17 +212,7 @@ function mettreAJourListeSources(): void {
 async function exporterOPML(): Promise<void> {
   try {
     const contenu = await sources.exporterOPML();
-
-    // Créer un blob et télécharger
-    const blob = new Blob([contenu], { type: 'application/xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `veilleur-sources-${new Date().toISOString().split('T')[0]}.opml`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    telechargerFichier(contenu, `veilleur-sources-${suffixeDate()}.opml`, 'application/xml');
 
     toast.succes('Sources exportées avec succès');
   } catch {

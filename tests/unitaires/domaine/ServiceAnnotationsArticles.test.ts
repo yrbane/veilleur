@@ -11,6 +11,8 @@ describe('ServiceAnnotationsArticles', () => {
     definirFavori: vi.fn(),
     obtenirAnnotations: vi.fn(),
     marquerLu: vi.fn(),
+    definirALire: vi.fn(),
+    listerAnnotations: vi.fn(),
   };
   const depotArticles = { trouverParId: vi.fn(), marquerTousLus: vi.fn(), compterNonLus: vi.fn() };
   const serviceCache = { supprimerPattern: vi.fn() };
@@ -132,6 +134,51 @@ describe('ServiceAnnotationsArticles', () => {
       depotArticles.compterNonLus.mockResolvedValue({ total: 3, parSource: { 'src-1': 3 } });
 
       expect(await creerService().compterNonLus('u1')).toEqual({ total: 3, parSource: { 'src-1': 3 } });
+    });
+  });
+
+  describe('definirALire', () => {
+    it('met l\'article dans la liste de lecture et invalide le fil', async () => {
+      expect(await creerService().definirALire('u1', 'art-1', true)).toEqual({ aLire: true });
+      expect(depotAnnotations.definirALire).toHaveBeenCalledWith('u1', 'art-1', true);
+      expect(serviceCache.supprimerPattern).toHaveBeenCalledWith('articles:fil:u1:*');
+    });
+
+    it('refuse un article inconnu', async () => {
+      depotArticles.trouverParId.mockResolvedValue(null);
+      await expect(creerService().definirALire('u1', 'x', true)).rejects.toMatchObject({ code: 'ARTICLE_INTROUVABLE' });
+    });
+  });
+
+  describe('exporterAnnotations', () => {
+    const annotation = {
+      articleId: 'art-1', titre: 'Un; titre', lien: 'https://j.fr/a', source: 'Journal',
+      datePublication: new Date('2026-10-20T10:00:00Z'), note: 4, favori: true, aLire: false, lu: true,
+      dateMiseAJour: new Date('2026-10-21T08:00:00Z'),
+    };
+
+    it('produit un JSON daté avec les annotations', async () => {
+      depotAnnotations.listerAnnotations.mockResolvedValue([annotation]);
+
+      const exportation = await creerService().exporterAnnotations('u1', 'json', new Date('2026-10-21T09:00:00Z'));
+
+      expect(exportation.nomFichier).toBe('veilleur-annotations-2026-10-21.json');
+      expect(exportation.typeMime).toContain('application/json');
+      const corps = JSON.parse(exportation.contenu);
+      expect(corps.nombre).toBe(1);
+      expect(corps.annotations[0]).toMatchObject({ titre: 'Un; titre', note: 4, favori: true, lu: true });
+    });
+
+    it('produit un CSV avec en-tête et champs cités', async () => {
+      depotAnnotations.listerAnnotations.mockResolvedValue([annotation]);
+
+      const exportation = await creerService().exporterAnnotations('u1', 'csv', new Date('2026-10-21T09:00:00Z'));
+
+      expect(exportation.nomFichier).toBe('veilleur-annotations-2026-10-21.csv');
+      expect(exportation.typeMime).toContain('text/csv');
+      const lignes = exportation.contenu.replace('\uFEFF', '').trim().split('\r\n');
+      expect(lignes[0]).toBe('titre;lien;source;datePublication;note;favori;aLire;lu;dateMiseAJour');
+      expect(lignes[1]).toBe('"Un; titre";https://j.fr/a;Journal;2026-10-20T10:00:00.000Z;4;true;false;true;2026-10-21T08:00:00.000Z');
     });
   });
 });
