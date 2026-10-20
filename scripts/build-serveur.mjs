@@ -18,6 +18,7 @@ const pointsEntree = {
   migrer: 'src/infrastructure/persistence/migrer.ts',
   seed: 'src/infrastructure/persistence/seed.ts',
   'rattraper-images': 'src/infrastructure/workers/rattraperImages.ts',
+  'rattraper-mots-cles': 'src/infrastructure/workers/rattraperMotsCles.ts',
 };
 
 await build({

@@ -3,7 +3,7 @@
  * Interface pour l'accès aux données articles
  */
 
-import type { Article, ArticleAvecSource, TriArticles, OrdreTri } from '../entites/Article';
+import type { Article, ArticleAvecSource, TriArticles, OrdreTri, MotCleFil } from '../entites/Article';
 
 /**
  * Critères de recherche pour les articles
@@ -26,8 +26,9 @@ export interface CriteresArticles {
   ordre?: OrdreTri;
   // Filtres sur les annotations de l'utilisateur
   noteMin?: number;
-  tagArticle?: string;
   favoris?: boolean;
+  // Mot-clé extrait automatiquement
+  motCle?: string;
 }
 
 /**
@@ -106,6 +107,26 @@ export interface DepotArticles {
    * Liste les articles d'une source
    */
   listerParSource(sourceId: string, limite?: number): Promise<Article[]>;
+
+  /**
+   * Remplace les mots-clés d'un article
+   */
+  definirMotsCles(articleId: string, mots: string[]): Promise<void>;
+
+  /**
+   * Mots-clés d'un lot d'articles (clé = id d'article, ordre d'importance)
+   */
+  obtenirMotsCles(articleIds: string[]): Promise<Map<string, string[]>>;
+
+  /**
+   * Mots-clés les plus fréquents dans le fil d'un utilisateur
+   */
+  listerMotsClesFil(utilisateurId: string, limite?: number): Promise<MotCleFil[]>;
+
+  /**
+   * Articles sans aucun mot-clé (rattrapage des articles antérieurs à l'extraction)
+   */
+  listerSansMotsCles(limite?: number): Promise<Article[]>;
 
   /**
    * Compte les articles d'une source

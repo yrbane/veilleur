@@ -7,11 +7,10 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { verifierAuthentification } from '@/api/middlewares/authentification';
 import { ServiceArticles, ErreurArticle } from '@/domaine/services/ServiceArticles';
-import { ServiceAnnotationsArticles, ErreurAnnotation, MAX_TAGS_PAR_ARTICLE } from '@/domaine/services/ServiceAnnotationsArticles';
+import { ServiceAnnotationsArticles, ErreurAnnotation } from '@/domaine/services/ServiceAnnotationsArticles';
 import { TRIS_ARTICLES, NOTE_ARTICLE_MIN, NOTE_ARTICLE_MAX } from '@/domaine/entites/Article';
 import { DepotArticlesMariaDB } from '@/infrastructure/persistence/DepotArticlesMariaDB';
 import { DepotAnnotationsArticlesMariaDB } from '@/infrastructure/persistence/DepotAnnotationsArticlesMariaDB';
-import { obtenirDepotTags } from '@/infrastructure/persistence/DepotTagsMariaDB';
 import { DepotSourcesMariaDB } from '@/infrastructure/persistence/DepotSourcesMariaDB';
 import { obtenirServiceCache } from '@/infrastructure/cache/ServiceCacheRedis';
 import { obtenirServiceScraping } from '@/infrastructure/scraping/ServiceScraping';
@@ -33,7 +32,7 @@ const schemaCriteresFil = z.object({
   tri: z.enum(TRIS_ARTICLES).optional(),
   ordre: z.enum(['asc', 'desc']).optional(),
   noteMin: z.coerce.number().int().min(NOTE_ARTICLE_MIN).max(NOTE_ARTICLE_MAX).optional(),
-  tagArticle: z.string().min(1).max(50).optional(),
+  motCle: z.string().min(1).max(50).optional(),
   favoris: z
     .enum(['true', 'false'])
     .optional()
@@ -43,19 +42,6 @@ const schemaCriteresFil = z.object({
 const schemaParamsArticle = z.object({ id: z.string().min(1) });
 const schemaNote = z.object({ note: z.number().int().nullable() });
 const schemaFavori = z.object({ favori: z.boolean() });
-const schemaTagsArticle = z.object({ tags: z.array(z.string().max(50)).max(MAX_TAGS_PAR_ARTICLE + 1) });
-
-/**
- * Schéma de réponse d'un tag
- */
-const SCHEMA_TAG = {
-  type: 'object',
-  properties: {
-    id: { type: 'string' },
-    nom: { type: 'string' },
-    slug: { type: 'string' },
-  },
-} as const;
 
 /**
  * Instance du service d'annotations (lazy)
@@ -66,8 +52,7 @@ function obtenirServiceAnnotations(): ServiceAnnotationsArticles {
   if (!serviceAnnotations) {
     serviceAnnotations = new ServiceAnnotationsArticles(
       new DepotAnnotationsArticlesMariaDB(),
-      new DepotArticlesMariaDB(),
-      obtenirDepotTags(),
+      obtenirDepotArticles(),
       obtenirServiceCache(),
     );
   }
@@ -78,10 +63,18 @@ function obtenirServiceAnnotations(): ServiceAnnotationsArticles {
  * Instance du service articles (lazy)
  */
 let serviceArticles: ServiceArticles | null = null;
+let depotArticlesPartage: DepotArticlesMariaDB | null = null;
+
+function obtenirDepotArticles(): DepotArticlesMariaDB {
+  if (!depotArticlesPartage) {
+    depotArticlesPartage = new DepotArticlesMariaDB();
+  }
+  return depotArticlesPartage;
+}
 
 function obtenirServiceArticles(): ServiceArticles {
   if (!serviceArticles) {
-    const depotArticles = new DepotArticlesMariaDB();
+    const depotArticles = obtenirDepotArticles();
     const depotSources = new DepotSourcesMariaDB();
     const serviceCache = obtenirServiceCache();
     const serviceScraping = obtenirServiceScraping();
@@ -195,7 +188,7 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
           tri: { type: 'string', enum: [...TRIS_ARTICLES] },
           ordre: { type: 'string', enum: ['asc', 'desc'] },
           noteMin: { type: 'number' },
-          tagArticle: { type: 'string' },
+          motCle: { type: 'string' },
           favoris: { type: 'string', enum: ['true', 'false'] },
         },
       },
@@ -224,7 +217,7 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
                   },
                   note: { type: 'number', nullable: true },
                   favori: { type: 'boolean' },
-                  tags: { type: 'array', items: SCHEMA_TAG },
+                  motsCles: { type: 'array', items: { type: 'string' } },
                 },
               },
             },
@@ -253,18 +246,19 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
         utilisateurId: utilisateur.sub,
       });
 
-      // Annotations personnelles (note, favori, tags), lues hors cache pour rester fraîches
-      const annotations = await obtenirServiceAnnotations().obtenirAnnotations(
-        utilisateur.sub,
-        resultat.donnees.map(a => a.id),
-      );
+      // Annotations personnelles (note, favori) lues hors cache pour rester fraîches, et mots-clés
+      const ids = resultat.donnees.map(a => a.id);
+      const [annotations, motsCles] = await Promise.all([
+        obtenirServiceAnnotations().obtenirAnnotations(utilisateur.sub, ids),
+        obtenirDepotArticles().obtenirMotsCles(ids),
+      ]);
       const donnees = transformerArticlesPourReponse(resultat.donnees).map(article => {
         const annotation = annotations.get(article.id);
         return {
           ...article,
           note: annotation?.note ?? null,
           favori: annotation?.favori ?? false,
-          tags: annotation?.tags ?? [],
+          motsCles: (motsCles.get(article.id) ?? []).filter(mot => mot !== '—'),
         };
       });
 
@@ -445,24 +439,22 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
    * Récupère les statistiques des articles de l'utilisateur
    */
   /**
-   * GET /api/v1/articles/tags
-   * Tags que l'utilisateur a posés sur ses articles (pour filtrer le fil)
+   * GET /api/v1/articles/mots-cles
+   * Mots-clés les plus fréquents dans le fil de l'utilisateur (filtres)
    */
-  fastify.get('/tags', {
+  fastify.get('/mots-cles', {
     schema: {
       tags: ['Articles'],
-      summary: 'Tags utilisés sur les articles de l\'utilisateur',
+      summary: 'Mots-clés du fil de l\'utilisateur',
       security: [{ bearerAuth: [] }],
+      querystring: { type: 'object', properties: { limite: { type: 'number', default: 20 } } },
       response: {
         200: {
           type: 'object',
           properties: {
             donnees: {
               type: 'array',
-              items: {
-                type: 'object',
-                properties: { ...SCHEMA_TAG.properties, nombreArticles: { type: 'number' } },
-              },
+              items: { type: 'object', properties: { mot: { type: 'string' }, nombreArticles: { type: 'number' } } },
             },
           },
         },
@@ -470,7 +462,10 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
     },
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const donnees = await obtenirServiceAnnotations().listerTagsUtilises(request.utilisateur!.sub);
+      const { limite } = z.object({ limite: z.coerce.number().int().min(1).max(100).default(20) }).parse(request.query);
+      const donnees = (await obtenirDepotArticles().listerMotsClesFil(request.utilisateur!.sub, limite + 1))
+        .filter(m => m.mot !== '—')
+        .slice(0, limite);
       return reply.send({ donnees });
     } catch (erreur) {
       return gererErreurArticle(erreur, reply);
@@ -522,34 +517,6 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
       const { id } = schemaParamsArticle.parse(request.params);
       const { favori } = schemaFavori.parse(request.body);
       return reply.send(await obtenirServiceAnnotations().definirFavori(request.utilisateur!.sub, id, favori));
-    } catch (erreur) {
-      return gererErreurArticle(erreur, reply);
-    }
-  });
-
-  /**
-   * PUT /api/v1/articles/:id/tags
-   * Remplace les tags posés sur un article (classement personnel)
-   */
-  fastify.put('/:id/tags', {
-    schema: {
-      tags: ['Articles'],
-      summary: 'Classe un article avec des tags',
-      security: [{ bearerAuth: [] }],
-      params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
-      body: {
-        type: 'object',
-        required: ['tags'],
-        properties: { tags: { type: 'array', items: { type: 'string', maxLength: 50 }, maxItems: MAX_TAGS_PAR_ARTICLE + 1 } },
-      },
-      response: { 200: { type: 'object', properties: { tags: { type: 'array', items: SCHEMA_TAG } } } },
-    },
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const { id } = schemaParamsArticle.parse(request.params);
-      const { tags } = schemaTagsArticle.parse(request.body);
-      const resultat = await obtenirServiceAnnotations().definirTags(request.utilisateur!.sub, id, tags);
-      return reply.send({ tags: resultat });
     } catch (erreur) {
       return gererErreurArticle(erreur, reply);
     }

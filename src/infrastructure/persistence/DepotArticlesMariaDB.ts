@@ -9,10 +9,10 @@ import type {
   ResultatPagineArticles,
   CacheArticles,
 } from '@/domaine/ports/DepotArticles';
-import type { Article, ArticleAvecSource, MetaOpenGraph, MetaTwitter } from '@/domaine/entites/Article';
+import type { Article, ArticleAvecSource, MetaOpenGraph, MetaTwitter, MotCleFil } from '@/domaine/entites/Article';
 import { resoudreTri } from '@/domaine/entites/Article';
 import { obtenirBdd } from './connexion';
-import { articles, sources, utilisateursSources, utilisateursSourcesTags, tags, utilisateursArticles } from './schema';
+import { articles, sources, utilisateursSources, utilisateursSourcesTags, tags, utilisateursArticles, articlesMotsCles } from './schema';
 import { loggerBdd } from '../logging/logger';
 import { createId } from '@paralleldrive/cuid2';
 import type { ServiceCache } from '@/domaine/ports/ServiceCache';
@@ -88,6 +88,8 @@ export class DepotArticlesMariaDB implements DepotArticles {
         dateExtraction,
       });
 
+      await this.insererMotsCles([{ articleId: id, mots: donnees.motsCles ?? [] }]);
+
       loggerBdd.debug({ id, titre: donnees.titre }, 'Article créé');
 
       return {
@@ -128,13 +130,17 @@ export class DepotArticlesMariaDB implements DepotArticles {
       }));
 
       await db.insert(articles).values(articlesAvecId);
+      await this.insererMotsCles(
+        articlesAvecId.map((a, i) => ({ articleId: a.id, mots: articlesData[i]?.motsCles ?? [] })),
+      );
 
       loggerBdd.info({ nombre: articlesAvecId.length }, 'Articles créés en lot');
 
-      return articlesAvecId.map(a => ({
+      return articlesAvecId.map((a, i) => ({
         ...a,
         metaOpenGraph: (a.metaOpenGraph as MetaOpenGraph) ?? {},
         metaTwitter: (a.metaTwitter as MetaTwitter) ?? {},
+        motsCles: articlesData[i]?.motsCles ?? [],
       }));
     } catch (erreur) {
       loggerBdd.error({ erreur, nombre: articlesData.length }, 'Erreur lors de la création en lot');
@@ -296,10 +302,9 @@ export class DepotArticlesMariaDB implements DepotArticles {
       if (criteres?.favoris) {
         conditions.push(eq(utilisateursArticles.favori, true));
       }
-      if (criteres?.tagArticle) {
+      if (criteres?.motCle) {
         conditions.push(
-          sql`EXISTS (SELECT 1 FROM utilisateurs_articles_tags uat INNER JOIN tags t ON t.id = uat.tag_id
-            WHERE uat.utilisateur_id = ${utilisateurId} AND uat.article_id = ${articles.id} AND t.slug = ${criteres.tagArticle})`,
+          sql`EXISTS (SELECT 1 FROM articles_mots_cles amc WHERE amc.article_id = ${articles.id} AND amc.mot = ${criteres.motCle})`,
         );
       }
 
@@ -422,6 +427,91 @@ export class DepotArticlesMariaDB implements DepotArticles {
       }
     } catch (erreur) {
       loggerBdd.error({ erreur, utilisateurId }, 'Erreur lors du listing du fil');
+      throw erreur;
+    }
+  }
+
+  /**
+   * Insère les mots-clés d'un lot d'articles (rien si aucun mot)
+   */
+  private async insererMotsCles(lots: Array<{ articleId: string; mots: string[] }>): Promise<void> {
+    const lignes = lots.flatMap(({ articleId, mots }) =>
+      [...new Set(mots)].slice(0, 10).map((mot, position) => ({ articleId, mot, position })),
+    );
+    if (lignes.length === 0) return;
+    await obtenirBdd().insert(articlesMotsCles).values(lignes);
+  }
+
+  async definirMotsCles(articleId: string, mots: string[]): Promise<void> {
+    const db = obtenirBdd();
+    try {
+      await db.delete(articlesMotsCles).where(eq(articlesMotsCles.articleId, articleId));
+      await this.insererMotsCles([{ articleId, mots }]);
+    } catch (erreur) {
+      loggerBdd.error({ erreur, articleId }, 'Erreur lors de l\'enregistrement des mots-clés');
+      throw erreur;
+    }
+  }
+
+  async obtenirMotsCles(articleIds: string[]): Promise<Map<string, string[]>> {
+    const resultat = new Map<string, string[]>();
+    if (articleIds.length === 0) return resultat;
+    const db = obtenirBdd();
+    try {
+      const lignes = await db
+        .select({ articleId: articlesMotsCles.articleId, mot: articlesMotsCles.mot })
+        .from(articlesMotsCles)
+        .where(inArray(articlesMotsCles.articleId, articleIds))
+        .orderBy(asc(articlesMotsCles.position));
+      for (const ligne of lignes) {
+        const liste = resultat.get(ligne.articleId) ?? [];
+        liste.push(ligne.mot);
+        resultat.set(ligne.articleId, liste);
+      }
+      return resultat;
+    } catch (erreur) {
+      loggerBdd.error({ erreur }, 'Erreur lors de la lecture des mots-clés');
+      throw erreur;
+    }
+  }
+
+  async listerMotsClesFil(utilisateurId: string, limite = 20): Promise<MotCleFil[]> {
+    const db = obtenirBdd();
+    try {
+      const lignes = await db
+        .select({ mot: articlesMotsCles.mot, nombreArticles: sql<number>`COUNT(DISTINCT ${articlesMotsCles.articleId})` })
+        .from(articlesMotsCles)
+        .innerJoin(articles, eq(articlesMotsCles.articleId, articles.id))
+        .innerJoin(
+          utilisateursSources,
+          and(
+            eq(utilisateursSources.sourceId, articles.sourceId),
+            eq(utilisateursSources.utilisateurId, utilisateurId),
+            eq(utilisateursSources.estEnPause, false),
+          ),
+        )
+        .groupBy(articlesMotsCles.mot)
+        .orderBy(desc(sql`COUNT(DISTINCT ${articlesMotsCles.articleId})`), asc(articlesMotsCles.mot))
+        .limit(limite);
+      return lignes.map(l => ({ mot: l.mot, nombreArticles: Number(l.nombreArticles) }));
+    } catch (erreur) {
+      loggerBdd.error({ erreur, utilisateurId }, 'Erreur lors du listing des mots-clés du fil');
+      throw erreur;
+    }
+  }
+
+  async listerSansMotsCles(limite = 500): Promise<Article[]> {
+    const db = obtenirBdd();
+    try {
+      const lignes = await db
+        .select()
+        .from(articles)
+        .where(sql`NOT EXISTS (SELECT 1 FROM articles_mots_cles amc WHERE amc.article_id = ${articles.id})`)
+        .orderBy(desc(articles.datePublication))
+        .limit(limite);
+      return lignes.map(r => this.versArticle(r));
+    } catch (erreur) {
+      loggerBdd.error({ erreur }, 'Erreur lors du listing des articles sans mots-clés');
       throw erreur;
     }
   }

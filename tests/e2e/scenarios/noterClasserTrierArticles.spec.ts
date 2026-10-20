@@ -1,5 +1,5 @@
 /**
- * Veilleur - Test E2E : noter, classer, mettre en favori, rechercher et trier les articles
+ * Veilleur - Test E2E : noter, mettre en favori, classement automatique, rechercher et trier les articles
  *
  * Les articles dépendent de la synchronisation d'une source réelle : chaque test
  * s'arrête proprement si le fil est encore vide.
@@ -62,18 +62,22 @@ test.describe('US4 - Noter, classer et trier les articles', () => {
     await expect(page.locator('.carte-article-titre').first()).toHaveText(titre ?? '');
   });
 
-  test('classe un article avec un tag et filtre dessus', async ({ page }) => {
+  test('affiche les mots-clés extraits automatiquement et filtre dessus', async ({ page }) => {
     test.skip(!(await ouvrirFilAvecArticles(page)), 'Aucun article synchronisé');
     const carte = page.locator('.carte-article').first();
 
-    await carte.getByLabel(/ajouter un tag à cet article/i).fill('Économie');
-    await carte.getByLabel(/ajouter un tag à cet article/i).press('Enter');
-    await expect(carte.locator('.badge-tag', { hasText: 'Économie' })).toBeVisible();
+    const motsCles = carte.locator('.badge-mot-cle');
+    await expect(motsCles.first()).toBeVisible();
+    expect(await motsCles.count()).toBeLessThanOrEqual(5);
+    // Aucun champ de saisie : le classement ne dépend pas de l'utilisateur
+    await expect(carte.getByLabel(/ajouter un tag/i)).toHaveCount(0);
 
-    const chip = page.locator('#fil-tags .chip-filtre', { hasText: /Économie/ });
-    await expect(chip).toBeVisible();
-    await chip.click();
-    await expect(page.locator('.carte-article:not(.squelette)')).toHaveCount(1);
+    const mot = (await motsCles.first().textContent()) ?? '';
+    await motsCles.first().click();
+    await expect(page.locator('#fil-mots-cles .chip-filtre.active')).toHaveText(new RegExp(mot));
+    const cartes = page.locator('.carte-article:not(.squelette)');
+    await expect(cartes.first()).toBeVisible({ timeout: 10000 });
+    await expect(cartes.first().locator('.badge-mot-cle', { hasText: mot })).toBeVisible();
   });
 
   test('recherche dans les articles', async ({ page }) => {

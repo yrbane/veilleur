@@ -7,6 +7,7 @@ import type { DepotArticles, CriteresArticles, ResultatPagineArticles } from '@/
 import type { DepotSources } from '@/domaine/ports/DepotSources';
 import type { Article, ArticleBrut } from '@/domaine/entites/Article';
 import { hashContenu, selectionnerImage, selectionnerResume } from '@/domaine/entites/Article';
+import { extraireMotsCles } from './ExtractionMotsCles';
 import type { ServiceCache } from '@/domaine/ports/ServiceCache';
 import { PREFIXES_CACHE, TTL_DEFAUT } from '@/domaine/ports/ServiceCache';
 
@@ -184,6 +185,8 @@ export class ServiceArticles {
             metaOpenGraph,
             metaTwitter,
             hashContenu: hash,
+            // Classement automatique : mots-clés du titre et du résumé complet (avant troncature)
+            motsCles: extraireMotsCles({ titre: articleBrut.titre, resume: articleBrut.resume }),
           });
 
           nouveauxArticles++;
