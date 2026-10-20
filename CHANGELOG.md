@@ -4,6 +4,17 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.17.1 — 2026-10-21 · « Lunar Aurora assaini »
+
+### Modifié
+- Lunar Aurora mis à jour (PR yrbane/lunar-aurora#16, contribuée depuis ce
+  projet) : sélecteurs `.2xl`… échappés, règle `:where(@media …)` invalide
+  retirée, police Google isolée dans `icons-font.css`. Le build ne produit plus
+  aucun avertissement CSS.
+- Le client importe désormais les couches Lunar une à une depuis
+  `src/client/styles/aurora.css`, sans `icons-font.css` : le plugin PostCSS qui
+  supprimait le `@font-face` Google au build disparaît.
+
 ## 0.17.0 — 2026-10-21 · « Application installable »
 
 ### Ajouté

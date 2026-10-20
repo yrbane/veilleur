@@ -1,0 +1,30 @@
+/**
+ * Veilleur - Lunar Aurora, couche par couche, sans icons-font.css :
+ * la police d'icônes Material Symbols est auto-hébergée (voir utils/icones.ts et variables.css),
+ * et la CSP interdit fonts.gstatic.com.
+ */
+
+@layer reset, tokens, themes, typography, layout, components, icons, utilities, animations;
+
+@import 'lunar-aurora/src/tokens.css' layer(tokens);
+@import 'lunar-aurora/src/themes.css' layer(themes);
+@import 'lunar-aurora/src/reset.css' layer(reset);
+@import 'lunar-aurora/src/typography.css' layer(typography);
+@import 'lunar-aurora/src/layout.css' layer(layout);
+@import 'lunar-aurora/src/components.css' layer(components);
+@import 'lunar-aurora/src/modal.css' layer(components);
+@import 'lunar-aurora/src/components/table.css' layer(components);
+@import 'lunar-aurora/src/components/card.css' layer(components);
+@import 'lunar-aurora/src/components/stat.css' layer(components);
+@import 'lunar-aurora/src/components/empty.css' layer(components);
+@import 'lunar-aurora/src/components/pagination.css' layer(components);
+@import 'lunar-aurora/src/components/breadcrumb.css' layer(components);
+@import 'lunar-aurora/src/components/toast.css' layer(components);
+@import 'lunar-aurora/src/components/tooltip.css' layer(components);
+@import 'lunar-aurora/src/components/progress.css' layer(components);
+@import 'lunar-aurora/src/components/switch.css' layer(components);
+@import 'lunar-aurora/src/components/dropdown.css' layer(components);
+@import 'lunar-aurora/src/icons.css' layer(icons);
+@import 'lunar-aurora/src/animations.css' layer(animations);
+@import 'lunar-aurora/src/utilities.css' layer(utilities);
+@import 'lunar-aurora/src/extended.css' layer(utilities);
