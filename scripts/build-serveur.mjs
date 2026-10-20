@@ -9,6 +9,7 @@
  *   - dist/serveur.js : API + workers (point d'entrée de production)
  *   - dist/migrer.js  : application des migrations Drizzle
  *   - dist/seed.js    : sources par défaut
+ *   - dist/rattraper-images.js : ré-enfile les images d'articles absentes du cache
  */
 import { build } from 'esbuild';
 
@@ -16,6 +17,7 @@ const pointsEntree = {
   serveur: 'src/index.ts',
   migrer: 'src/infrastructure/persistence/migrer.ts',
   seed: 'src/infrastructure/persistence/seed.ts',
+  'rattraper-images': 'src/infrastructure/workers/rattraperImages.ts',
 };
 
 await build({
