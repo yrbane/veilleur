@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import type { Tag } from './Tag';
 
 /**
  * Schéma des métadonnées Open Graph
@@ -131,4 +132,48 @@ export function selectionnerResume(
     article.resume ??
     null;
   return tronquerResume(resume);
+}
+
+/**
+ * Tris disponibles pour le fil d'actualités
+ */
+export const TRIS_ARTICLES = ['date', 'note', 'titre', 'source'] as const;
+export type TriArticles = (typeof TRIS_ARTICLES)[number];
+export type OrdreTri = 'asc' | 'desc';
+
+/**
+ * Résout un tri demandé (valeurs inconnues → date, ordre par défaut selon le champ :
+ * croissant pour les textes, décroissant pour la date et la note)
+ */
+export function resoudreTri(tri?: string | null, ordre?: string | null): { tri: TriArticles; ordre: OrdreTri } {
+  const triValide: TriArticles = (TRIS_ARTICLES as readonly string[]).includes(tri ?? '') ? (tri as TriArticles) : 'date';
+  const ordreDefaut: OrdreTri = triValide === 'titre' || triValide === 'source' ? 'asc' : 'desc';
+  const ordreValide: OrdreTri = ordre === 'asc' || ordre === 'desc' ? ordre : ordreDefaut;
+  return { tri: triValide, ordre: ordreValide };
+}
+
+/**
+ * Note d'un article par un utilisateur : entier de 1 à 5
+ */
+export const NOTE_ARTICLE_MIN = 1;
+export const NOTE_ARTICLE_MAX = 5;
+
+export function estNoteValide(note: unknown): note is number {
+  return typeof note === 'number' && Number.isInteger(note) && note >= NOTE_ARTICLE_MIN && note <= NOTE_ARTICLE_MAX;
+}
+
+/**
+ * Annotations personnelles d'un utilisateur sur un article
+ */
+export interface AnnotationArticle {
+  note: number | null;
+  favori: boolean;
+  tags: Tag[];
+}
+
+/**
+ * Tag utilisé sur les articles d'un utilisateur, avec le nombre d'articles classés dessous
+ */
+export interface TagArticlesUtilise extends Tag {
+  nombreArticles: number;
 }

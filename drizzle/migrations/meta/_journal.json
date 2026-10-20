@@ -36,6 +36,13 @@
       "when": 1792490520581,
       "tag": "0004_totp_utilisateurs",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1792527041175,
+      "tag": "0005_annotations_articles",
+      "breakpoints": true
     }
   ]
 }

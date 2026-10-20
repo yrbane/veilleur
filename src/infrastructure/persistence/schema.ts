@@ -278,6 +278,51 @@ export const utilisateursSourcesTags = mysqlTable(
 );
 
 /**
+ * Table des annotations d'articles : note posée par un utilisateur sur un article
+ */
+export const utilisateursArticles = mysqlTable(
+  'utilisateurs_articles',
+  {
+    id: varchar('id', { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    utilisateurId: varchar('utilisateur_id', { length: 36 }).notNull(),
+    articleId: varchar('article_id', { length: 36 }).notNull(),
+    note: tinyint('note'),
+    favori: boolean('favori').notNull().default(false),
+    dateMiseAJour: timestamp('date_mise_a_jour').notNull().defaultNow(),
+  },
+  table => ({
+    idxUnique: uniqueIndex('idx_utilisateur_article_unique').on(table.utilisateurId, table.articleId),
+    // Tri et filtre du fil par note, filtre favoris
+    idxNote: index('idx_utilisateur_article_note').on(table.utilisateurId, table.note),
+    idxFavori: index('idx_utilisateur_article_favori').on(table.utilisateurId, table.favori),
+    idxArticle: index('idx_utilisateur_article_article').on(table.articleId),
+  }),
+);
+
+/**
+ * Table de liaison utilisateur-article-tag (classement personnel des articles)
+ */
+export const utilisateursArticlesTags = mysqlTable(
+  'utilisateurs_articles_tags',
+  {
+    id: varchar('id', { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    utilisateurId: varchar('utilisateur_id', { length: 36 }).notNull(),
+    articleId: varchar('article_id', { length: 36 }).notNull(),
+    tagId: varchar('tag_id', { length: 36 }).notNull(),
+    dateCreation: timestamp('date_creation').notNull().defaultNow(),
+  },
+  table => ({
+    idxUnique: uniqueIndex('idx_uat_unique').on(table.utilisateurId, table.articleId, table.tagId),
+    idxUtilisateurTag: index('idx_uat_utilisateur_tag').on(table.utilisateurId, table.tagId),
+    idxArticle: index('idx_uat_article').on(table.articleId),
+  }),
+);
+
+/**
  * Table de cache source (fallback si Redis indisponible)
  */
 export const cachesSources = mysqlTable(

@@ -4,7 +4,33 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
-## 0.3.0 — 2026-10-20 · « Découverte automatique du flux et du protocole »
+## 0.4.0 — 2026-10-20 · « Noter, classer, trier et retrouver ses articles »
+
+### Ajouté
+- **Note par article** (1 à 5 étoiles, personnelle) : cliquer sur l'étoile de
+  la note courante la retire. `PUT /api/v1/articles/:id/note`.
+- **Favoris** : cœur sur chaque carte, filtre « ♥ Favoris » en haut du fil.
+  `PUT /api/v1/articles/:id/favori`.
+- **Classement par tags** sur les articles : badges retirables et champ
+  « Classer… » sur chaque carte ; les tags posés apparaissent comme filtres
+  au-dessus du fil avec le nombre d'articles. `PUT /api/v1/articles/:id/tags`
+  et `GET /api/v1/articles/tags`.
+- **Tri du fil** : plus récents, plus anciens, mieux notés, titre A → Z,
+  source A → Z (`tri` et `ordre` sur `GET /api/v1/articles/fil`), plus un
+  filtre de note minimale (`noteMin`), de favoris (`favoris=true`) et de tag
+  d'article (`tagArticle`). Les filtres sont mémorisés dans le navigateur.
+- **Barre de recherche** en haut du fil, plein texte sur le titre et le résumé
+  de tous les articles des sources suivies (déclenchée à la frappe).
+- **Chargement au défilement** : les boutons « Précédent / Suivant » laissent
+  place à un chargement automatique de la suite du fil.
+- Migration `0005_annotations_articles` : tables `utilisateurs_articles`
+  (note, favori) et `utilisateurs_articles_tags`.
+
+### Corrigé
+- Le total paginé du fil ignorait les filtres (source, recherche) et annonçait
+  trop de pages.
+
+ · « Découverte automatique du flux et du protocole »
 
 ### Ajouté
 - **Ajout d'une source par l'adresse du site** : coller `mediapart.fr` ou

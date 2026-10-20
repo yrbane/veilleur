@@ -3,7 +3,7 @@
  * Interface pour l'accès aux données articles
  */
 
-import type { Article, ArticleAvecSource } from '../entites/Article';
+import type { Article, ArticleAvecSource, TriArticles, OrdreTri } from '../entites/Article';
 
 /**
  * Critères de recherche pour les articles
@@ -21,6 +21,13 @@ export interface CriteresArticles {
   // Pagination curseur (nouvelle)
   curseur?: string;
   direction?: 'avant' | 'apres';
+  // Tri (date par défaut) ; le curseur n'est utilisé que pour le tri par date décroissante
+  tri?: TriArticles;
+  ordre?: OrdreTri;
+  // Filtres sur les annotations de l'utilisateur
+  noteMin?: number;
+  tagArticle?: string;
+  favoris?: boolean;
 }
 
 /**

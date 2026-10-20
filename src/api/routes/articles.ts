@@ -7,7 +7,11 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { verifierAuthentification } from '@/api/middlewares/authentification';
 import { ServiceArticles, ErreurArticle } from '@/domaine/services/ServiceArticles';
+import { ServiceAnnotationsArticles, ErreurAnnotation, MAX_TAGS_PAR_ARTICLE } from '@/domaine/services/ServiceAnnotationsArticles';
+import { TRIS_ARTICLES, NOTE_ARTICLE_MIN, NOTE_ARTICLE_MAX } from '@/domaine/entites/Article';
 import { DepotArticlesMariaDB } from '@/infrastructure/persistence/DepotArticlesMariaDB';
+import { DepotAnnotationsArticlesMariaDB } from '@/infrastructure/persistence/DepotAnnotationsArticlesMariaDB';
+import { obtenirDepotTags } from '@/infrastructure/persistence/DepotTagsMariaDB';
 import { DepotSourcesMariaDB } from '@/infrastructure/persistence/DepotSourcesMariaDB';
 import { obtenirServiceCache } from '@/infrastructure/cache/ServiceCacheRedis';
 import { obtenirServiceScraping } from '@/infrastructure/scraping/ServiceScraping';
@@ -26,7 +30,49 @@ const schemaCriteresFil = z.object({
   recherche: z.string().optional(),
   curseur: z.string().optional(),
   direction: z.enum(['avant', 'apres']).optional(),
+  tri: z.enum(TRIS_ARTICLES).optional(),
+  ordre: z.enum(['asc', 'desc']).optional(),
+  noteMin: z.coerce.number().int().min(NOTE_ARTICLE_MIN).max(NOTE_ARTICLE_MAX).optional(),
+  tagArticle: z.string().min(1).max(50).optional(),
+  favoris: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform(val => val === 'true'),
 });
+
+const schemaParamsArticle = z.object({ id: z.string().min(1) });
+const schemaNote = z.object({ note: z.number().int().nullable() });
+const schemaFavori = z.object({ favori: z.boolean() });
+const schemaTagsArticle = z.object({ tags: z.array(z.string().max(50)).max(MAX_TAGS_PAR_ARTICLE + 1) });
+
+/**
+ * Schéma de réponse d'un tag
+ */
+const SCHEMA_TAG = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },
+    nom: { type: 'string' },
+    slug: { type: 'string' },
+  },
+} as const;
+
+/**
+ * Instance du service d'annotations (lazy)
+ */
+let serviceAnnotations: ServiceAnnotationsArticles | null = null;
+
+function obtenirServiceAnnotations(): ServiceAnnotationsArticles {
+  if (!serviceAnnotations) {
+    serviceAnnotations = new ServiceAnnotationsArticles(
+      new DepotAnnotationsArticlesMariaDB(),
+      new DepotArticlesMariaDB(),
+      obtenirDepotTags(),
+      obtenirServiceCache(),
+    );
+  }
+  return serviceAnnotations;
+}
 
 /**
  * Instance du service articles (lazy)
@@ -96,6 +142,13 @@ function gererErreurArticle(erreur: unknown, reply: FastifyReply): FastifyReply 
     });
   }
 
+  if (erreur instanceof ErreurAnnotation) {
+    return reply.status(erreur.code === 'ARTICLE_INTROUVABLE' ? 404 : 400).send({
+      erreur: erreur.code,
+      message: erreur.message,
+    });
+  }
+
   if (erreur instanceof z.ZodError) {
     return reply.status(400).send({
       erreur: 'VALIDATION_ERREUR',
@@ -138,6 +191,12 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
           sourceId: { type: 'string' },
           tag: { type: 'string' },
           depuis: { type: 'string', format: 'date-time' },
+          recherche: { type: 'string' },
+          tri: { type: 'string', enum: [...TRIS_ARTICLES] },
+          ordre: { type: 'string', enum: ['asc', 'desc'] },
+          noteMin: { type: 'number' },
+          tagArticle: { type: 'string' },
+          favoris: { type: 'string', enum: ['true', 'false'] },
         },
       },
       response: {
@@ -163,6 +222,9 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
                       urlFavicon: { type: 'string', nullable: true },
                     },
                   },
+                  note: { type: 'number', nullable: true },
+                  favori: { type: 'boolean' },
+                  tags: { type: 'array', items: SCHEMA_TAG },
                 },
               },
             },
@@ -191,11 +253,23 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
         utilisateurId: utilisateur.sub,
       });
 
-      // Transformer les URLs d'images pour utiliser le cache local
-      return reply.send({
-        ...resultat,
-        donnees: transformerArticlesPourReponse(resultat.donnees),
+      // Annotations personnelles (note, favori, tags), lues hors cache pour rester fraîches
+      const annotations = await obtenirServiceAnnotations().obtenirAnnotations(
+        utilisateur.sub,
+        resultat.donnees.map(a => a.id),
+      );
+      const donnees = transformerArticlesPourReponse(resultat.donnees).map(article => {
+        const annotation = annotations.get(article.id);
+        return {
+          ...article,
+          note: annotation?.note ?? null,
+          favori: annotation?.favori ?? false,
+          tags: annotation?.tags ?? [],
+        };
       });
+
+      // Transformer les URLs d'images pour utiliser le cache local
+      return reply.send({ ...resultat, donnees });
     } catch (erreur) {
       return gererErreurArticle(erreur, reply);
     }
@@ -370,6 +444,117 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
    * GET /api/v1/articles/statistiques
    * Récupère les statistiques des articles de l'utilisateur
    */
+  /**
+   * GET /api/v1/articles/tags
+   * Tags que l'utilisateur a posés sur ses articles (pour filtrer le fil)
+   */
+  fastify.get('/tags', {
+    schema: {
+      tags: ['Articles'],
+      summary: 'Tags utilisés sur les articles de l\'utilisateur',
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            donnees: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: { ...SCHEMA_TAG.properties, nombreArticles: { type: 'number' } },
+              },
+            },
+          },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const donnees = await obtenirServiceAnnotations().listerTagsUtilises(request.utilisateur!.sub);
+      return reply.send({ donnees });
+    } catch (erreur) {
+      return gererErreurArticle(erreur, reply);
+    }
+  });
+
+  /**
+   * PUT /api/v1/articles/:id/note
+   * Note un article de 1 à 5 (null pour retirer la note)
+   */
+  fastify.put('/:id/note', {
+    schema: {
+      tags: ['Articles'],
+      summary: 'Note un article',
+      security: [{ bearerAuth: [] }],
+      params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
+      body: {
+        type: 'object',
+        required: ['note'],
+        properties: { note: { type: 'number', nullable: true, minimum: NOTE_ARTICLE_MIN, maximum: NOTE_ARTICLE_MAX } },
+      },
+      response: { 200: { type: 'object', properties: { note: { type: 'number', nullable: true } } } },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = schemaParamsArticle.parse(request.params);
+      const { note } = schemaNote.parse(request.body);
+      return reply.send(await obtenirServiceAnnotations().noter(request.utilisateur!.sub, id, note));
+    } catch (erreur) {
+      return gererErreurArticle(erreur, reply);
+    }
+  });
+
+  /**
+   * PUT /api/v1/articles/:id/favori
+   * Met un article en favori ou l'en retire
+   */
+  fastify.put('/:id/favori', {
+    schema: {
+      tags: ['Articles'],
+      summary: 'Met un article en favori',
+      security: [{ bearerAuth: [] }],
+      params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
+      body: { type: 'object', required: ['favori'], properties: { favori: { type: 'boolean' } } },
+      response: { 200: { type: 'object', properties: { favori: { type: 'boolean' } } } },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = schemaParamsArticle.parse(request.params);
+      const { favori } = schemaFavori.parse(request.body);
+      return reply.send(await obtenirServiceAnnotations().definirFavori(request.utilisateur!.sub, id, favori));
+    } catch (erreur) {
+      return gererErreurArticle(erreur, reply);
+    }
+  });
+
+  /**
+   * PUT /api/v1/articles/:id/tags
+   * Remplace les tags posés sur un article (classement personnel)
+   */
+  fastify.put('/:id/tags', {
+    schema: {
+      tags: ['Articles'],
+      summary: 'Classe un article avec des tags',
+      security: [{ bearerAuth: [] }],
+      params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
+      body: {
+        type: 'object',
+        required: ['tags'],
+        properties: { tags: { type: 'array', items: { type: 'string', maxLength: 50 }, maxItems: MAX_TAGS_PAR_ARTICLE + 1 } },
+      },
+      response: { 200: { type: 'object', properties: { tags: { type: 'array', items: SCHEMA_TAG } } } },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = schemaParamsArticle.parse(request.params);
+      const { tags } = schemaTagsArticle.parse(request.body);
+      const resultat = await obtenirServiceAnnotations().definirTags(request.utilisateur!.sub, id, tags);
+      return reply.send({ tags: resultat });
+    } catch (erreur) {
+      return gererErreurArticle(erreur, reply);
+    }
+  });
+
   fastify.get('/statistiques', {
     schema: {
       tags: ['Articles'],
