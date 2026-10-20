@@ -222,6 +222,7 @@ export interface Preferences {
   frequenceRafraichissement?: number;
   pseudo?: string;
   classementPublic?: boolean;
+  resumeCourriel?: 'aucun' | 'quotidien' | 'hebdomadaire';
 }
 
 export interface Utilisateur {
@@ -819,5 +820,46 @@ export const tendances = {
 export const progression = {
   async obtenir(): Promise<Progression> {
     return requete<Progression>('/progression/');
+  },
+};
+
+// ============================================
+// API Notifications (Web Push, résumé courriel)
+// ============================================
+
+export interface EtatNotifications {
+  push: { configure: boolean; appareils: number };
+  courriel: { configure: boolean };
+}
+
+export const notifications = {
+  /** null si le serveur n'a pas de clés VAPID */
+  async clePublique(): Promise<string | null> {
+    try {
+      const reponse = await requete<{ clePublique: string }>('/notifications/push/cle-publique');
+      return reponse.clePublique;
+    } catch {
+      return null;
+    }
+  },
+
+  async etat(): Promise<EtatNotifications> {
+    return requete<EtatNotifications>('/notifications/etat');
+  },
+
+  async enregistrerPush(abonnement: { endpoint: string; keys: { p256dh: string; auth: string } }): Promise<void> {
+    await requete('/notifications/push/abonnements', { method: 'POST', body: JSON.stringify(abonnement) });
+  },
+
+  async supprimerPush(endpoint: string): Promise<void> {
+    await requete('/notifications/push/abonnements', { method: 'DELETE', body: JSON.stringify({ endpoint }) });
+  },
+
+  async testerPush(): Promise<{ envoyes: number }> {
+    return requete('/notifications/push/test', { method: 'POST' });
+  },
+
+  async testerResume(frequence: 'quotidien' | 'hebdomadaire'): Promise<{ envoye: boolean; email: string }> {
+    return requete('/notifications/resume/test', { method: 'POST', body: JSON.stringify({ frequence }) });
   },
 };

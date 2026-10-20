@@ -56,6 +56,23 @@ const schemaEnvironnement = z.object({
   API_HMAC_SECRET: z.string().min(32).optional(),
 
   // Cache d'images
+  // Adresse publique de l'application (liens des courriels et des notifications)
+  APP_URL: z.string().url().default('http://localhost:5173'),
+
+  // Web Push (clés VAPID : `npx web-push generate-vapid-keys`) ; absentes = push désactivé
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().default('mailto:veilleur@localhost'),
+  NOTIFICATIONS_PUSH_INTERVALLE_MIN: z.coerce.number().default(30),
+
+  // Courriel (résumés) ; SMTP_HOST absent = courriel désactivé
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().default(25),
+  SMTP_SECURE: z.coerce.boolean().default(false),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  SMTP_FROM: z.string().default('Veilleur <veilleur@localhost>'),
+
   IMAGES_CHEMIN_STOCKAGE: z.string().default('./data/images'),
   IMAGES_MAX_TAILLE_MO: z.coerce.number().default(5),
   IMAGES_RETENTION_JOURS: z.coerce.number().default(90),

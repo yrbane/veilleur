@@ -90,6 +90,10 @@
 - Notes moyennes communautaires
 - Articles les plus appréciés de la semaine, suggestions de sources d'après les lecteurs aux goûts proches, partage d'articles
 
+### 🔔 Notifications
+- Web Push après chaque synchronisation (regroupé, au plus une fois par demi-heure, réglable par source)
+- Résumé courriel quotidien ou hebdomadaire des articles non lus, groupé par source
+
 ### 🏅 Parcours
 - Points, six niveaux, douze badges et série de jours de lecture, déduits de votre activité
 - Classement public sur la base du volontariat, sous pseudo

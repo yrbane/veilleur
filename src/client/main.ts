@@ -21,6 +21,7 @@ import { afficherPageConnexion, afficherPageInscription } from './pages/PageAuth
 import { afficherPageParametres } from './pages/PageParametres';
 import { afficherPageDecouverte } from './pages/PageDecouverte';
 import { afficherPageProgression } from './pages/PageProgression';
+import { enregistrerServiceWorker } from './utils/notificationsPush';
 import { toast } from './utils/toast';
 
 // Version injectée par Vite (define) depuis package.json
@@ -309,6 +310,9 @@ async function initialiser(): Promise<void> {
 
   // Initialiser la navigation
   initialiserNavigation();
+
+  // Service worker (notifications push) : silencieux si indisponible
+  void enregistrerServiceWorker();
 
   // Afficher la version dans le pied de page
   afficherVersion();

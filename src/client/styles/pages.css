@@ -1169,3 +1169,12 @@
   color: var(--couleur-texte-secondaire);
   font-weight: var(--poids-semibold);
 }
+
+/* Boutons côte à côte dans les paramètres (0.16.0) */
+.parametres-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espace-2);
+  align-items: center;
+  margin: var(--espace-2) 0;
+}

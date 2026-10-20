@@ -15,6 +15,8 @@ export const schemaPreferences = z.object({
   // Gamification : pseudo affiché et participation volontaire au classement
   pseudo: z.string().trim().min(2).max(30).optional(),
   classementPublic: z.boolean().optional(),
+  // Résumé courriel des articles non lus
+  resumeCourriel: z.enum(['aucun', 'quotidien', 'hebdomadaire']).optional(),
 });
 
 export type Preferences = z.infer<typeof schemaPreferences>;
