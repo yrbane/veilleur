@@ -7,7 +7,8 @@
 import { iconeHtml } from '../utils/icones';
 import { creerElement, $, vider } from '../utils/dom';
 import { formatNombre } from '../utils/format';
-import { articles, estAuthentifie } from '../services/api';
+import { articles, sources, estAuthentifie } from '../services/api';
+import { termesRecherche } from '../utils/surlignage';
 import { creerCarteArticle } from '../composants/CarteArticle';
 import { creerListeSkeletons } from '../composants/SkeletonArticle';
 import { toast } from '../utils/toast';
@@ -39,6 +40,27 @@ interface FiltresFil {
   nonLus: boolean;
   aLire: boolean;
   motCle?: string;
+  /** Une seule source */
+  sourceId?: string;
+  /** Fenêtre de publication */
+  periode?: Periode;
+}
+
+type Periode = '24h' | '7j' | '30j';
+
+const CHOIX_PERIODE: { valeur: Periode; libelle: string; heures: number }[] = [
+  { valeur: '24h', libelle: 'Dernières 24 h', heures: 24 },
+  { valeur: '7j', libelle: '7 derniers jours', heures: 24 * 7 },
+  { valeur: '30j', libelle: '30 derniers jours', heures: 24 * 30 },
+];
+
+/**
+ * Borne « depuis » (ISO) d'une période, ou undefined pour tout le fil
+ */
+export function depuisPeriode(periode: Periode | undefined, maintenant: Date = new Date()): string | undefined {
+  const choix = CHOIX_PERIODE.find(c => c.valeur === periode);
+  if (!choix) return undefined;
+  return new Date(maintenant.getTime() - choix.heures * 3600 * 1000).toISOString();
 }
 
 const FILTRES_DEFAUT: FiltresFil = { recherche: '', tri: 'date', ordre: 'desc', favoris: false, nonLus: false, aLire: false };
@@ -104,8 +126,9 @@ function creerBarreRecherche(): HTMLElement {
     attrs: {
       type: 'search',
       id: 'fil-recherche',
-      placeholder: 'Rechercher dans tous les articles…',
-      'aria-label': 'Rechercher dans les articles',
+      placeholder: 'Rechercher… (-mot exclut, "phrase exacte", préfixe*)',
+      'aria-label': 'Rechercher dans les articles. Un tiret devant un mot l\'exclut, les guillemets imposent une phrase exacte, l\'astérisque accepte un préfixe.',
+      title: '-mot exclut · "phrase exacte" · préfixe*',
       autocomplete: 'off',
       value: filtres.recherche,
     },
@@ -168,6 +191,34 @@ function creerBarreOutils(): HTMLElement {
   selectNote.value = filtres.noteMin ? String(filtres.noteMin) : '';
   selectNote.addEventListener('change', () => {
     filtres.noteMin = selectNote.value ? Number(selectNote.value) : undefined;
+    appliquerFiltres();
+  });
+
+  // Source
+  const labelSource = creerElement('label', { classes: ['fil-outils-label'], attrs: { for: 'fil-source' }, texte: 'Source' });
+  const selectSource = creerElement('select', { classes: ['la-select'], attrs: { id: 'fil-source' } }) as HTMLSelectElement;
+  selectSource.append(creerElement('option', { attrs: { value: '' }, texte: 'Toutes' }));
+  if (filtres.sourceId) {
+    // Option provisoire pour conserver la sélection avant l'arrivée de la liste
+    selectSource.append(creerElement('option', { attrs: { value: filtres.sourceId }, texte: '…' }));
+    selectSource.value = filtres.sourceId;
+  }
+  selectSource.addEventListener('change', () => {
+    filtres.sourceId = selectSource.value || undefined;
+    appliquerFiltres();
+  });
+  void remplirSelectSources(selectSource);
+
+  // Période
+  const labelPeriode = creerElement('label', { classes: ['fil-outils-label'], attrs: { for: 'fil-periode' }, texte: 'Période' });
+  const selectPeriode = creerElement('select', { classes: ['la-select'], attrs: { id: 'fil-periode' } }) as HTMLSelectElement;
+  selectPeriode.append(creerElement('option', { attrs: { value: '' }, texte: 'Tout' }));
+  for (const choix of CHOIX_PERIODE) {
+    selectPeriode.append(creerElement('option', { attrs: { value: choix.valeur }, texte: choix.libelle }));
+  }
+  selectPeriode.value = filtres.periode ?? '';
+  selectPeriode.addEventListener('change', () => {
+    filtres.periode = (selectPeriode.value || undefined) as Periode | undefined;
     appliquerFiltres();
   });
 
@@ -240,7 +291,7 @@ function creerBarreOutils(): HTMLElement {
     },
   });
 
-  barre.append(labelTri, selectTri, labelNote, selectNote, btnFavoris, btnALire, btnNonLus, btnToutLu, motsClesFiltre);
+  barre.append(labelTri, selectTri, labelSource, selectSource, labelPeriode, selectPeriode, labelNote, selectNote, btnFavoris, btnALire, btnNonLus, btnToutLu, motsClesFiltre);
   return barre;
 }
 
@@ -299,6 +350,30 @@ function filtrerParMotCle(mot: string | undefined): void {
 }
 
 /**
+ * Remplit le sélecteur de sources avec celles de l'utilisateur (triées par nom)
+ */
+async function remplirSelectSources(select: HTMLSelectElement): Promise<void> {
+  try {
+    const resultat = await sources.lister(1, 100);
+    const liste = [...resultat.donnees].sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+    const courante = filtres.sourceId;
+    select.replaceChildren(creerElement('option', { attrs: { value: '' }, texte: 'Toutes' }));
+    for (const source of liste) {
+      select.append(creerElement('option', { attrs: { value: source.id }, texte: source.nom }));
+    }
+    if (courante && liste.some(s => s.id === courante)) {
+      select.value = courante;
+    } else if (courante) {
+      // Source disparue : on revient au fil complet
+      filtres.sourceId = undefined;
+      appliquerFiltres();
+    }
+  } catch {
+    // Sans la liste, le sélecteur reste sur « Toutes »
+  }
+}
+
+/**
  * Relance le fil depuis le début avec les filtres courants
  */
 function appliquerFiltres(): void {
@@ -320,7 +395,7 @@ function chargerFiltres(): FiltresFil {
 function sauvegarderFiltres(): void {
   try {
     // La recherche n'est pas mémorisée : on revient toujours sur le fil complet
-    const persistants = { tri: filtres.tri, ordre: filtres.ordre, noteMin: filtres.noteMin, favoris: filtres.favoris, nonLus: filtres.nonLus, aLire: filtres.aLire, motCle: filtres.motCle };
+    const persistants = { tri: filtres.tri, ordre: filtres.ordre, noteMin: filtres.noteMin, favoris: filtres.favoris, nonLus: filtres.nonLus, aLire: filtres.aLire, motCle: filtres.motCle, sourceId: filtres.sourceId, periode: filtres.periode };
     localStorage.setItem(CLE_FILTRES, JSON.stringify(persistants));
   } catch {
     // Stockage indisponible : les filtres ne survivent pas au rechargement, sans gravité
@@ -443,6 +518,8 @@ async function chargerArticles(page: number): Promise<void> {
     nonLus: filtres.nonLus,
     aLire: filtres.aLire,
     motCle: filtres.motCle,
+    sourceId: filtres.sourceId,
+    depuis: depuisPeriode(filtres.periode),
   };
 
   try {
@@ -493,6 +570,7 @@ function afficherArticles(container: Element, articlesData: Article[]): void {
     const carte = creerCarteArticle(article, {
       onLu: () => void chargerStatistiques(),
       onMotCle: mot => filtrerParMotCle(mot),
+      surligner: termesRecherche(filtres.recherche),
     });
     container.append(carte);
   }
@@ -502,7 +580,7 @@ function afficherArticles(container: Element, articlesData: Article[]): void {
  * Affiche un message quand il n'y a pas d'articles
  */
 function afficherMessageVide(container: Element): void {
-  const filtresActifs = filtres.recherche || filtres.noteMin || filtres.favoris || filtres.nonLus || filtres.aLire || filtres.motCle;
+  const filtresActifs = filtres.recherche || filtres.noteMin || filtres.favoris || filtres.nonLus || filtres.aLire || filtres.motCle || filtres.sourceId || filtres.periode;
   if (filtresActifs) {
     container.innerHTML = `
       <div class="la-empty">

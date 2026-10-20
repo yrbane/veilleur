@@ -71,7 +71,8 @@
 - Notation des sources (1-5 étoiles)
 - Tags de sources déduits automatiquement, modifiables à la main
 - Articles notés et mis en favoris, classés automatiquement par cinq mots-clés extraits du texte
-- Fil trié (date, note, titre, source), filtré, avec recherche plein texte et chargement au défilement
+- Fil trié (date, note, titre, source), filtré par source, période, note, favoris, liste de lecture, non lus et mots-clés, avec chargement au défilement
+- Recherche plein texte avec exclusions (`-mot`), phrases exactes et préfixes, termes surlignés dans les cartes
 - Lu / non lu : lecture automatique à l'ouverture, filtre « Non lus », compteurs par source, « Tout marquer lu »
 - Lecture en place : le contenu de l'article, extrait et nettoyé côté serveur, s'ouvre dans une fenêtre sans quitter le fil
 - Liste de lecture « à lire plus tard » et export de toutes les annotations en JSON ou CSV

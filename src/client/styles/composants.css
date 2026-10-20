@@ -870,3 +870,11 @@ body.modal-ouverte {
   gap: var(--espace-3);
   margin-top: var(--espace-4);
 }
+
+/* Termes de recherche surlignés dans les cartes (0.12.0) */
+mark.surligne {
+  background-color: color-mix(in oklch, var(--couleur-primaire) 22%, transparent);
+  color: inherit;
+  border-radius: var(--rayon-sm);
+  padding: 0 0.1em;
+}
