@@ -7,12 +7,12 @@
 import { iconeHtml } from '../utils/icones';
 import { creerElement, $, vider } from '../utils/dom';
 import { formatNombre } from '../utils/format';
-import { articles, sources, estAuthentifie } from '../services/api';
+import { articles, sources, tags, estAuthentifie } from '../services/api';
 import { termesRecherche } from '../utils/surlignage';
 import { creerCarteArticle } from '../composants/CarteArticle';
 import { creerListeSkeletons } from '../composants/SkeletonArticle';
 import { toast } from '../utils/toast';
-import type { Article, MotCleFil, OptionsFil, Statistiques, TriFil } from '../services/api';
+import type { Article, MotCleFil, OptionsFil, Statistiques, Tag, TriFil } from '../services/api';
 
 const TAILLE_PAGE = 20;
 const CLE_FILTRES = 'veilleur.fil.filtres';
@@ -44,6 +44,8 @@ interface FiltresFil {
   sourceId?: string;
   /** Fenêtre de publication */
   periode?: Periode;
+  /** Rubrique (slug d'un tag de source) */
+  tag?: string;
 }
 
 type Periode = '24h' | '7j' | '30j';
@@ -106,7 +108,7 @@ export async function afficherPageAccueil(container: Element): Promise<void> {
     attrs: { id: 'fil-sentinelle', 'aria-live': 'polite' },
   });
 
-  fil.append(creerBarreRecherche(), creerBarreOutils(), liste, sentinelle);
+  fil.append(creerBarreRecherche(), creerBarreRubriques(), creerBarreOutils(), liste, sentinelle);
   page.append(entete, fil);
   container.append(page);
 
@@ -350,6 +352,69 @@ function filtrerParMotCle(mot: string | undefined): void {
 }
 
 /**
+ * Rubriques : les tags de sources de l'utilisateur, en puces avec leurs non-lus (remplies après chargement)
+ */
+function creerBarreRubriques(): HTMLElement {
+  return creerElement('nav', {
+    classes: ['fil-rubriques', 'masque'],
+    attrs: { id: 'fil-rubriques', 'aria-label': 'Rubriques' },
+  });
+}
+
+function afficherRubriques(liste: Tag[], nonLusParTag: Record<string, number>): void {
+  const barre = $('#fil-rubriques');
+  if (!barre) return;
+  vider(barre);
+  const rubriques = [...liste].sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+  barre.classList.toggle('masque', rubriques.length === 0);
+  if (rubriques.length === 0) {
+    if (filtres.tag) {
+      filtres.tag = undefined;
+      appliquerFiltres();
+    }
+    return;
+  }
+  if (filtres.tag && !rubriques.some(r => r.slug === filtres.tag)) {
+    // Rubrique supprimée entre-temps : retour au fil complet
+    filtres.tag = undefined;
+    appliquerFiltres();
+  }
+  const choisir = (slug: string | undefined): void => {
+    filtres.tag = slug;
+    barre.querySelectorAll('.chip-rubrique').forEach(c => {
+      const actif = (c.getAttribute('data-slug') || undefined) === slug;
+      c.classList.toggle('active', actif);
+      c.setAttribute('aria-pressed', String(actif));
+    });
+    appliquerFiltres();
+  };
+  const creerPuce = (slug: string | undefined, nom: string, nonLus: number): HTMLElement => {
+    const actif = (filtres.tag ?? undefined) === slug;
+    const puce = creerElement('button', {
+      classes: ['la-chip chip-filtre chip-rubrique', actif ? 'active' : ''],
+      attrs: { type: 'button', 'data-slug': slug ?? '', 'aria-pressed': String(actif) },
+      icone: slug ? 'label' : 'apps',
+      texte: nom,
+      onClick: () => choisir(slug),
+    });
+    if (nonLus > 0) {
+      puce.append(
+        creerElement('span', {
+          classes: ['la-badge', 'sm', 'badge-non-lus'],
+          attrs: { title: `${nonLus} non lu${nonLus > 1 ? 's' : ''}` },
+          texte: String(nonLus),
+        }),
+      );
+    }
+    return puce;
+  };
+  barre.append(creerPuce(undefined, 'Toutes', 0));
+  for (const rubrique of rubriques) {
+    barre.append(creerPuce(rubrique.slug, rubrique.nom, nonLusParTag[rubrique.slug] ?? 0));
+  }
+}
+
+/**
  * Remplit le sélecteur de sources avec celles de l'utilisateur (triées par nom)
  */
 async function remplirSelectSources(select: HTMLSelectElement): Promise<void> {
@@ -395,7 +460,7 @@ function chargerFiltres(): FiltresFil {
 function sauvegarderFiltres(): void {
   try {
     // La recherche n'est pas mémorisée : on revient toujours sur le fil complet
-    const persistants = { tri: filtres.tri, ordre: filtres.ordre, noteMin: filtres.noteMin, favoris: filtres.favoris, nonLus: filtres.nonLus, aLire: filtres.aLire, motCle: filtres.motCle, sourceId: filtres.sourceId, periode: filtres.periode };
+    const persistants = { tri: filtres.tri, ordre: filtres.ordre, noteMin: filtres.noteMin, favoris: filtres.favoris, nonLus: filtres.nonLus, aLire: filtres.aLire, motCle: filtres.motCle, sourceId: filtres.sourceId, periode: filtres.periode, tag: filtres.tag };
     localStorage.setItem(CLE_FILTRES, JSON.stringify(persistants));
   } catch {
     // Stockage indisponible : les filtres ne survivent pas au rechargement, sans gravité
@@ -451,8 +516,13 @@ async function chargerStatistiques(): Promise<void> {
   if (!container) return;
 
   try {
-    const [stats, nonLus] = await Promise.all([articles.statistiques(), articles.nonLus()]);
+    const [stats, nonLus, rubriques] = await Promise.all([
+      articles.statistiques(),
+      articles.nonLus(),
+      tags.lister().catch(() => ({ donnees: [] as Tag[] })),
+    ]);
     afficherStatistiques(container, stats, nonLus.total);
+    afficherRubriques(rubriques.donnees, nonLus.parTag ?? {});
   } catch {
     // Silencieux - les stats ne sont pas critiques
   }
@@ -520,6 +590,7 @@ async function chargerArticles(page: number): Promise<void> {
     motCle: filtres.motCle,
     sourceId: filtres.sourceId,
     depuis: depuisPeriode(filtres.periode),
+    tag: filtres.tag,
   };
 
   try {
@@ -580,7 +651,7 @@ function afficherArticles(container: Element, articlesData: Article[]): void {
  * Affiche un message quand il n'y a pas d'articles
  */
 function afficherMessageVide(container: Element): void {
-  const filtresActifs = filtres.recherche || filtres.noteMin || filtres.favoris || filtres.nonLus || filtres.aLire || filtres.motCle || filtres.sourceId || filtres.periode;
+  const filtresActifs = filtres.recherche || filtres.noteMin || filtres.favoris || filtres.nonLus || filtres.aLire || filtres.motCle || filtres.sourceId || filtres.periode || filtres.tag;
   if (filtresActifs) {
     container.innerHTML = `
       <div class="la-empty">
