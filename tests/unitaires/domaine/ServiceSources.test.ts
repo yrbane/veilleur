@@ -30,6 +30,10 @@ describe('ServiceSources', () => {
   };
 
   const mockDetecteurSource = vi.fn();
+  const mockDepotTags = {
+    trouverOuCreer: vi.fn(async (nom: string) => ({ id: `tag-${nom.toLowerCase()}`, nom, slug: nom.toLowerCase(), dateCreation: new Date() })),
+    ajouterTagSource: vi.fn(),
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -45,6 +49,36 @@ describe('ServiceSources', () => {
   });
 
   describe('ajouterSource', () => {
+    it('pose automatiquement le favicon et les tags déduits à la détection', async () => {
+      mockDetecteurSource.mockResolvedValue({ url: 'https://journal.fr/feed', type: 'rss', titre: 'Journal', favicon: 'https://journal.fr/icone.png', tags: ['Politique', 'Écologie'] });
+      mockDepotSources.creer.mockImplementation(async (donnees: Record<string, unknown>) => ({ id: 'src-1', ...donnees }));
+      mockDepotSources.ajouterPourUtilisateur.mockResolvedValue({ id: 'us-1', sourceId: 'src-1', nom: 'Journal', tags: [] });
+      const { ServiceSources } = await import('@/domaine/services/ServiceSources');
+      const service = new ServiceSources(mockDepotSources as never, mockDepotParametres as never, mockDetecteurSource, undefined, mockDepotTags);
+
+      const ajoutee = await service.ajouterSource('user-1', 'journal.fr');
+
+      const creee = mockDepotSources.creer.mock.calls[0][0];
+      expect(creee.urlFavicon).toBe('https://journal.fr/icone.png');
+      expect(creee.tagsSuggeres).toEqual(['Politique', 'Écologie']);
+      expect(mockDepotTags.ajouterTagSource).toHaveBeenCalledWith('us-1', 'tag-politique');
+      expect(mockDepotTags.ajouterTagSource).toHaveBeenCalledWith('us-1', 'tag-écologie');
+      expect(ajoutee.tags.map(t => t.nom)).toEqual(['Politique', 'Écologie']);
+    });
+
+    it('reprend les tags suggérés d\'une source déjà connue, sans nouvelle détection', async () => {
+      mockDepotSources.trouverParHashUrl.mockResolvedValue({ id: 'src-existante', url: 'https://journal.fr/feed', nom: 'Journal', tagsSuggeres: ['Sciences'] });
+      mockDepotSources.ajouterPourUtilisateur.mockResolvedValue({ id: 'us-2', sourceId: 'src-existante', nom: 'Journal', tags: [] });
+      const { ServiceSources } = await import('@/domaine/services/ServiceSources');
+      const service = new ServiceSources(mockDepotSources as never, mockDepotParametres as never, mockDetecteurSource, undefined, mockDepotTags);
+
+      const ajoutee = await service.ajouterSource('user-2', 'https://journal.fr/feed');
+
+      expect(mockDetecteurSource).not.toHaveBeenCalled();
+      expect(mockDepotTags.ajouterTagSource).toHaveBeenCalledWith('us-2', 'tag-sciences');
+      expect(ajoutee.tags.map(t => t.nom)).toEqual(['Sciences']);
+    });
+
     it('enregistre l\'URL du flux découvert à la place de la page saisie', async () => {
       mockDetecteurSource.mockResolvedValue({ url: 'https://journal.fr/articles/feed', type: 'rss', titre: 'Journal', favicon: null });
       mockDepotSources.creer.mockImplementation(async (donnees: Record<string, unknown>) => ({ id: 'src-1', ...donnees }));

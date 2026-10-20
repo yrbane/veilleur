@@ -64,12 +64,12 @@
 
 ### 📰 Agrégation
 - Ajout de sources RSS et sites web : collez l'adresse du site (`mediapart.fr`), le flux et le protocole sont détectés automatiquement
-- Détection automatique des flux
+- Favicon et tags de la source récupérés automatiquement à l'ajout (catégories du flux, mots-clés du site)
 - Extraction des métadonnées (Open Graph, Twitter Cards)
 
 ### 🎯 Personnalisation
 - Notation des sources (1-5 étoiles)
-- Tags personnalisés
+- Tags de sources déduits automatiquement, modifiables à la main
 - Articles notés et mis en favoris, classés automatiquement par cinq mots-clés extraits du texte
 - Fil trié (date, note, titre, source), filtré, avec recherche plein texte et chargement au défilement
 - Paramètres avancés par source

@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { verifierAuthentification } from '@/api/middlewares/authentification';
 import { ServiceSources, ErreurSource } from '@/domaine/services/ServiceSources';
 import { DepotSourcesMariaDB, DepotParametresSourcesMariaDB } from '@/infrastructure/persistence/DepotSourcesMariaDB';
+import { obtenirDepotTags } from '@/infrastructure/persistence/DepotTagsMariaDB';
 import { loggerHttp } from '@/infrastructure/logging/logger';
 import { genererOPML, parserOPML, type SourceOPML } from '@/domaine/services/ServiceOPML';
 import { obtenirServiceCache } from '@/infrastructure/cache/ServiceCacheRedis';
@@ -58,7 +59,7 @@ function obtenirServiceSources(): ServiceSources {
     const serviceCache = obtenirServiceCache();
     // Le détecteur trouve le flux réel et le protocole derrière une saisie comme « mediapart.fr »
     const detecteur = (url: string): ReturnType<ServiceScraping['detecterSource']> => obtenirServiceScraping().detecterSource(url);
-    serviceSources = new ServiceSources(depotSources, depotParametres, detecteur, serviceCache);
+    serviceSources = new ServiceSources(depotSources, depotParametres, detecteur, serviceCache, obtenirDepotTags());
   }
   return serviceSources;
 }

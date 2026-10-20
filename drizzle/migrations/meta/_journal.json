@@ -50,6 +50,13 @@
       "when": 1792528346363,
       "tag": "0006_mots_cles_articles",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1792529059478,
+      "tag": "0007_tags_suggeres_sources",
+      "breakpoints": true
     }
   ]
 }

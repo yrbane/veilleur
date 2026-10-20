@@ -92,6 +92,7 @@ export class DepotSourcesMariaDB implements DepotSources {
         dateDerniereSynchro: donnees.dateDerniereSynchro,
         hashUrlNormalise: donnees.hashUrlNormalise,
         nombreEchecs: donnees.nombreEchecs ?? 0,
+        tagsSuggeres: donnees.tagsSuggeres ?? null,
       });
 
       loggerBdd.info({ id, nom: donnees.nom }, 'Source créée');
@@ -122,6 +123,7 @@ export class DepotSourcesMariaDB implements DepotSources {
       if (donnees.dateDerniereSynchro !== undefined) updateData.dateDerniereSynchro = donnees.dateDerniereSynchro;
       if (donnees.hashUrlNormalise !== undefined) updateData.hashUrlNormalise = donnees.hashUrlNormalise;
       if (donnees.nombreEchecs !== undefined) updateData.nombreEchecs = donnees.nombreEchecs;
+      if (donnees.tagsSuggeres !== undefined) updateData.tagsSuggeres = donnees.tagsSuggeres;
 
       if (Object.keys(updateData).length === 0) {
         return this.trouverParId(id);
@@ -630,6 +632,7 @@ export class DepotSourcesMariaDB implements DepotSources {
       dateDerniereSynchro: row.dateDerniereSynchro,
       hashUrlNormalise: row.hashUrlNormalise,
       nombreEchecs: row.nombreEchecs ?? 0,
+      tagsSuggeres: row.tagsSuggeres ?? undefined,
     };
   }
 

@@ -132,6 +132,8 @@ export const sources = mysqlTable(
     dateDerniereSynchro: timestamp('date_derniere_synchro'),
     hashUrlNormalise: char('hash_url_normalise', { length: 32 }).unique(),
     nombreEchecs: int('nombre_echecs').default(0),
+    // Tags déduits à la détection (catégories du flux, mots-clés du site)
+    tagsSuggeres: json('tags_suggeres').$type<string[]>(),
   },
   table => ({
     idxHash: index('idx_source_hash').on(table.hashUrlNormalise),

@@ -7,6 +7,7 @@ import Parser from 'rss-parser';
 import * as cheerio from 'cheerio';
 import type { TypeSource } from '@/domaine/entites/Source';
 import type { ResultatDetection } from '@/domaine/services/ServiceSources';
+import { deduireTagsSource } from '@/domaine/services/ExtractionTagsSource';
 import type { ArticleBrut, MetaOpenGraph, MetaTwitter } from '@/domaine/entites/Article';
 import { env } from '@/config/environnement';
 import { loggerScraping } from '../logging/logger';
@@ -26,6 +27,16 @@ export interface ResultatExtraction {
  * Options de scraping
  */
 /**
+ * `<category>` de flux : rss-parser renvoie une chaîne, un tableau ou un objet selon le flux
+ */
+function normaliserCategories(brut: unknown): string[] {
+  const valeurs = Array.isArray(brut) ? brut : brut === undefined ? [] : [brut];
+  return valeurs
+    .map(v => (typeof v === 'string' ? v : typeof v === 'object' && v !== null ? String((v as { _?: unknown })._ ?? '') : ''))
+    .filter(Boolean);
+}
+
+/**
  * Flux trouvé pour une saisie utilisateur
  */
 export interface FluxDecouvert {
@@ -33,6 +44,10 @@ export interface FluxDecouvert {
   type: TypeSource;
   titre: string | null;
   favicon: string | null;
+  /** Tags déduits des catégories du flux et de ses articles */
+  tags: string[];
+  /** Page d'accueil du site déclarée par le flux (<link>), pour y lire le favicon */
+  urlSite?: string | null;
 }
 
 /**
@@ -144,6 +159,8 @@ export class ServiceScraping {
         Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml',
       },
       customFields: {
+        // Catégories déclarées au niveau du flux (tags de la source)
+        feed: ['category'],
         item: [
           ['media:content', 'mediaContent'],
           ['media:thumbnail', 'mediaThumbnail'],
@@ -253,7 +270,8 @@ export class ServiceScraping {
 
       const direct = await this.essayerFlux(url);
       if (direct) {
-        return { ...direct, joignable: true };
+        // Flux collé directement : le favicon se lit sur la page d'accueil du site
+        return { ...direct, favicon: await this.resoudreFaviconSite(direct.urlSite ?? url), joignable: true };
       }
 
       const page = await this.chargerPage(url);
@@ -269,13 +287,28 @@ export class ServiceScraping {
           type: 'html',
           titre: page.$('title').first().text().trim() || null,
           favicon: this.extraireFavicon(page.$, page.url),
+          tags: deduireTagsSource({ motsClesPage: page.$('meta[name="keywords"]').attr('content') }),
           joignable: true,
         };
       }
     }
 
     // Aucun protocole ne répond : adresse probablement erronée
-    return { url: variantes[0], type: 'html', titre: null, favicon: null, joignable: false };
+    return { url: variantes[0], type: 'html', titre: null, favicon: null, tags: [], joignable: false };
+  }
+
+  /**
+   * Favicon déclaré par la page d'accueil du site, sinon /favicon.ico à la racine
+   */
+  private async resoudreFaviconSite(urlSite: string): Promise<string | null> {
+    let origine: string;
+    try {
+      origine = new URL(urlSite).origin;
+    } catch {
+      return null;
+    }
+    const page = await this.chargerPage(origine);
+    return page ? this.extraireFavicon(page.$, page.url) : `${origine}/favicon.ico`;
   }
 
   /**
@@ -294,11 +327,18 @@ export class ServiceScraping {
         return null;
       }
       const feed = await this.rssParser.parseString(await response.text());
+      const items = feed.items ?? [];
       return {
         url,
         type: this.detecterTypeFlux(feed),
         titre: feed.title ?? null,
-        favicon: feed.image?.url ?? null,
+        favicon: null,
+        urlSite: typeof feed.link === 'string' ? feed.link : null,
+        tags: deduireTagsSource({
+          categoriesFlux: normaliserCategories((feed as { category?: unknown }).category),
+          categoriesArticles: items.map(item => item.categories ?? []),
+          titresArticles: items.map(item => item.title ?? '').filter(Boolean),
+        }),
       };
     } catch {
       return null;
@@ -380,7 +420,10 @@ export class ServiceScraping {
         return {
           ...flux,
           titre: flux.titre ?? (page('title').first().text().trim() || null),
-          favicon: flux.favicon ?? this.extraireFavicon(page, url),
+          favicon: this.extraireFavicon(page, url),
+          tags: flux.tags.length > 0
+            ? flux.tags
+            : deduireTagsSource({ motsClesPage: page('meta[name="keywords"]').attr('content') }),
         };
       }
     }

@@ -9,6 +9,7 @@ import { normaliserUrl, SEUIL_ECHECS_SOURCE } from '@/domaine/entites/Source';
 import type { ParametresSource, MiseAJourParametres } from '@/domaine/entites/ParametresSource';
 import { createHash } from 'crypto';
 import type { ServiceCache } from '@/domaine/ports/ServiceCache';
+import type { DepotTags } from '@/domaine/ports/DepotTags';
 import { cleSourcesUtilisateur, PREFIXES_CACHE, TTL_DEFAUT } from '@/domaine/ports/ServiceCache';
 
 /**
@@ -22,6 +23,8 @@ export interface ResultatDetection {
   url?: string | null;
   /** false quand le site n'a répondu sur aucun protocole (faute de frappe probable) */
   joignable?: boolean;
+  /** Tags déduits du flux ou de la page (catégories, mots-clés) */
+  tags?: string[];
 }
 
 /**
@@ -67,6 +70,7 @@ export class ServiceSources {
     private readonly depotParametres: DepotParametresSources,
     private readonly detecteurSource?: (url: string) => Promise<ResultatDetection>,
     private readonly serviceCache?: ServiceCache,
+    private readonly depotTags?: Pick<DepotTags, 'trouverOuCreer' | 'ajouterTagSource'>,
   ) {}
 
   /**
@@ -131,6 +135,7 @@ export class ServiceSources {
         dateDerniereSynchro: null,
         hashUrlNormalise: hashUrl,
         nombreEchecs: 0,
+        tagsSuggeres: detection?.tags ?? [],
       });
     }
 
@@ -140,9 +145,34 @@ export class ServiceSources {
       source.id,
     );
 
+    // Tags déduits automatiquement : l'utilisateur n'a rien à saisir
+    sourceUtilisateur.tags = await this.appliquerTagsSuggeres(sourceUtilisateur.id, source.tagsSuggeres ?? []);
+
     await this.invaliderCaches(utilisateurId);
 
     return sourceUtilisateur;
+  }
+
+  /**
+   * Pose les tags suggérés sur une source utilisateur (créés s'ils n'existent pas) ;
+   * retourne les tags posés
+   */
+  async appliquerTagsSuggeres(
+    utilisateurSourceId: string,
+    noms: string[],
+  ): Promise<SourceUtilisateur['tags']> {
+    if (!this.depotTags) return [];
+    const poses: SourceUtilisateur['tags'] = [];
+    for (const nom of noms) {
+      try {
+        const tag = await this.depotTags.trouverOuCreer(nom);
+        await this.depotTags.ajouterTagSource(utilisateurSourceId, tag.id);
+        poses.push({ id: tag.id, nom: tag.nom, slug: tag.slug });
+      } catch {
+        // Un tag inexploitable ne doit pas empêcher l'ajout de la source
+      }
+    }
+    return poses;
   }
 
   /**
