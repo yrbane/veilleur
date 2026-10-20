@@ -37,6 +37,16 @@ const schemaCriteresFil = z.object({
     .enum(['true', 'false'])
     .optional()
     .transform(val => val === 'true'),
+  nonLus: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform(val => val === 'true'),
+});
+
+const schemaLu = z.object({ lu: z.boolean() });
+const schemaTousLus = z.object({
+  sourceId: z.string().min(1).optional(),
+  avant: z.coerce.date().optional(),
 });
 
 const schemaParamsArticle = z.object({ id: z.string().min(1) });
@@ -190,6 +200,7 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
           noteMin: { type: 'number' },
           motCle: { type: 'string' },
           favoris: { type: 'string', enum: ['true', 'false'] },
+          nonLus: { type: 'string', enum: ['true', 'false'] },
         },
       },
       response: {
@@ -218,6 +229,7 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
                   },
                   note: { type: 'number', nullable: true },
                   favori: { type: 'boolean' },
+                  lu: { type: 'boolean' },
                   motsCles: { type: 'array', items: { type: 'string' } },
                 },
               },
@@ -259,6 +271,7 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
           ...article,
           note: annotation?.note ?? null,
           favori: annotation?.favori ?? false,
+          lu: annotation?.lu ?? false,
           motsCles: (motsCles.get(article.id) ?? []).filter(mot => mot !== '—'),
         };
       });
@@ -518,6 +531,77 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
       const { id } = schemaParamsArticle.parse(request.params);
       const { favori } = schemaFavori.parse(request.body);
       return reply.send(await obtenirServiceAnnotations().definirFavori(request.utilisateur!.sub, id, favori));
+    } catch (erreur) {
+      return gererErreurArticle(erreur, reply);
+    }
+  });
+
+  /**
+   * PUT /api/v1/articles/:id/lu
+   */
+  fastify.put('/:id/lu', {
+    schema: {
+      tags: ['Articles'],
+      summary: 'Marque un article lu ou non lu',
+      security: [{ bearerAuth: [] }],
+      params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
+      body: { type: 'object', required: ['lu'], properties: { lu: { type: 'boolean' } } },
+      response: { 200: { type: 'object', properties: { lu: { type: 'boolean' } } } },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = schemaParamsArticle.parse(request.params);
+      const { lu } = schemaLu.parse(request.body);
+      return reply.send(await obtenirServiceAnnotations().marquerLu(request.utilisateur!.sub, id, lu));
+    } catch (erreur) {
+      return gererErreurArticle(erreur, reply);
+    }
+  });
+
+  /**
+   * POST /api/v1/articles/lus — tout marquer comme lu (fil entier ou une source), borné à `avant`
+   */
+  fastify.post('/lus', {
+    schema: {
+      tags: ['Articles'],
+      summary: 'Marque lus tous les articles du fil publiés avant un instant',
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: 'object',
+        properties: { sourceId: { type: 'string' }, avant: { type: 'string', format: 'date-time' } },
+      },
+      response: { 200: { type: 'object', properties: { marques: { type: 'number' } } } },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const options = schemaTousLus.parse(request.body ?? {});
+      return reply.send(await obtenirServiceAnnotations().marquerTousLus(request.utilisateur!.sub, options));
+    } catch (erreur) {
+      return gererErreurArticle(erreur, reply);
+    }
+  });
+
+  /**
+   * GET /api/v1/articles/non-lus — compte des non-lus, en tout et par source
+   */
+  fastify.get('/non-lus', {
+    schema: {
+      tags: ['Articles'],
+      summary: 'Nombre d\'articles non lus, en tout et par source',
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            total: { type: 'number' },
+            parSource: { type: 'object', additionalProperties: { type: 'number' } },
+          },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      return reply.send(await obtenirServiceAnnotations().compterNonLus(request.utilisateur!.sub));
     } catch (erreur) {
       return gererErreurArticle(erreur, reply);
     }

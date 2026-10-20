@@ -15,6 +15,8 @@ import type { Source, Tag } from '../services/api';
 interface OptionsCarteSource {
   onSupprimer?: (id: string) => void;
   onPause?: (id: string, enPause: boolean) => void;
+  /** Articles non lus de cette source (badge) */
+  nonLus?: number;
 }
 
 /**
@@ -217,6 +219,15 @@ export function creerCarteSource(
 
   const notation = creerNotation(source.note, source.id);
 
+  if (options.nonLus) {
+    nom.append(
+      creerElement('span', {
+        classes: ['la-badge', 'primary', 'sm', 'badge-non-lus'],
+        attrs: { title: `${options.nonLus} article${options.nonLus > 1 ? 's' : ''} non lu${options.nonLus > 1 ? 's' : ''}` },
+        texte: String(options.nonLus),
+      }),
+    );
+  }
   entete.append(nom, notation);
 
   const url = creerElement('div', {

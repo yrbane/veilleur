@@ -19,6 +19,48 @@ export interface OptionsCarteArticle {
   onAnnotation?: (article: Article) => void;
   /** Clic sur un mot-clé : le fil filtre dessus */
   onMotCle?: (mot: string) => void;
+  /** Article marqué lu ou non lu */
+  onLu?: (article: Article) => void;
+}
+
+/**
+ * Marque l'article lu ou non lu : état visuel immédiat, serveur ensuite
+ */
+async function definirLu(article: Article, carte: HTMLElement, lu: boolean, options: OptionsCarteArticle): Promise<void> {
+  if (!!article.lu === lu) return;
+  article.lu = lu;
+  carte.classList.toggle('lu', lu);
+  carte.querySelector<HTMLButtonElement>('.btn-lu')?.dispatchEvent(new CustomEvent('veilleur:lu'));
+  try {
+    await apiArticles.marquerLu(article.id, lu);
+    options.onLu?.(article);
+  } catch {
+    article.lu = !lu;
+    carte.classList.toggle('lu', !lu);
+    toast.erreur('Impossible d\'enregistrer la lecture');
+  }
+}
+
+/**
+ * Bouton lu / non lu
+ */
+function creerBoutonLu(article: Article, carte: HTMLElement, options: OptionsCarteArticle): HTMLElement {
+  const bouton = creerElement('button', {
+    classes: ['btn-lu'],
+    attrs: { type: 'button' },
+  });
+  const rafraichir = () => {
+    const lu = !!article.lu;
+    bouton.classList.toggle('active', lu);
+    bouton.replaceChildren(icone(lu ? 'check_circle' : 'radio_button_unchecked', { plein: lu }));
+    bouton.setAttribute('aria-label', lu ? 'Marquer comme non lu' : 'Marquer comme lu');
+    bouton.setAttribute('aria-pressed', String(lu));
+    bouton.title = bouton.getAttribute('aria-label') ?? '';
+  };
+  bouton.addEventListener('click', () => definirLu(article, carte, !article.lu, options));
+  bouton.addEventListener('veilleur:lu', rafraichir);
+  rafraichir();
+  return bouton;
 }
 
 /**
@@ -122,7 +164,7 @@ function creerMotsClesArticle(article: Article, options: OptionsCarteArticle): H
  */
 export function creerCarteArticle(article: Article, options: OptionsCarteArticle = {}): HTMLElement {
   const carte = creerElement('article', {
-    classes: ['carte-article'],
+    classes: ['carte-article', article.lu ? 'lu' : ''],
     attrs: { 'data-id': article.id },
   });
 
@@ -191,6 +233,8 @@ export function creerCarteArticle(article: Article, options: OptionsCarteArticle
       rel: 'noopener noreferrer',
     },
     texte: article.titre,
+    // Ouvrir l'article vaut lecture
+    onClick: () => void definirLu(article, carte, true, options),
   });
 
   // Résumé
@@ -220,7 +264,7 @@ export function creerCarteArticle(article: Article, options: OptionsCarteArticle
 
   // Annotations personnelles : note, favori, tags
   const annotations = creerElement('div', { classes: ['carte-article-annotations'] });
-  annotations.append(creerNotationArticle(article, options), creerBoutonFavori(article, options));
+  annotations.append(creerNotationArticle(article, options), creerBoutonFavori(article, options), creerBoutonLu(article, carte, options));
 
   // Assemblage
   contenu.append(source, titre);

@@ -15,6 +15,8 @@ export interface DepotAnnotationsArticles {
    * Marque ou retire l'article des favoris
    */
   definirFavori(utilisateurId: string, articleId: string, favori: boolean): Promise<void>;
+  /** Marque un article lu (date de lecture) ou non lu */
+  marquerLu(utilisateurId: string, articleId: string, lu: boolean): Promise<void>;
 
   /**
    * Annotations de l'utilisateur pour un lot d'articles (clé = id d'article)
