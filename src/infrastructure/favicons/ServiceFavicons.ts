@@ -7,7 +7,7 @@
 
 import { mkdir, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { validerRedirection, validerUrlScraping } from '../scraping/validationUrl';
+import { recupererAvecRedirections } from '../scraping/recupererAvecRedirections';
 import { loggerScraping } from '../logging/logger';
 
 export interface FaviconServi {
@@ -143,38 +143,16 @@ export class ServiceFavicons {
     return { chemin, typeMime: typePourExtension(extension) };
   }
 
-  /**
-   * Suit les redirections à la main pour valider chaque saut (anti-SSRF)
-   */
   private async recupererAvecRedirections(urlInitiale: string): Promise<Response | null> {
-    const validation = validerUrlScraping(urlInitiale);
-    if (!validation.valide || !validation.urlNormalisee) return null;
-
-    let url = validation.urlNormalisee;
-    for (let saut = 0; saut <= REDIRECTIONS_MAX; saut++) {
-      let reponse: Response;
-      try {
-        reponse = await this.fetchImpl(url, {
-          redirect: 'manual',
-          signal: AbortSignal.timeout(this.timeoutMs),
-          headers: { 'user-agent': this.userAgent, accept: 'image/*' },
-        });
-      } catch (erreur) {
-        loggerScraping.debug({ url, erreur }, 'Favicon injoignable');
-        return null;
-      }
-
-      if (reponse.status >= 300 && reponse.status < 400) {
-        const destination = reponse.headers.get('location');
-        if (!destination) return null;
-        const suivante = validerRedirection(url, new URL(destination, url).toString());
-        if (!suivante.valide || !suivante.urlNormalisee) return null;
-        url = suivante.urlNormalisee;
-        continue;
-      }
-      return reponse.ok ? reponse : null;
-    }
-    return null;
+    const resultat = await recupererAvecRedirections(urlInitiale, {
+      fetchImpl: this.fetchImpl,
+      timeoutMs: this.timeoutMs,
+      userAgent: this.userAgent,
+      accept: 'image/*',
+      redirectionsMax: REDIRECTIONS_MAX,
+    });
+    if (!resultat) loggerScraping.debug({ url: urlInitiale }, 'Favicon injoignable ou refusé');
+    return resultat?.reponse ?? null;
   }
 
   private deduireType(reponse: Response, url: string): string | null {

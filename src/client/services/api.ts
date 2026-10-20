@@ -287,6 +287,16 @@ export interface OptionsFil {
   nonLus?: boolean;
 }
 
+export interface ContenuLecture {
+  titre: string;
+  contenuHtml: string;
+  extrait: string | null;
+  auteur: string | null;
+  nombreMots: number;
+  dureeLectureMin: number;
+  lien: string;
+}
+
 export interface CompteNonLus {
   total: number;
   parSource: Record<string, number>;
@@ -552,6 +562,11 @@ export const articles = {
 
   async nonLus(): Promise<CompteNonLus> {
     return requete<CompteNonLus>('/articles/non-lus');
+  },
+
+  /** Contenu extrait pour la lecture en place (422 si le site ne s'y prête pas) */
+  async lecture(id: string): Promise<ContenuLecture> {
+    return requete<ContenuLecture>(`/articles/${id}/lecture`);
   },
 
   async listerMotsCles(limite = 20): Promise<{ donnees: MotCleFil[] }> {
