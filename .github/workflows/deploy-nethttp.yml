@@ -1,0 +1,71 @@
+# Vérification à chaque push / PR, puis déploiement automatique sur https://news.nethttp.net
+# à chaque push (merge) sur main. Même installeur que `npm run deploy:nethttp` (deploy/nethttp/installer.sh).
+# Secrets requis : NETHTTP_SSH_KEY (clé ed25519 dédiée « github-actions-deploy-veilleur »), NETHTTP_KNOWN_HOSTS.
+name: CI & Deploy nethttp
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verifier:
+    name: Lint, types, tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:run
+      - run: npm run build
+
+  deployer:
+    name: Déploiement news.nethttp.net
+    needs: verifier
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-nethttp
+      cancel-in-progress: false
+    environment:
+      name: nethttp
+      url: https://news.nethttp.net
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+
+      - name: Clé SSH de déploiement
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.NETHTTP_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.NETHTTP_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Envoi des artefacts et installation
+        run: |
+          SSH="ssh -i ~/.ssh/deploy_key -p 65222 -o IdentitiesOnly=yes -o UserKnownHostsFile=~/.ssh/known_hosts -o BatchMode=yes"
+          HOTE=debian@nethttp.net
+          TMP=/tmp/veilleur-deploy
+          $SSH $HOTE "rm -rf $TMP && mkdir -p $TMP"
+          rsync -azR --delete -e "$SSH" dist drizzle/migrations package.json package-lock.json deploy/nethttp "$HOTE:$TMP/"
+          $SSH $HOTE "sudo -n bash -s" < deploy/nethttp/installer.sh
+
+      - name: Vérification en ligne
+        run: |
+          sleep 3
+          UA='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 GithubDeployCheck'
+          VERSION=$(node -p "require('./package.json').version")
+          SANTE=$(curl -fsS -A "$UA" https://news.nethttp.net/api/v1/health)
+          echo "$SANTE"
+          echo "$SANTE" | grep -q "\"version\":\"$VERSION\"" && echo "✔ news.nethttp.net sert la version $VERSION"

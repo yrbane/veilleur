@@ -337,6 +337,13 @@ graph LR
 L'instance publique tourne sur **https://news.nethttp.net** (Debian 13, sans Docker :
 MariaDB et Redis natifs, Apache en reverse proxy derrière le pare-feu applicatif websec).
 
+**Déploiement continu** : chaque push (merge) sur `main` déclenche le workflow
+[`deploy-nethttp.yml`](.github/workflows/deploy-nethttp.yml) — lint, typecheck, tests et
+build, puis rsync SSH et installation sur le serveur (secrets `NETHTTP_SSH_KEY` et
+`NETHTTP_KNOWN_HOSTS`). Les pull requests n'exécutent que la vérification.
+
+Déploiement manuel, même résultat :
+
 ```bash
 npm run deploy:nethttp
 ```
