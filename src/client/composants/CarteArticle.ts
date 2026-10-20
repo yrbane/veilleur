@@ -11,6 +11,7 @@ import { surligner } from '../utils/surlignage';
 import { articles as apiArticles } from '../services/api';
 import { toast } from '../utils/toast';
 import { ouvrirLecteur } from './Lecteur';
+import { partagerArticle } from '../utils/partage';
 import type { Article } from '../services/api';
 
 /**
@@ -56,6 +57,22 @@ function creerBoutonLire(article: Article, carte: HTMLElement, options: OptionsC
     onClick: () => {
       ouvrirLecteur(article);
       void definirLu(article, carte, true, options);
+    },
+  });
+}
+
+/**
+ * Bouton de partage : partage natif ou copie du lien
+ */
+function creerBoutonPartager(article: Article): HTMLElement {
+  return creerElement('button', {
+    classes: ['btn-partager'],
+    attrs: { type: 'button', 'aria-label': 'Partager', title: 'Partager' },
+    icone: 'share',
+    onClick: async () => {
+      const resultat = await partagerArticle(article);
+      if (resultat === 'copie') toast.succes('Lien copié');
+      if (resultat === 'impossible') toast.erreur('Impossible de partager ce lien');
     },
   });
 }
@@ -331,6 +348,7 @@ export function creerCarteArticle(article: Article, options: OptionsCarteArticle
     creerBoutonFavori(article, options),
     creerBoutonALire(article, options),
     creerBoutonLire(article, carte, options),
+    creerBoutonPartager(article),
     creerBoutonLu(article, carte, options),
   );
 

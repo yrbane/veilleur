@@ -20,6 +20,7 @@ import { afficherPageSources } from './pages/PageSources';
 import { afficherPageConnexion, afficherPageInscription } from './pages/PageAuth';
 import { afficherPageParametres } from './pages/PageParametres';
 import { afficherPageDecouverte } from './pages/PageDecouverte';
+import { afficherPageProgression } from './pages/PageProgression';
 import { toast } from './utils/toast';
 
 // Version injectée par Vite (define) depuis package.json
@@ -59,6 +60,11 @@ const routes: Route[] = [
   {
     pattern: /^\/decouverte$/,
     handler: afficherPageDecouverte,
+  },
+  {
+    pattern: /^\/progression$/,
+    handler: afficherPageProgression,
+    auth: true,
   },
 ];
 

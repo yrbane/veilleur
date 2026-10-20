@@ -2,7 +2,7 @@
  * Veilleur - Implémentation du dépôt sources avec MariaDB
  */
 
-import { eq, and, lt, sql, isNull, or, desc, like } from 'drizzle-orm';
+import { eq, and, lt, sql, isNull, or, desc, like, inArray, notInArray } from 'drizzle-orm';
 import type {
   DepotSources,
   DepotParametresSources,
@@ -652,6 +652,58 @@ export class DepotSourcesMariaDB implements DepotSources {
       tags: tagsData,
     };
   }
+
+  async listerSourcesSuggerees(utilisateurId: string, limite = 6): Promise<SourcePopulaire[]> {
+    const db = obtenirBdd();
+    try {
+      const miennes = db
+        .select({ sourceId: utilisateursSources.sourceId })
+        .from(utilisateursSources)
+        .where(eq(utilisateursSources.utilisateurId, utilisateurId));
+      // Voisins : utilisateurs suivant au moins une de mes sources
+      const voisins = db
+        .selectDistinct({ utilisateurId: utilisateursSources.utilisateurId })
+        .from(utilisateursSources)
+        .where(and(inArray(utilisateursSources.sourceId, miennes), sql`${utilisateursSources.utilisateurId} <> ${utilisateurId}`));
+      const resultats = await db
+        .select({
+          id: sources.id,
+          url: sources.url,
+          nom: sources.nom,
+          typeSource: sources.typeSource,
+          statut: sources.statut,
+          urlFavicon: sources.urlFavicon,
+          nombreUtilisateurs: sql<number>`COUNT(${utilisateursSources.id})`,
+          noteMoyenne: sql<number | null>`AVG(${utilisateursSources.note})`,
+        })
+        .from(sources)
+        .innerJoin(utilisateursSources, eq(sources.id, utilisateursSources.sourceId))
+        .where(
+          and(
+            eq(sources.statut, 'active'),
+            inArray(utilisateursSources.utilisateurId, voisins),
+            notInArray(sources.id, miennes),
+          ),
+        )
+        .groupBy(sources.id)
+        .orderBy(desc(sql`COUNT(${utilisateursSources.id})`), desc(sql`AVG(${utilisateursSources.note})`))
+        .limit(limite);
+      return resultats.map(r => ({
+        id: r.id,
+        url: r.url,
+        nom: r.nom,
+        typeSource: r.typeSource as 'rss' | 'atom' | 'html',
+        statut: r.statut as 'active' | 'inactive' | 'erreur',
+        urlFavicon: r.urlFavicon,
+        nombreUtilisateurs: Number(r.nombreUtilisateurs),
+        noteMoyenne: r.noteMoyenne === null ? null : Number(r.noteMoyenne),
+        tags: [],
+      }));
+    } catch (erreur) {
+      loggerBdd.error({ erreur, utilisateurId }, 'Erreur lors des suggestions de sources');
+      throw erreur;
+    }
+  }
 }
 
 /**
@@ -758,4 +810,5 @@ export class DepotParametresSourcesMariaDB implements DepotParametresSources {
       plageHoraire: row.plageHoraire as PlageHoraire | null,
     };
   }
+
 }

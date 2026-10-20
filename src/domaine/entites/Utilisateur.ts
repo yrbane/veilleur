@@ -12,6 +12,9 @@ export const schemaPreferences = z.object({
   langue: z.string().default('fr'),
   theme: z.enum(['clair', 'sombre', 'auto']).default('auto'),
   frequenceRafraichissement: z.number().min(5).max(1440).default(30),
+  // Gamification : pseudo affiché et participation volontaire au classement
+  pseudo: z.string().trim().min(2).max(30).optional(),
+  classementPublic: z.boolean().optional(),
 });
 
 export type Preferences = z.infer<typeof schemaPreferences>;

@@ -36,6 +36,8 @@ const schemaMiseAJourProfil = z.object({
     langue: z.enum(['fr', 'en']).optional(),
     theme: z.enum(['clair', 'sombre', 'auto']).optional(),
     frequenceRafraichissement: z.number().min(5).max(120).optional(),
+    pseudo: z.string().trim().min(2).max(30).optional(),
+    classementPublic: z.boolean().optional(),
   }).optional(),
 });
 
@@ -450,6 +452,8 @@ export async function routesAuth(fastify: FastifyInstance): Promise<void> {
               langue: { type: 'string', enum: ['fr', 'en'] },
               theme: { type: 'string', enum: ['clair', 'sombre', 'auto'] },
               frequenceRafraichissement: { type: 'number', minimum: 5, maximum: 120 },
+              pseudo: { type: 'string', minLength: 2, maxLength: 30 },
+              classementPublic: { type: 'boolean' },
             },
           },
         },

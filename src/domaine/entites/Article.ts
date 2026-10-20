@@ -176,6 +176,20 @@ export interface AnnotationArticle {
 }
 
 /**
+ * Article plébiscité par la communauté (favoris et notes des derniers jours)
+ */
+export interface ArticleApprecie {
+  id: string;
+  titre: string;
+  lien: string;
+  datePublication: Date;
+  source: { id: string; nom: string; urlFavicon: string | null };
+  nombreFavoris: number;
+  nombreNotes: number;
+  noteMoyenne: number | null;
+}
+
+/**
  * Annotation accompagnée de l'article, telle qu'exportée (JSON / CSV)
  */
 export interface AnnotationExportee {

@@ -159,6 +159,12 @@ export interface DepotSources {
    * Liste les tags populaires
    */
   listerTagsPopulaires(limite?: number): Promise<TagPopulaire[]>;
+
+  /**
+   * Sources suivies par les utilisateurs qui partagent des sources avec celui-ci, qu'il ne suit pas encore,
+   * classées par affinité (nombre de ces voisins qui les suivent)
+   */
+  listerSourcesSuggerees(utilisateurId: string, limite?: number): Promise<SourcePopulaire[]>;
 }
 
 /**

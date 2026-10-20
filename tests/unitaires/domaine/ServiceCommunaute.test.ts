@@ -260,3 +260,23 @@ describe('Structure SourcePopulaire', () => {
     expect(source.noteMoyenne).toBeNull();
   });
 });
+
+describe('ServiceCommunaute - Suggestions et articles appréciés', () => {
+  it('délègue les suggestions au dépôt des sources', async () => {
+    const depotSources = { listerSourcesSuggerees: vi.fn().mockResolvedValue([{ id: 's1' }]) };
+    const service = new ServiceCommunaute(depotSources as unknown as DepotSources);
+
+    expect(await service.listerSuggestions('u1', 4)).toEqual([{ id: 's1' }]);
+    expect(depotSources.listerSourcesSuggerees).toHaveBeenCalledWith('u1', 4);
+  });
+
+  it('demande les articles appréciés depuis N jours, et renvoie vide sans dépôt d\'articles', async () => {
+    const depotArticles = { listerArticlesApprecies: vi.fn().mockResolvedValue([]) };
+    const maintenant = new Date('2026-10-21T12:00:00Z');
+    const service = new ServiceCommunaute({} as DepotSources, depotArticles);
+
+    await service.listerArticlesApprecies(7, 5, maintenant);
+    expect(depotArticles.listerArticlesApprecies).toHaveBeenCalledWith(new Date('2026-10-14T12:00:00Z'), 5);
+    expect(await new ServiceCommunaute({} as DepotSources).listerArticlesApprecies()).toEqual([]);
+  });
+});

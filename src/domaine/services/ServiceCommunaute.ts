@@ -4,6 +4,8 @@
  */
 
 import type { DepotSources } from '@/domaine/ports/DepotSources';
+import type { DepotArticles } from '@/domaine/ports/DepotArticles';
+import type { ArticleApprecie } from '@/domaine/entites/Article';
 import type {
   SourcePopulaire,
   TagPopulaire,
@@ -18,7 +20,26 @@ export type { SourcePopulaire, TagPopulaire, CriteresCommunaute, ResultatPagine 
  * Service de découverte communautaire
  */
 export class ServiceCommunaute {
-  constructor(private readonly depotSources: DepotSources) {}
+  constructor(
+    private readonly depotSources: DepotSources,
+    private readonly depotArticles?: Pick<DepotArticles, 'listerArticlesApprecies'>,
+  ) {}
+
+  /**
+   * Sources que suivent les utilisateurs aux goûts proches, pas encore suivies
+   */
+  async listerSuggestions(utilisateurId: string, limite = 6): Promise<SourcePopulaire[]> {
+    return this.depotSources.listerSourcesSuggerees(utilisateurId, limite);
+  }
+
+  /**
+   * Articles plébiscités (favoris, notes) sur les derniers jours
+   */
+  async listerArticlesApprecies(jours = 7, limite = 10, maintenant: Date = new Date()): Promise<ArticleApprecie[]> {
+    if (!this.depotArticles) return [];
+    const depuis = new Date(maintenant.getTime() - jours * 24 * 3600 * 1000);
+    return this.depotArticles.listerArticlesApprecies(depuis, limite);
+  }
 
   /**
    * Liste les sources populaires

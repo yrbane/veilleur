@@ -88,6 +88,11 @@
 - Mots-clés tendance (24 h contre 7 jours) sur le fil et sur toute la plateforme
 - Filtrage par tags
 - Notes moyennes communautaires
+- Articles les plus appréciés de la semaine, suggestions de sources d'après les lecteurs aux goûts proches, partage d'articles
+
+### 🏅 Parcours
+- Points, six niveaux, douze badges et série de jours de lecture, déduits de votre activité
+- Classement public sur la base du volontariat, sous pseudo
 
 ### ⚡ Performance
 - Cache agressif (90% hit rate)

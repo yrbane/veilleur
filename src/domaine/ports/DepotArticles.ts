@@ -3,7 +3,7 @@
  * Interface pour l'accès aux données articles
  */
 
-import type { Article, ArticleAvecSource, TriArticles, OrdreTri, MotCleFil } from '../entites/Article';
+import type { Article, ArticleAvecSource, ArticleApprecie, TriArticles, OrdreTri, MotCleFil } from '../entites/Article';
 
 /**
  * Critères de recherche pour les articles
@@ -148,6 +148,11 @@ export interface DepotArticles {
    * pour tous les articles ou pour les sources actives d'un utilisateur ; `mots` restreint la liste
    */
   compterMotsCles(options: CriteresMotsCles): Promise<MotCleFil[]>;
+
+  /**
+   * Articles les plus mis en favoris / notés par l'ensemble des utilisateurs depuis `depuis`
+   */
+  listerArticlesApprecies(depuis: Date, limite?: number): Promise<ArticleApprecie[]>;
 
   /**
    * Articles sans aucun mot-clé (rattrapage des articles antérieurs à l'extraction)

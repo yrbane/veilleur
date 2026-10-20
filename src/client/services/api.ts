@@ -220,6 +220,8 @@ export interface Preferences {
   langue?: 'fr' | 'en';
   theme?: 'clair' | 'sombre' | 'auto';
   frequenceRafraichissement?: number;
+  pseudo?: string;
+  classementPublic?: boolean;
 }
 
 export interface Utilisateur {
@@ -308,6 +310,43 @@ export interface Tendance {
   nombreRecents: number;
   nombreReference: number;
   score: number;
+}
+
+export interface ArticleApprecie {
+  id: string;
+  titre: string;
+  lien: string;
+  datePublication: string;
+  source: { id: string; nom: string; urlFavicon: string | null };
+  nombreFavoris: number;
+  nombreNotes: number;
+  noteMoyenne: number | null;
+}
+
+export interface Badge {
+  code: string;
+  nom: string;
+  description: string;
+  icone: string;
+  obtenu: boolean;
+  progression: number;
+}
+
+export interface Progression {
+  points: number;
+  detail: { libelle: string; nombre: number; parUnite: number; total: number }[];
+  niveau: { numero: number; nom: string; seuil: number; prochainSeuil: number | null; progression: number };
+  badges: Badge[];
+  serie: { courante: number; record: number; activeAujourdhui: boolean };
+}
+
+export interface LigneClassement {
+  rang: number;
+  pseudo: string;
+  points: number;
+  niveau: string;
+  badges: number;
+  serie: number;
 }
 
 export interface CompteNonLus {
@@ -689,6 +728,19 @@ export const communaute = {
     );
   },
 
+  /** Sources suivies par les utilisateurs aux goûts proches (authentifié) */
+  async suggestions(limite = 6): Promise<{ donnees: SourcePopulaire[] }> {
+    return requete(`/communaute/suggestions?limite=${limite}`);
+  },
+
+  async articlesApprecies(limite = 10): Promise<{ donnees: ArticleApprecie[] }> {
+    return requete(`/communaute/articles-apprecies?limite=${limite}`);
+  },
+
+  async classement(): Promise<{ donnees: LigneClassement[] }> {
+    return requete('/communaute/classement');
+  },
+
   async listerTagsPopulaires(limite = 20): Promise<{ donnees: TagPopulaire[] }> {
     return requete<{ donnees: TagPopulaire[] }>(
       `/communaute/tags-populaires?limite=${limite}`,
@@ -757,5 +809,15 @@ export const tendances = {
   /** Mots en hausse dans le fil de l'utilisateur */
   async fil(limite = 10): Promise<{ donnees: Tendance[] }> {
     return requete(`/tendances/fil?limite=${limite}`);
+  },
+};
+
+// ============================================
+// API Progression (gamification)
+// ============================================
+
+export const progression = {
+  async obtenir(): Promise<Progression> {
+    return requete<Progression>('/progression/');
   },
 };

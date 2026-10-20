@@ -8,7 +8,8 @@ import { urlFaviconLocale } from '../utils/favicons';
 import { creerElement, vider } from '../utils/dom';
 import { communaute, sources as apiSources, tendances as apiTendances, estAuthentifie } from '../services/api';
 import { creerBlocTendances } from '../composants/Tendances';
-import type { SourcePopulaire, TagPopulaire, CriteresCommunaute } from '../services/api';
+import type { SourcePopulaire, TagPopulaire, CriteresCommunaute, ArticleApprecie } from '../services/api';
+import { formatDateRelative } from '../utils/format';
 import { toast } from '../utils/toast';
 import { naviguerVers } from '../main';
 
@@ -72,7 +73,10 @@ export async function afficherPageDecouverte(container: Element): Promise<void> 
       }
     },
   });
-  page.append(entete, barreRecherche, blocTendances, filtres, sectionTags, grilleSources, pagination);
+  // Communauté : articles plébiscités (public) et suggestions personnelles (authentifié)
+  const sectionApprecies = creerElement('section', { classes: ['section-communaute', 'masque'], attrs: { id: 'articles-apprecies' } });
+  const sectionSuggestions = creerElement('section', { classes: ['section-communaute', 'masque'], attrs: { id: 'suggestions-sources' } });
+  page.append(entete, barreRecherche, blocTendances, sectionApprecies, sectionSuggestions, filtres, sectionTags, grilleSources, pagination);
   container.append(page);
 
   // Charger les données
@@ -80,6 +84,8 @@ export async function afficherPageDecouverte(container: Element): Promise<void> 
     chargerTagsPopulaires(),
     chargerSourcesPopulaires(),
     blocTendances.rafraichir(),
+    chargerArticlesApprecies(sectionApprecies),
+    estAuthentifie() ? chargerSuggestions(sectionSuggestions) : Promise.resolve(),
   ]);
 }
 
@@ -481,4 +487,61 @@ function afficherPagination(
   }
 
   conteneur.append(nav);
+}
+
+/**
+ * Articles les plus mis en favoris et notés par la communauté ces sept derniers jours
+ */
+async function chargerArticlesApprecies(section: HTMLElement): Promise<void> {
+  let liste: ArticleApprecie[] = [];
+  try {
+    liste = (await communaute.articlesApprecies(8)).donnees;
+  } catch {
+    return;
+  }
+  if (liste.length === 0) return;
+  vider(section);
+  section.classList.remove('masque');
+  section.append(creerElement('h2', { classes: ['section-communaute-titre'], icone: 'favorite', texte: 'Les plus appréciés cette semaine' }));
+  const ul = creerElement('ol', { classes: ['apprecies-liste'] });
+  for (const article of liste) {
+    const li = creerElement('li', { classes: ['apprecies-item'] });
+    const lien = creerElement('a', {
+      classes: ['apprecies-titre'],
+      attrs: { href: article.lien, target: '_blank', rel: 'noopener noreferrer' },
+      texte: article.titre,
+    });
+    const meta = creerElement('p', { classes: ['apprecies-meta'] });
+    const morceaux = [article.source.nom, formatDateRelative(article.datePublication)];
+    if (article.nombreFavoris > 0) morceaux.push(`${article.nombreFavoris} favori${article.nombreFavoris > 1 ? 's' : ''}`);
+    if (article.noteMoyenne !== null) morceaux.push(`${article.noteMoyenne.toLocaleString('fr-FR')} ★ (${article.nombreNotes})`);
+    meta.textContent = morceaux.join(' · ');
+    li.append(lien, meta);
+    ul.append(li);
+  }
+  section.append(ul);
+}
+
+/**
+ * Sources suivies par les utilisateurs aux goûts proches, que l'on ne suit pas encore
+ */
+async function chargerSuggestions(section: HTMLElement): Promise<void> {
+  let liste: SourcePopulaire[] = [];
+  try {
+    liste = (await communaute.suggestions(6)).donnees;
+  } catch {
+    return;
+  }
+  if (liste.length === 0) return;
+  vider(section);
+  section.classList.remove('masque');
+  section.append(
+    creerElement('h2', { classes: ['section-communaute-titre'], icone: 'recommend', texte: 'Suggestions pour vous' }),
+    creerElement('p', { classes: ['la-help'], texte: 'Suivies par des lecteurs qui partagent vos sources.' }),
+  );
+  const grille = creerElement('div', { classes: ['grille-sources', 'grille-suggestions'] });
+  for (const source of liste) {
+    grille.append(creerCarteSourcePopulaire(source));
+  }
+  section.append(grille);
 }
