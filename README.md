@@ -63,7 +63,7 @@
 <td width="50%">
 
 ### 📰 Agrégation
-- Ajout de sources RSS et sites web
+- Ajout de sources RSS et sites web : collez l'adresse du site (`mediapart.fr`), le flux et le protocole sont détectés automatiquement
 - Détection automatique des flux
 - Extraction des métadonnées (Open Graph, Twitter Cards)
 

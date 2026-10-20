@@ -49,17 +49,20 @@ export function creerFormulaireSource(
   const inputUrl = creerElement('input', {
     classes: ['champ-input'],
     attrs: {
-      type: 'url',
+      type: 'text',
+      inputmode: 'url',
+      autocomplete: 'url',
+      spellcheck: 'false',
       id: 'source-url',
       name: 'url',
-      placeholder: 'https://example.com/rss',
+      placeholder: 'mediapart.fr ou https://example.com/rss',
       required: 'true',
     },
   }) as HTMLInputElement;
 
   const aideUrl = creerElement('span', {
     classes: ['champ-aide'],
-    texte: 'Flux RSS, Atom ou page web',
+    texte: 'Adresse du site ou du flux : le flux RSS/Atom et le protocole sont détectés automatiquement',
   });
 
   champUrl.append(labelUrl, inputUrl, aideUrl);

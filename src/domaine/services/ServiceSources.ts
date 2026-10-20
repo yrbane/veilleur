@@ -18,6 +18,19 @@ export interface ResultatDetection {
   type: TypeSource;
   titre: string | null;
   favicon: string | null;
+  /** URL finale à enregistrer (flux découvert, protocole deviné) ; absente = URL saisie */
+  url?: string | null;
+  /** false quand le site n'a répondu sur aucun protocole (faute de frappe probable) */
+  joignable?: boolean;
+}
+
+/**
+ * Complète une saisie sans protocole (« mediapart.fr ») en URL https.
+ * Le détecteur reçoit la saisie brute et peut retomber sur http si https ne répond pas.
+ */
+export function completerProtocole(saisie: string): string {
+  const url = saisie.trim();
+  return /^[a-z][a-z0-9+.-]*:\/\//i.test(url) ? url : `https://${url}`;
 }
 
 /**
@@ -28,6 +41,7 @@ export class ErreurSource extends Error {
     message: string,
     public readonly code:
       | 'URL_INVALIDE'
+      | 'SITE_INJOIGNABLE'
       | 'SOURCE_INTROUVABLE'
       | 'SOURCE_DEJA_AJOUTEE'
       | 'LIMITE_SOURCES_ATTEINTE'
@@ -60,10 +74,11 @@ export class ServiceSources {
    */
   async ajouterSource(
     utilisateurId: string,
-    url: string,
+    urlSaisie: string,
     nomPersonnalise?: string,
   ): Promise<SourceUtilisateur> {
-    // Valider l'URL
+    // Valider l'URL (protocole complété si l'utilisateur l'a omis)
+    const url = completerProtocole(urlSaisie);
     if (!this.estUrlValide(url)) {
       throw new ErreurSource('URL invalide', 'URL_INVALIDE');
     }
@@ -77,11 +92,28 @@ export class ServiceSources {
       );
     }
 
-    // Générer le hash de l'URL normalisée
-    const hashUrl = this.genererHashUrl(url);
-
-    // Vérifier si la source existe déjà globalement
+    // Vérifier si la source existe déjà globalement (hash de l'URL normalisée)
+    let hashUrl = this.genererHashUrl(url);
     let source = await this.depotSources.trouverParHashUrl(hashUrl);
+
+    // Sinon, détecter le flux réel derrière la saisie (page d'accueil → flux RSS, protocole)
+    let urlFinale = url;
+    let detection: ResultatDetection | null = null;
+    if (!source) {
+      detection = await this.detecterTypeSource(urlSaisie.trim());
+      if (detection.joignable === false) {
+        throw new ErreurSource('Site injoignable, vérifiez l\'adresse', 'SITE_INJOIGNABLE');
+      }
+      if (detection.url && this.estUrlValide(detection.url)) {
+        urlFinale = detection.url;
+        const hashFinal = this.genererHashUrl(urlFinale);
+        if (hashFinal !== hashUrl) {
+          // Le flux découvert est peut-être déjà suivi par d'autres utilisateurs
+          hashUrl = hashFinal;
+          source = await this.depotSources.trouverParHashUrl(hashUrl);
+        }
+      }
+    }
 
     if (source) {
       // Vérifier si l'utilisateur suit déjà cette source
@@ -90,15 +122,12 @@ export class ServiceSources {
         throw new ErreurSource('Vous suivez déjà cette source', 'SOURCE_DEJA_AJOUTEE');
       }
     } else {
-      // Détecter le type de source et créer une nouvelle entrée
-      const detection = await this.detecterTypeSource(url);
-
       source = await this.depotSources.creer({
-        url,
-        nom: nomPersonnalise ?? detection.titre ?? this.extraireNomDomaine(url),
-        typeSource: detection.type,
+        url: urlFinale,
+        nom: nomPersonnalise ?? detection?.titre ?? this.extraireNomDomaine(urlFinale),
+        typeSource: detection?.type ?? 'rss',
         statut: 'active',
-        urlFavicon: detection.favicon,
+        urlFavicon: detection?.favicon ?? null,
         dateDerniereSynchro: null,
         hashUrlNormalise: hashUrl,
         nombreEchecs: 0,
@@ -319,7 +348,9 @@ export class ServiceSources {
   private estUrlValide(url: string): boolean {
     try {
       const parsed = new URL(url);
-      return ['http:', 'https:'].includes(parsed.protocol);
+      // Un hôte sans point (« not-a-valid-url ») n'est pas un site joignable
+      const hoteValide = parsed.hostname.includes('.') || parsed.hostname === 'localhost';
+      return ['http:', 'https:'].includes(parsed.protocol) && hoteValide;
     } catch {
       return false;
     }
@@ -358,7 +389,7 @@ export class ServiceSources {
     }
 
     // Détection basique par extension/path
-    const urlLower = url.toLowerCase();
+    const urlLower = completerProtocole(url).toLowerCase();
     if (urlLower.includes('/feed') || urlLower.includes('.rss') || urlLower.includes('/rss')) {
       return { type: 'rss', titre: null, favicon: null };
     }
