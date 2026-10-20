@@ -4,6 +4,13 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.9.2 — 2026-10-21 · « Tout marquer lu réparé »
+
+### Corrigé
+- « Tout marquer lu » répondait 500 : l'alias Drizzle de `utilisateurs_articles`
+  interpolé dans la requête brute ne produisait que son nom (`LEFT JOIN ua`).
+  La jointure est écrite explicitement (`utilisateurs_articles AS ua`).
+
 ## 0.9.1 — 2026-10-21 · « Verrou npm complété »
 
 ### Corrigé
