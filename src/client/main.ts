@@ -241,7 +241,12 @@ function initialiserBoutonTheme(): void {
     bouton.setAttribute('aria-label', libelleTheme(theme));
   };
   rafraichir(themeEnregistre());
-  bouton.addEventListener('click', () => appliquerTheme(themeSuivant(themeEnregistre())));
+  bouton.addEventListener('click', () => {
+    const theme = themeSuivant(themeEnregistre());
+    appliquerTheme(theme);
+    // Le compte retient aussi le choix ; en cas d'échec le thème reste appliqué localement
+    if (estAuthentifie()) auth.mettreAJourProfil({ theme }).catch(() => undefined);
+  });
   document.addEventListener('veilleur:theme', (e) => rafraichir((e as CustomEvent<Theme>).detail));
 }
 

@@ -208,6 +208,7 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
                   resume: { type: 'string', nullable: true },
                   urlImage: { type: 'string', nullable: true },
                   auteur: { type: 'string', nullable: true },
+                  sourceId: { type: 'string' },
                   source: {
                     type: 'object',
                     properties: {
