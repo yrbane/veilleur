@@ -3,7 +3,7 @@
  * Gestion du profil et des préférences utilisateur
  */
 
-import { appliquerTheme, type Theme } from '../utils/theme';
+import { appliquerTheme, themeEnregistre, type Theme } from '../utils/theme';
 import { iconeHtml } from '../utils/icones';
 import { ajouterBasculeMotDePasse } from '../utils/formulaires';
 import { creerElement, $, vider } from '../utils/dom';
@@ -180,7 +180,8 @@ function creerSectionPreferences(): HTMLElement {
     attrs: { id: 'form-preferences' },
   }) as HTMLFormElement;
 
-  const preferences = utilisateurCourant?.preferences ?? {};
+  // Le thème affiché est celui réellement appliqué sur cet appareil (bouton de l'en-tête compris)
+  const preferences = { ...(utilisateurCourant?.preferences ?? {}), theme: themeEnregistre() };
 
   // Le bouton de thème de l'en-tête et ce sélecteur restent d'accord
   document.addEventListener('veilleur:theme', (e) => {

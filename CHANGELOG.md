@@ -4,6 +4,15 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.8.2 — 2026-10-20 · « Favicons du fil et thème retenu par le compte »
+
+### Corrigé
+- Le fil ne renvoyait pas `sourceId` (absent du schéma de réponse) : les
+  favicons des articles pointaient vers `/api/v1/favicons/undefined`.
+- Le bouton de thème de l'en-tête enregistre aussi le choix dans les
+  préférences du compte, et la page Paramètres affiche le thème réellement
+  appliqué sur l'appareil.
+
 ## 0.8.1 — 2026-10-20 · « Fichier de verrou resynchronisé »
 
 ### Corrigé
