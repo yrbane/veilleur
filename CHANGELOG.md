@@ -4,6 +4,16 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.2.1 — 2026-10-20 · « Déploiement continu »
+
+### Ajouté
+- **Workflow GitHub Actions** `.github/workflows/deploy-nethttp.yml` : à chaque push
+  ou pull request, lint + typecheck + tests + build ; à chaque push (merge) sur
+  `main`, déploiement automatique sur https://news.nethttp.net avec le même
+  installeur que `npm run deploy:nethttp`, puis contrôle que `/api/v1/health`
+  sert la version publiée. Secrets `NETHTTP_SSH_KEY` (clé ed25519 dédiée) et
+  `NETHTTP_KNOWN_HOSTS`.
+
 ## 0.2.0 — 2026-10-20 · « Cache d'images et mise en ligne sur news.nethttp.net »
 
 ### Ajouté
