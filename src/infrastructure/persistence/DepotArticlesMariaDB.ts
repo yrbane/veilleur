@@ -557,7 +557,7 @@ export class DepotArticlesMariaDB implements DepotArticles {
       if (nombre === 0) return 0;
       await db.execute(sql`INSERT INTO ${utilisateursArticles} (id, utilisateur_id, article_id, note, favori, lu_le, date_mise_a_jour)
         SELECT UUID(), ${utilisateurId}, ${articles.id}, NULL, false, NOW(), NOW() ${portee}
-        ON DUPLICATE KEY UPDATE lu_le = COALESCE(lu_le, NOW()), date_mise_a_jour = NOW()`);
+        ON DUPLICATE KEY UPDATE utilisateurs_articles.lu_le = NOW(), utilisateurs_articles.date_mise_a_jour = NOW()`);
       return nombre;
     } catch (erreur) {
       loggerBdd.error({ erreur, utilisateurId }, 'Erreur lors du marquage lu du fil');
