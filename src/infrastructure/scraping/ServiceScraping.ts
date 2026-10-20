@@ -86,6 +86,12 @@ const SELECTEURS_ARTICLES = {
 /**
  * Service de scraping des sources
  */
+/** Élément media:* tel que rendu par xml2js (attributs sous $) */
+type ElementMedia = { $?: { url?: string } };
+
+/** Contenu d'un media:group : enfants en tableau (xml2js) ou objet simple */
+type GroupeMedia = Partial<Record<'media:content' | 'media:thumbnail', ElementMedia | ElementMedia[]>>;
+
 export class ServiceScraping {
   private readonly rssParser: Parser;
   private readonly options: Required<OptionsScraping>;
@@ -103,6 +109,7 @@ export class ServiceScraping {
         item: [
           ['media:content', 'mediaContent'],
           ['media:thumbnail', 'mediaThumbnail'],
+          ['media:group', 'mediaGroup'],
           ['enclosure', 'enclosure'],
         ],
       },
@@ -515,11 +522,29 @@ export class ServiceScraping {
   }
 
   /**
+   * Extrait la première URL d'image d'un media:group (enfants en tableau selon xml2js)
+   */
+  private extraireImageGroupeMedia(groupe: GroupeMedia | undefined): string | null {
+    if (!groupe) {
+      return null;
+    }
+    for (const cle of ['media:content', 'media:thumbnail'] as const) {
+      const enfants = groupe[cle];
+      const premier = Array.isArray(enfants) ? enfants[0] : enfants;
+      if (premier?.$?.url) {
+        return premier.$.url;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Extrait l'image d'un item RSS
    */
   private extraireImageRss(item: Parser.Item & {
-    mediaContent?: { $?: { url?: string } };
-    mediaThumbnail?: { $?: { url?: string } };
+    mediaContent?: ElementMedia;
+    mediaThumbnail?: ElementMedia;
+    mediaGroup?: GroupeMedia;
     enclosure?: { url?: string };
   }): string | null {
     // media:content
@@ -530,6 +555,12 @@ export class ServiceScraping {
     // media:thumbnail
     if (item.mediaThumbnail?.$?.url) {
       return item.mediaThumbnail.$.url;
+    }
+
+    // media:group (Blast, YouTube…) : media:content ou media:thumbnail enveloppés
+    const urlGroupe = this.extraireImageGroupeMedia(item.mediaGroup);
+    if (urlGroupe) {
+      return urlGroupe;
     }
 
     // enclosure (souvent utilisé pour les podcasts)

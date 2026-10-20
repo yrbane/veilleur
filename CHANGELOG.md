@@ -4,6 +4,15 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.2.3 — 2026-10-20 · « Images des flux media:group »
+
+### Corrigé
+- **Images absentes pour les flux qui enveloppent `media:content` dans
+  `media:group`** (Blast, YouTube…) : l'extracteur RSS lit désormais le groupe
+  (`media:content` puis `media:thumbnail`), donc ces images sont mises en cache
+  comme les autres. Blast passe de 0 à 49 images sur 50 ; Mediapart
+  (`media:content` direct) était déjà couvert.
+
 ## 0.2.2 — 2026-10-20 · « Inscription réparée »
 
 ### Corrigé
