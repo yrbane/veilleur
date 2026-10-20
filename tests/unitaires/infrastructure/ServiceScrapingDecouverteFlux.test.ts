@@ -181,6 +181,27 @@ describe('ServiceScraping.detecterSource', () => {
     expect(detection.tags).toEqual(['Politique', 'Écologie']);
   });
 
+  it('ignore un favicon encodé en data: au profit de /favicon.ico', async () => {
+    const service = new ServiceScraping();
+    simulerReseau([], '<html><head><title>Site</title><link rel="icon" href="data:image/x-icon;base64,AAAB"></head></html>');
+
+    const detection = await service.detecterSource('https://journal.fr');
+
+    expect(detection.favicon).toBe('https://journal.fr/favicon.ico');
+  });
+
+  it('reconnaît un flux dont les catégories portent des attributs', async () => {
+    const service = new ServiceScraping();
+    const flux = `<?xml version="1.0"?><rss version="2.0"><channel><title>Flux</title><link>https://journal.fr</link>
+      <item><title>A</title><link>https://journal.fr/a</link><category domain="https://journal.fr/cat">Société</category></item></channel></rss>`;
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(url.endsWith('/rss.xml') ? flux : '<html></html>', { status: 200 })));
+
+    const detection = await service.detecterSource('https://journal.fr/rss.xml');
+
+    expect(detection.type).toBe('rss');
+    expect(detection.tags).toEqual(['Société']);
+  });
+
   it('déduit les tags des mots-clés de la page pour une source HTML', async () => {
     const service = new ServiceScraping();
     simulerReseau([], '<html><head><title>Site</title><meta name="keywords" content="astronomie, espace"></head></html>');

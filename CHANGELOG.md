@@ -4,7 +4,18 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
-## 0.6.0 — 2026-10-20 · « Favicon et tags de la source récupérés à l'ajout »
+## 0.6.1 — 2026-10-20 · « Détection plus robuste des tags »
+
+### Corrigé
+- Un flux dont les `<category>` portent des attributs (`domain=…`, cas de
+  Blast) était pris pour une page HTML : la source n'avait ni tags ni flux.
+- Les catégories techniques (slugs `jeux-video/actualites-gaming`, `no_ads`),
+  les libellés de moins de trois caractères et les noms propres des titres ne
+  sont plus proposés comme tags.
+- Un favicon encodé en `data:` n'est plus enregistré ; `/favicon.ico` à la
+  racine du site est utilisé à la place.
+
+ · « Favicon et tags de la source récupérés à l'ajout »
 
 ### Ajouté
 - **À l'ajout d'une source, son favicon et ses tags sont récupérés
