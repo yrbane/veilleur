@@ -203,6 +203,48 @@ describe('ServiceImagesCache', () => {
       expect(mockSupprimerTemporaire).toHaveBeenCalled();
     });
 
+    it('devrait créer l\'entrée en base si elle n\'existe pas encore (job ajouté sans demanderCache)', async () => {
+      mockDepot.trouverParHash.mockResolvedValue(null);
+      mockDepot.creer.mockResolvedValue({ id: 'nouvel-id', hashUrl: 'abc123', statut: 'en_attente' });
+      mockTelecharger.mockResolvedValue({
+        succes: true,
+        cheminTemporaire: '/tmp/img.jpg',
+        typeMime: 'image/jpeg',
+        tailleFichier: 12345,
+      });
+      mockTraiter.mockResolvedValue({
+        succes: true,
+        cheminLocal: 'originales/abc.webp',
+        cheminMiniatureSm: 'miniatures/abc-sm.webp',
+        cheminMiniatureMd: 'miniatures/abc-md.webp',
+        largeur: 800,
+        hauteur: 600,
+      });
+      mockDepot.mettreAJour.mockResolvedValue({ id: 'nouvel-id', hashUrl: 'abc123', statut: 'termine' });
+
+      const { ServiceImagesCache } = await import('@/infrastructure/images/ServiceImagesCache');
+      const service = new ServiceImagesCache(mockDepot as unknown as DepotImagesCache);
+
+      const resultat = await service.traiterImage('abc123', 'https://example.com/img.jpg');
+
+      expect(resultat).toBe(true);
+      expect(mockDepot.creer).toHaveBeenCalledWith('abc123', 'https://example.com/img.jpg');
+      // La création précède la mise à jour de statut, sinon l'UPDATE ne touche aucune ligne
+      expect(mockDepot.creer.mock.invocationCallOrder[0]).toBeLessThan(mockDepot.mettreAJour.mock.invocationCallOrder[0]);
+    });
+
+    it('ne recrée pas l\'entrée si elle existe déjà', async () => {
+      mockDepot.trouverParHash.mockResolvedValue({ id: 'existant', hashUrl: 'abc123', statut: 'en_attente' });
+      mockTelecharger.mockResolvedValue({ succes: false, erreur: 'Timeout' });
+
+      const { ServiceImagesCache } = await import('@/infrastructure/images/ServiceImagesCache');
+      const service = new ServiceImagesCache(mockDepot as unknown as DepotImagesCache);
+
+      await service.traiterImage('abc123', 'https://example.com/img.jpg');
+
+      expect(mockDepot.creer).not.toHaveBeenCalled();
+    });
+
     it('devrait marquer comme échec si le téléchargement échoue', async () => {
       mockTelecharger.mockResolvedValue({
         succes: false,

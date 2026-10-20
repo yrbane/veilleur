@@ -85,6 +85,13 @@ export class ServiceImagesCache {
    * Traite le téléchargement et le cache d'une image
    */
   async traiterImage(hashUrl: string, urlOriginale: string): Promise<boolean> {
+    // Les jobs ajoutés directement par la synchronisation ne passent pas par demanderCache :
+    // sans ligne en base, les mises à jour de statut ne toucheraient rien et l'image resterait introuvable
+    const existante = await this.depotImages.trouverParHash(hashUrl);
+    if (!existante) {
+      await this.depotImages.creer(hashUrl, urlOriginale);
+    }
+
     // Marquer comme en cours
     await this.depotImages.mettreAJour(hashUrl, { statut: 'en_cours' });
 

@@ -4,7 +4,25 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
-## 0.2.3 — 2026-10-20 · « Images des flux media:group »
+## 0.2.4 — 2026-10-20 · « Menu connecté et cache d'images effectif »
+
+### Corrigé
+- **Menu invisible après connexion** : l'en-tête restait sur « Connexion /
+  Inscription » et « Mes sources » restait masqué jusqu'à un rechargement
+  complet, car l'état d'authentification n'était rafraîchi qu'au démarrage.
+  Le routeur le rafraîchit désormais à chaque navigation.
+- **Images en 404 malgré le cache** : le worker écrivait bien les fichiers mais
+  la ligne `images_cachees` n'était jamais créée (les jobs enfilés par la
+  synchronisation ne passaient pas par `demanderCache`), donc toutes les mises
+  à jour de statut tombaient dans le vide et l'API répondait 404, le client
+  retombant sur l'URL d'origine. `traiterImage` crée la ligne si elle manque.
+
+### Ajouté
+- `npm run images:rattraper:prod` (`dist/rattraper-images.js`) : ré-enfile les
+  images d'articles absentes du cache, pour rattraper celles traitées avant ce
+  correctif.
+
+ · « Images des flux media:group »
 
 ### Corrigé
 - **Images absentes pour les flux qui enveloppent `media:content` dans

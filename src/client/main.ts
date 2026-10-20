@@ -76,6 +76,9 @@ async function router(): Promise<void> {
     return;
   }
 
+  // L'état de connexion a pu changer depuis le rendu précédent (connexion, inscription)
+  mettreAJourAuth();
+
   // Trouver la route correspondante
   for (const route of routes) {
     const match = path.match(route.pattern);
