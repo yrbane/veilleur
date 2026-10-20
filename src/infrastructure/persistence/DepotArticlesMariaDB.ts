@@ -11,7 +11,7 @@ import type {
   ResultatPagineArticles,
   CacheArticles,
 } from '@/domaine/ports/DepotArticles';
-import type { Article, ArticleAvecSource, MetaOpenGraph, MetaTwitter, MotCleFil } from '@/domaine/entites/Article';
+import type { Article, ArticleAvecSource, ArticleApprecie, MetaOpenGraph, MetaTwitter, MotCleFil } from '@/domaine/entites/Article';
 import { resoudreTri } from '@/domaine/entites/Article';
 import { obtenirBdd } from './connexion';
 import { articles, sources, utilisateursSources, utilisateursSourcesTags, tags, utilisateursArticles, articlesMotsCles } from './schema';
@@ -543,6 +543,54 @@ export class DepotArticlesMariaDB implements DepotArticles {
       return lignes.map(l => ({ mot: l.mot, nombreArticles: Number(l.nombreArticles) }));
     } catch (erreur) {
       loggerBdd.error({ erreur, options }, 'Erreur lors du comptage des mots-clés par période');
+      throw erreur;
+    }
+  }
+
+  async listerArticlesApprecies(depuis: Date, limite = 10): Promise<ArticleApprecie[]> {
+    const db = obtenirBdd();
+    try {
+      const lignes = await db
+        .select({
+          id: articles.id,
+          titre: articles.titre,
+          lien: articles.lien,
+          datePublication: articles.datePublication,
+          sourceId: sources.id,
+          sourceNom: sources.nom,
+          sourceFavicon: sources.urlFavicon,
+          nombreFavoris: sql<number>`SUM(${utilisateursArticles.favori} = true)`,
+          nombreNotes: sql<number>`SUM(${utilisateursArticles.note} IS NOT NULL)`,
+          noteMoyenne: sql<number | null>`AVG(${utilisateursArticles.note})`,
+        })
+        .from(utilisateursArticles)
+        .innerJoin(articles, eq(articles.id, utilisateursArticles.articleId))
+        .innerJoin(sources, eq(sources.id, articles.sourceId))
+        .where(
+          and(
+            sql`${utilisateursArticles.dateMiseAJour} >= ${depuis}`,
+            sql`(${utilisateursArticles.favori} = true OR ${utilisateursArticles.note} IS NOT NULL)`,
+          ),
+        )
+        .groupBy(articles.id, sources.id)
+        .orderBy(
+          desc(sql`SUM(${utilisateursArticles.favori} = true) * 2 + SUM(${utilisateursArticles.note} IS NOT NULL)`),
+          desc(sql`AVG(${utilisateursArticles.note})`),
+          desc(articles.datePublication),
+        )
+        .limit(limite);
+      return lignes.map(l => ({
+        id: l.id,
+        titre: l.titre,
+        lien: l.lien,
+        datePublication: l.datePublication,
+        source: { id: l.sourceId, nom: l.sourceNom, urlFavicon: l.sourceFavicon },
+        nombreFavoris: Number(l.nombreFavoris),
+        nombreNotes: Number(l.nombreNotes),
+        noteMoyenne: l.noteMoyenne === null ? null : Math.round(Number(l.noteMoyenne) * 10) / 10,
+      }));
+    } catch (erreur) {
+      loggerBdd.error({ erreur }, 'Erreur lors de la liste des articles appréciés');
       throw erreur;
     }
   }

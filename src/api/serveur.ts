@@ -26,6 +26,7 @@ import { routesCommunaute } from './routes/communaute';
 import { routesImages } from './routes/images';
 import { routesFavicons } from './routes/favicons';
 import { routesTendances } from './routes/tendances';
+import { routesProgression } from './routes/progression';
 import { pluginAuthentification } from './middlewares/authentification';
 import { protectionCSRF } from './middlewares/csrf';
 
@@ -325,6 +326,9 @@ export async function creerServeur(): Promise<FastifyInstance> {
 
   // Mots-clés tendance (global public, fil authentifié)
   await serveur.register(routesTendances, { prefix: '/api/v1/tendances' });
+
+  // Gamification : progression de l'utilisateur
+  await serveur.register(routesProgression, { prefix: '/api/v1/progression' });
 
   // Gestion des erreurs
   serveur.setErrorHandler((erreur, request, reply) => {

@@ -4,6 +4,29 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.15.0 — 2026-10-21 · « Communauté et parcours »
+
+### Ajouté
+- Page « Mon parcours » (`/progression`, lien « Parcours » dans la barre) :
+  points, niveau (Éclaireur → Oracle, six paliers), barre vers le palier
+  suivant, série de jours de lecture (courante et record), détail des points
+  par activité, douze badges avec avancement (Première lecture, Lecteur assidu,
+  Dévoreur, Critique, Collectionneur, Curieux, Encyclopédiste, Archiviste,
+  Lève-tôt, Marathon, Régulier, Inarrêtable).
+- Classement public sur la base du volontariat : case « Apparaître dans le
+  classement » + pseudo (préférences `classementPublic`, `pseudo`). Seuls
+  pseudo, points, niveau, badges et série sont exposés ; calcul en cache 10 min.
+- Découverte : « Les plus appréciés cette semaine » (articles les plus mis en
+  favoris et notés par l'ensemble des utilisateurs, visible sans compte) et
+  « Suggestions pour vous » (sources suivies par les lecteurs qui partagent
+  vos sources, que vous ne suivez pas encore).
+- Partage d'un article depuis sa carte : partage natif du navigateur quand il
+  existe, sinon copie du lien.
+- API : `GET /api/v1/progression`, `GET /api/v1/communaute/classement`,
+  `GET /api/v1/communaute/articles-apprecies`, `GET /api/v1/communaute/suggestions`.
+- Toute la gamification se déduit de l'activité existante (lectures, notes,
+  favoris, sources, rubriques) : aucune table ni migration supplémentaire.
+
 ## 0.14.0 — 2026-10-21 · « Mots-clés tendance »
 
 ### Ajouté

@@ -907,3 +907,265 @@
   font-size: var(--taille-sm);
   color: var(--couleur-texte-muted);
 }
+
+/* Communauté sur la Découverte (0.15.0) */
+.section-communaute {
+  margin-bottom: var(--espace-6);
+}
+
+.section-communaute.masque {
+  display: none;
+}
+
+.section-communaute-titre {
+  display: flex;
+  align-items: center;
+  gap: var(--espace-2);
+  font-size: var(--taille-lg);
+  margin: 0 0 var(--espace-3);
+}
+
+.apprecies-liste {
+  margin: 0;
+  padding-left: var(--espace-5);
+  display: grid;
+  gap: var(--espace-2);
+}
+
+.apprecies-titre {
+  font-weight: var(--poids-medium);
+}
+
+.apprecies-titre:hover {
+  color: var(--couleur-primaire);
+}
+
+.apprecies-meta {
+  margin: 0;
+  font-size: var(--taille-sm);
+  color: var(--couleur-texte-secondaire);
+}
+
+/* Page Mon parcours (0.15.0) */
+.progression-contenu {
+  display: grid;
+  gap: var(--espace-6);
+}
+
+.progression-niveau {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--espace-5);
+  align-items: center;
+  padding: var(--espace-5);
+  background-color: var(--couleur-fond-carte);
+  border: 1px solid var(--couleur-bordure);
+  border-radius: var(--rayon-xl);
+}
+
+.progression-medaille {
+  font-size: 3.5rem;
+  color: var(--couleur-primaire);
+  line-height: 1;
+}
+
+.progression-medaille .icone {
+  font-size: inherit;
+}
+
+.progression-niveau-nom {
+  margin: 0;
+  font-size: var(--taille-xl);
+  font-weight: var(--poids-bold);
+}
+
+.progression-points {
+  margin: 0 0 var(--espace-2);
+  color: var(--couleur-texte-secondaire);
+}
+
+.progression-niveau .la-progress {
+  margin-bottom: var(--espace-1);
+}
+
+.progression-serie {
+  display: flex;
+  align-items: center;
+  gap: var(--espace-3);
+  padding: var(--espace-3) var(--espace-4);
+  border-radius: var(--rayon-lg);
+  background-color: var(--couleur-fond-hover);
+  color: var(--couleur-texte-secondaire);
+}
+
+.progression-serie .icone {
+  font-size: 2rem;
+}
+
+.progression-serie.active {
+  color: var(--couleur-texte);
+}
+
+.progression-serie.active .icone {
+  color: #f0652f;
+}
+
+.progression-serie-valeur {
+  margin: 0;
+  font-weight: var(--poids-semibold);
+}
+
+.progression-section-titre {
+  font-size: var(--taille-lg);
+  margin: 0 0 var(--espace-3);
+}
+
+.progression-detail {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--espace-1);
+}
+
+.progression-detail-ligne {
+  display: grid;
+  grid-template-columns: 1fr auto 4rem;
+  gap: var(--espace-3);
+  padding: var(--espace-2) var(--espace-3);
+  border-radius: var(--rayon-md);
+  background-color: var(--couleur-fond-carte);
+}
+
+.progression-detail-ligne strong {
+  text-align: right;
+}
+
+.progression-detail-calcul {
+  color: var(--couleur-texte-secondaire);
+  font-size: var(--taille-sm);
+}
+
+.badges-grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: var(--espace-3);
+}
+
+.badge-carte {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--espace-1);
+  padding: var(--espace-4) var(--espace-3);
+  border: 1px solid var(--couleur-bordure);
+  border-radius: var(--rayon-lg);
+  background-color: var(--couleur-fond-carte);
+}
+
+.badge-icone {
+  font-size: 2.25rem;
+  line-height: 1;
+  color: var(--couleur-primaire);
+}
+
+.badge-icone .icone {
+  font-size: inherit;
+}
+
+.badge-carte.verrouille {
+  opacity: 0.6;
+}
+
+.badge-carte.verrouille .badge-icone {
+  color: var(--couleur-texte-muted);
+}
+
+.badge-nom {
+  margin: var(--espace-1) 0 0;
+  font-weight: var(--poids-semibold);
+}
+
+.badge-description {
+  margin: 0;
+  font-size: var(--taille-xs);
+  color: var(--couleur-texte-secondaire);
+}
+
+.badge-progression {
+  width: 100%;
+  margin-top: var(--espace-2);
+}
+
+.classement-optin {
+  display: grid;
+  gap: var(--espace-3);
+  padding: var(--espace-4);
+  margin-bottom: var(--espace-4);
+  border: 1px solid var(--couleur-bordure);
+  border-radius: var(--rayon-lg);
+  background-color: var(--couleur-fond-carte);
+}
+
+.classement-optin .la-form-group {
+  margin: 0;
+}
+
+.classement-optin button {
+  justify-self: start;
+}
+
+.classement-table tr.moi td {
+  font-weight: var(--poids-semibold);
+  color: var(--couleur-primaire);
+}
+
+@media (max-width: 640px) {
+  .progression-niveau {
+    grid-template-columns: 1fr;
+    text-align: center;
+    justify-items: center;
+  }
+
+  .progression-detail-ligne {
+    grid-template-columns: 1fr auto;
+  }
+
+  .progression-detail-calcul {
+    display: none;
+  }
+}
+
+/* Barre de progression et tableau (classes absentes du socle Lunar importé) */
+.la-progress {
+  height: 0.5rem;
+  border-radius: var(--rayon-full, 999px);
+  background-color: var(--couleur-fond-hover);
+  overflow: hidden;
+}
+
+.la-progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  background-color: var(--couleur-primaire);
+  transition: width 0.4s ease;
+}
+
+.la-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--taille-sm);
+}
+
+.la-table th,
+.la-table td {
+  padding: var(--espace-2) var(--espace-3);
+  text-align: left;
+  border-bottom: 1px solid var(--couleur-bordure);
+}
+
+.la-table th {
+  color: var(--couleur-texte-secondaire);
+  font-weight: var(--poids-semibold);
+}

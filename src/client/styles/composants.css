@@ -609,7 +609,8 @@
 }
 
 .btn-favori,
-.btn-a-lire {
+.btn-a-lire,
+.btn-partager {
   display: inline-flex;
   background: none;
   border: none;
@@ -633,6 +634,10 @@
 
 .btn-a-lire:hover {
   transform: scale(1.15);
+}
+
+.btn-partager:hover {
+  color: var(--couleur-primaire);
 }
 
 .btn-favori.active {
