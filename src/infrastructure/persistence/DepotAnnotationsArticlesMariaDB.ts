@@ -31,20 +31,29 @@ export class DepotAnnotationsArticlesMariaDB implements DepotAnnotationsArticles
   /**
    * Upsert de la ligne utilisateur-article, puis suppression si elle ne porte plus rien
    */
+  async marquerLu(utilisateurId: string, articleId: string, lu: boolean): Promise<void> {
+    try {
+      await this.enregistrer(utilisateurId, articleId, { luLe: lu ? new Date() : null });
+    } catch (erreur) {
+      loggerBdd.error({ erreur, utilisateurId, articleId }, 'Erreur lors du marquage lu de l\'article');
+      throw erreur;
+    }
+  }
+
   private async enregistrer(
     utilisateurId: string,
     articleId: string,
-    valeurs: { note?: number | null; favori?: boolean },
+    valeurs: { note?: number | null; favori?: boolean; luLe?: Date | null },
   ): Promise<void> {
     const db = obtenirBdd();
     const cle = and(eq(utilisateursArticles.utilisateurId, utilisateurId), eq(utilisateursArticles.articleId, articleId));
     await db
       .insert(utilisateursArticles)
-      .values({ utilisateurId, articleId, note: valeurs.note ?? null, favori: valeurs.favori ?? false, dateMiseAJour: new Date() })
+      .values({ utilisateurId, articleId, note: valeurs.note ?? null, favori: valeurs.favori ?? false, luLe: valeurs.luLe ?? null, dateMiseAJour: new Date() })
       .onDuplicateKeyUpdate({ set: { ...valeurs, dateMiseAJour: new Date() } });
     await db
       .delete(utilisateursArticles)
-      .where(and(cle, sql`${utilisateursArticles.note} IS NULL`, eq(utilisateursArticles.favori, false)));
+      .where(and(cle, sql`${utilisateursArticles.note} IS NULL`, eq(utilisateursArticles.favori, false), sql`${utilisateursArticles.luLe} IS NULL`));
   }
 
   async obtenirAnnotations(utilisateurId: string, articleIds: string[]): Promise<Map<string, AnnotationArticle>> {
@@ -56,7 +65,7 @@ export class DepotAnnotationsArticlesMariaDB implements DepotAnnotationsArticles
     const obtenir = (articleId: string): AnnotationArticle => {
       let annotation = annotations.get(articleId);
       if (!annotation) {
-        annotation = { note: null, favori: false };
+        annotation = { note: null, favori: false, lu: false };
         annotations.set(articleId, annotation);
       }
       return annotation;
@@ -64,13 +73,14 @@ export class DepotAnnotationsArticlesMariaDB implements DepotAnnotationsArticles
 
     try {
       const notes = await db
-        .select({ articleId: utilisateursArticles.articleId, note: utilisateursArticles.note, favori: utilisateursArticles.favori })
+        .select({ articleId: utilisateursArticles.articleId, note: utilisateursArticles.note, favori: utilisateursArticles.favori, luLe: utilisateursArticles.luLe })
         .from(utilisateursArticles)
         .where(and(eq(utilisateursArticles.utilisateurId, utilisateurId), inArray(utilisateursArticles.articleId, articleIds)));
       for (const ligne of notes) {
         const annotation = obtenir(ligne.articleId);
         annotation.note = ligne.note ?? null;
         annotation.favori = ligne.favori;
+        annotation.lu = ligne.luLe !== null;
       }
 
       return annotations;

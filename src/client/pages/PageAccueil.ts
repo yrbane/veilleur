@@ -36,10 +36,11 @@ interface FiltresFil {
   ordre: 'asc' | 'desc';
   noteMin?: number;
   favoris: boolean;
+  nonLus: boolean;
   motCle?: string;
 }
 
-const FILTRES_DEFAUT: FiltresFil = { recherche: '', tri: 'date', ordre: 'desc', favoris: false };
+const FILTRES_DEFAUT: FiltresFil = { recherche: '', tri: 'date', ordre: 'desc', favoris: false, nonLus: false };
 
 let filtres: FiltresFil = { ...FILTRES_DEFAUT };
 let pageCourante = 1;
@@ -189,7 +190,42 @@ function creerBarreOutils(): HTMLElement {
     attrs: { id: 'fil-mots-cles', 'aria-label': 'Filtrer par mot-clé' },
   });
 
-  barre.append(labelTri, selectTri, labelNote, selectNote, btnFavoris, motsClesFiltre);
+  // Non lus
+  const btnNonLus = creerElement('button', {
+    classes: ['la-chip chip-filtre', filtres.nonLus ? 'active' : ''],
+    attrs: { type: 'button', id: 'fil-non-lus', 'aria-pressed': String(filtres.nonLus) },
+    icone: 'mark_email_unread',
+    texte: 'Non lus',
+    onClick: () => {
+      filtres.nonLus = !filtres.nonLus;
+      btnNonLus.classList.toggle('active', filtres.nonLus);
+      btnNonLus.setAttribute('aria-pressed', String(filtres.nonLus));
+      appliquerFiltres();
+    },
+  });
+
+  // Tout marquer comme lu (borné à l'instant du clic)
+  const btnToutLu = creerElement('button', {
+    classes: ['la-btn', 'ghost', 'sm', 'btn-tout-lu'],
+    attrs: { type: 'button', id: 'fil-tout-lu', title: 'Marquer comme lus tous les articles du fil' },
+    icone: 'done_all',
+    texte: 'Tout marquer lu',
+    onClick: async () => {
+      (btnToutLu as HTMLButtonElement).disabled = true;
+      try {
+        const { marques } = await articles.marquerTousLus({ avant: new Date() });
+        toast.succes(marques > 0 ? `${marques} article${marques > 1 ? 's' : ''} marqué${marques > 1 ? 's' : ''} lu${marques > 1 ? 's' : ''}` : 'Tout était déjà lu');
+        void chargerArticles(1);
+        void chargerStatistiques();
+      } catch {
+        toast.erreur('Impossible de marquer le fil comme lu');
+      } finally {
+        (btnToutLu as HTMLButtonElement).disabled = false;
+      }
+    },
+  });
+
+  barre.append(labelTri, selectTri, labelNote, selectNote, btnFavoris, btnNonLus, btnToutLu, motsClesFiltre);
   return barre;
 }
 
@@ -269,7 +305,7 @@ function chargerFiltres(): FiltresFil {
 function sauvegarderFiltres(): void {
   try {
     // La recherche n'est pas mémorisée : on revient toujours sur le fil complet
-    const persistants = { tri: filtres.tri, ordre: filtres.ordre, noteMin: filtres.noteMin, favoris: filtres.favoris, motCle: filtres.motCle };
+    const persistants = { tri: filtres.tri, ordre: filtres.ordre, noteMin: filtres.noteMin, favoris: filtres.favoris, nonLus: filtres.nonLus, motCle: filtres.motCle };
     localStorage.setItem(CLE_FILTRES, JSON.stringify(persistants));
   } catch {
     // Stockage indisponible : les filtres ne survivent pas au rechargement, sans gravité
@@ -325,8 +361,8 @@ async function chargerStatistiques(): Promise<void> {
   if (!container) return;
 
   try {
-    const stats = await articles.statistiques();
-    afficherStatistiques(container, stats);
+    const [stats, nonLus] = await Promise.all([articles.statistiques(), articles.nonLus()]);
+    afficherStatistiques(container, stats, nonLus.total);
   } catch {
     // Silencieux - les stats ne sont pas critiques
   }
@@ -335,10 +371,11 @@ async function chargerStatistiques(): Promise<void> {
 /**
  * Affiche les statistiques
  */
-function afficherStatistiques(container: Element, stats: Statistiques): void {
+function afficherStatistiques(container: Element, stats: Statistiques, nonLus: number): void {
   vider(container);
 
   const statItems = [
+    { valeur: nonLus, label: 'Non lus' },
     { valeur: stats.articlesAujourdhui, label: "Aujourd'hui" },
     { valeur: stats.articlesCetteSemaine, label: 'Cette semaine' },
     { valeur: stats.totalArticles, label: 'Total' },
@@ -388,6 +425,7 @@ async function chargerArticles(page: number): Promise<void> {
     ordre: filtres.ordre,
     noteMin: filtres.noteMin,
     favoris: filtres.favoris,
+    nonLus: filtres.nonLus,
     motCle: filtres.motCle,
   };
 
@@ -437,6 +475,7 @@ async function chargerArticles(page: number): Promise<void> {
 function afficherArticles(container: Element, articlesData: Article[]): void {
   for (const article of articlesData) {
     const carte = creerCarteArticle(article, {
+      onLu: () => void chargerStatistiques(),
       onMotCle: mot => filtrerParMotCle(mot),
     });
     container.append(carte);
@@ -447,7 +486,7 @@ function afficherArticles(container: Element, articlesData: Article[]): void {
  * Affiche un message quand il n'y a pas d'articles
  */
 function afficherMessageVide(container: Element): void {
-  const filtresActifs = filtres.recherche || filtres.noteMin || filtres.favoris || filtres.motCle;
+  const filtresActifs = filtres.recherche || filtres.noteMin || filtres.favoris || filtres.nonLus || filtres.motCle;
   if (filtresActifs) {
     container.innerHTML = `
       <div class="la-empty">

@@ -4,6 +4,7 @@
 
 import { eq, and, lt, desc, asc, sql, inArray } from 'drizzle-orm';
 import type {
+  CompteNonLus,
   DepotArticles,
   CriteresArticles,
   ResultatPagineArticles,
@@ -11,6 +12,7 @@ import type {
 } from '@/domaine/ports/DepotArticles';
 import type { Article, ArticleAvecSource, MetaOpenGraph, MetaTwitter, MotCleFil } from '@/domaine/entites/Article';
 import { resoudreTri } from '@/domaine/entites/Article';
+import { alias } from 'drizzle-orm/mysql-core';
 import { obtenirBdd } from './connexion';
 import { articles, sources, utilisateursSources, utilisateursSourcesTags, tags, utilisateursArticles, articlesMotsCles } from './schema';
 import { loggerBdd } from '../logging/logger';
@@ -299,6 +301,9 @@ export class DepotArticlesMariaDB implements DepotArticles {
       if (criteres?.noteMin) {
         conditions.push(sql`${utilisateursArticles.note} >= ${criteres.noteMin}`);
       }
+      if (criteres?.nonLus) {
+        conditions.push(sql`${utilisateursArticles.luLe} IS NULL`);
+      }
       if (criteres?.favoris) {
         conditions.push(eq(utilisateursArticles.favori, true));
       }
@@ -530,6 +535,67 @@ export class DepotArticlesMariaDB implements DepotArticles {
       return resultats.map(r => this.versArticle(r));
     } catch (erreur) {
       loggerBdd.error({ erreur, sourceId }, 'Erreur lors du listing articles source');
+      throw erreur;
+    }
+  }
+
+  /**
+   * « Tout marquer comme lu » : un INSERT … SELECT sur les articles du fil (sources actives)
+   * publiés avant la borne ; les lignes d'annotation existantes reçoivent leur date de lecture.
+   */
+  async marquerTousLus(utilisateurId: string, options: { sourceId?: string; avant: Date }): Promise<number> {
+    const db = obtenirBdd();
+    const ua = alias(utilisateursArticles, 'ua');
+    const filtreSource = options.sourceId ? sql`AND ${articles.sourceId} = ${options.sourceId}` : sql``;
+    const portee = sql`FROM ${articles}
+      INNER JOIN ${utilisateursSources} ON ${utilisateursSources.sourceId} = ${articles.sourceId}
+        AND ${utilisateursSources.utilisateurId} = ${utilisateurId} AND ${utilisateursSources.estEnPause} = false
+      LEFT JOIN ${ua} ON ${ua.articleId} = ${articles.id} AND ${ua.utilisateurId} = ${utilisateurId}
+      WHERE ${articles.datePublication} <= ${options.avant} AND ${ua.luLe} IS NULL ${filtreSource}`;
+    try {
+      const [lignes] = await db.execute(sql`SELECT COUNT(*) AS n ${portee}`);
+      const nombre = Number((lignes as unknown as { n: number | string }[])[0]?.n ?? 0);
+      if (nombre === 0) return 0;
+      await db.execute(sql`INSERT INTO ${utilisateursArticles} (id, utilisateur_id, article_id, note, favori, lu_le, date_mise_a_jour)
+        SELECT UUID(), ${utilisateurId}, ${articles.id}, NULL, false, NOW(), NOW() ${portee}
+        ON DUPLICATE KEY UPDATE lu_le = COALESCE(lu_le, NOW()), date_mise_a_jour = NOW()`);
+      return nombre;
+    } catch (erreur) {
+      loggerBdd.error({ erreur, utilisateurId }, 'Erreur lors du marquage lu du fil');
+      throw erreur;
+    }
+  }
+
+  async compterNonLus(utilisateurId: string): Promise<CompteNonLus> {
+    const db = obtenirBdd();
+    try {
+      const lignes = await db
+        .select({ sourceId: articles.sourceId, nombre: sql<number>`COUNT(*)` })
+        .from(articles)
+        .innerJoin(
+          utilisateursSources,
+          and(
+            eq(utilisateursSources.sourceId, articles.sourceId),
+            eq(utilisateursSources.utilisateurId, utilisateurId),
+            eq(utilisateursSources.estEnPause, false),
+          ),
+        )
+        .leftJoin(
+          utilisateursArticles,
+          and(eq(utilisateursArticles.articleId, articles.id), eq(utilisateursArticles.utilisateurId, utilisateurId)),
+        )
+        .where(sql`${utilisateursArticles.luLe} IS NULL`)
+        .groupBy(articles.sourceId);
+      const parSource: Record<string, number> = {};
+      let total = 0;
+      for (const ligne of lignes) {
+        const nombre = Number(ligne.nombre);
+        parSource[ligne.sourceId] = nombre;
+        total += nombre;
+      }
+      return { total, parSource };
+    } catch (erreur) {
+      loggerBdd.error({ erreur, utilisateurId }, 'Erreur lors du comptage des non-lus');
       throw erreur;
     }
   }

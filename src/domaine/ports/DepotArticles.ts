@@ -27,6 +27,7 @@ export interface CriteresArticles {
   // Filtres sur les annotations de l'utilisateur
   noteMin?: number;
   favoris?: boolean;
+  nonLus?: boolean;
   // Mot-clé extrait automatiquement
   motCle?: string;
 }
@@ -59,6 +60,14 @@ export interface ResultatPagineArticles {
 /**
  * Interface du dépôt articles
  */
+/**
+ * Articles non lus du fil d'un utilisateur, en tout et par source
+ */
+export interface CompteNonLus {
+  total: number;
+  parSource: Record<string, number>;
+}
+
 export interface DepotArticles {
   /**
    * Trouve un article par son ID
@@ -132,6 +141,16 @@ export interface DepotArticles {
    * Compte les articles d'une source
    */
   compterParSource(sourceId: string): Promise<number>;
+
+  /**
+   * Marque lus tous les articles du fil publiés avant `avant` (option : une seule source) ; renvoie le nombre marqué
+   */
+  marquerTousLus(utilisateurId: string, options: { sourceId?: string; avant: Date }): Promise<number>;
+
+  /**
+   * Compte les articles non lus du fil (sources actives), en tout et par source
+   */
+  compterNonLus(utilisateurId: string): Promise<CompteNonLus>;
 
   /**
    * Vérifie si un article existe déjà (par hash)

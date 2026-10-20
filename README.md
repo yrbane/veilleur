@@ -72,6 +72,7 @@
 - Tags de sources déduits automatiquement, modifiables à la main
 - Articles notés et mis en favoris, classés automatiquement par cinq mots-clés extraits du texte
 - Fil trié (date, note, titre, source), filtré, avec recherche plein texte et chargement au défilement
+- Lu / non lu : lecture automatique à l'ouverture, filtre « Non lus », compteurs par source, « Tout marquer lu »
 - Paramètres avancés par source
 - Thème clair, sombre ou automatique en un clic dans l'en-tête, mémorisé dans le navigateur
 - Raccourci `/` vers la recherche, retour en haut du fil, navigation compacte sur mobile

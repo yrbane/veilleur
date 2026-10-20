@@ -169,6 +169,8 @@ export function estNoteValide(note: unknown): note is number {
 export interface AnnotationArticle {
   note: number | null;
   favori: boolean;
+  /** L'utilisateur a ouvert ou marqué l'article comme lu */
+  lu: boolean;
 }
 
 /**

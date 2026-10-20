@@ -4,6 +4,20 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.9.0 — 2026-10-21 · « Lu, non lu »
+
+### Ajouté
+- Articles lus / non lus : ouvrir un article le marque lu, un bouton sur chaque
+  carte bascule l'état, les cartes lues sont atténuées.
+- Filtre « Non lus » dans la barre du fil, compteur « Non lus » dans les
+  statistiques, badge de non-lus sur chaque carte de la page Mes sources.
+- « Tout marquer lu » : borné à l'instant du clic pour ne pas avaler les
+  articles arrivés entre-temps ; peut viser une seule source via l'API.
+- API : `PUT /api/v1/articles/:id/lu`, `POST /api/v1/articles/lus`,
+  `GET /api/v1/articles/non-lus`, paramètre `nonLus=true` sur le fil, champ `lu`
+  sur chaque article.
+- Migration `0008` : colonne `lu_le` et index sur `utilisateurs_articles`.
+
 ## 0.8.2 — 2026-10-20 · « Favicons du fil et thème retenu par le compte »
 
 ### Corrigé

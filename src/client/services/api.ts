@@ -264,6 +264,7 @@ export interface Article {
   };
   note?: number | null;
   favori?: boolean;
+  lu?: boolean;
   // Classement automatique : mots-clés extraits de l'article
   motsCles?: string[];
 }
@@ -283,6 +284,12 @@ export interface OptionsFil {
   noteMin?: number;
   motCle?: string;
   favoris?: boolean;
+  nonLus?: boolean;
+}
+
+export interface CompteNonLus {
+  total: number;
+  parSource: Record<string, number>;
 }
 
 export interface MotCleFil {
@@ -518,6 +525,7 @@ export const articles = {
     if (options.noteMin) params.set('noteMin', String(options.noteMin));
     if (options.motCle) params.set('motCle', options.motCle);
     if (options.favoris) params.set('favoris', 'true');
+    if (options.nonLus) params.set('nonLus', 'true');
 
     return requete<ResultatPagine<Article>>(`/articles/fil?${params.toString()}`);
   },
@@ -528,6 +536,22 @@ export const articles = {
 
   async definirFavori(id: string, favori: boolean): Promise<{ favori: boolean }> {
     return requete(`/articles/${id}/favori`, { method: 'PUT', body: JSON.stringify({ favori }) });
+  },
+
+  async marquerLu(id: string, lu: boolean): Promise<{ lu: boolean }> {
+    return requete(`/articles/${id}/lu`, { method: 'PUT', body: JSON.stringify({ lu }) });
+  },
+
+  /** Marque lus les articles du fil publiés avant « avant » (par défaut maintenant), ou ceux d'une source */
+  async marquerTousLus(options: { sourceId?: string; avant?: Date } = {}): Promise<{ marques: number }> {
+    return requete('/articles/lus', {
+      method: 'POST',
+      body: JSON.stringify({ sourceId: options.sourceId, avant: (options.avant ?? new Date()).toISOString() }),
+    });
+  },
+
+  async nonLus(): Promise<CompteNonLus> {
+    return requete<CompteNonLus>('/articles/non-lus');
   },
 
   async listerMotsCles(limite = 20): Promise<{ donnees: MotCleFil[] }> {

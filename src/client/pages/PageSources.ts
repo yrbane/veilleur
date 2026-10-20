@@ -5,13 +5,15 @@
 
 import { iconeHtml } from '../utils/icones';
 import { creerElement, $, vider } from '../utils/dom';
-import { sources, estAuthentifie } from '../services/api';
+import { sources, articles, estAuthentifie } from '../services/api';
 import { creerCarteSource } from '../composants/CarteSource';
 import { creerFormulaireSource } from '../composants/FormulaireSource';
 import { toast } from '../utils/toast';
 import type { Source, ResultatImportOPML } from '../services/api';
 
 let sourcesList: Source[] = [];
+// Non lus par source, pour le badge des cartes
+let nonLusParSource: Record<string, number> = {};
 
 /**
  * Affiche la page des sources
@@ -143,8 +145,12 @@ async function chargerSources(): Promise<void> {
   `;
 
   try {
-    const result = await sources.lister(1, 100);
+    const [result, nonLus] = await Promise.all([
+      sources.lister(1, 100),
+      articles.nonLus().catch(() => ({ total: 0, parSource: {} })),
+    ]);
     sourcesList = result.donnees;
+    nonLusParSource = nonLus.parSource;
     mettreAJourListeSources();
   } catch {
     toast.erreur('Erreur lors du chargement des sources');
@@ -186,6 +192,7 @@ function mettreAJourListeSources(): void {
 
   for (const source of sourcesList) {
     const carte = creerCarteSource(source, {
+      nonLus: nonLusParSource[source.id],
       onSupprimer: (id) => {
         sourcesList = sourcesList.filter((s) => s.id !== id);
         mettreAJourListeSources();

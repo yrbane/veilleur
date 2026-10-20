@@ -4,7 +4,7 @@
  */
 
 import type { DepotAnnotationsArticles } from '@/domaine/ports/DepotAnnotationsArticles';
-import type { DepotArticles } from '@/domaine/ports/DepotArticles';
+import type { CompteNonLus, DepotArticles } from '@/domaine/ports/DepotArticles';
 import type { ServiceCache } from '@/domaine/ports/ServiceCache';
 import { PREFIXES_CACHE } from '@/domaine/ports/ServiceCache';
 import type { AnnotationArticle } from '@/domaine/entites/Article';
@@ -26,7 +26,7 @@ export class ErreurAnnotation extends Error {
 export class ServiceAnnotationsArticles {
   constructor(
     private readonly depotAnnotations: DepotAnnotationsArticles,
-    private readonly depotArticles: Pick<DepotArticles, 'trouverParId'>,
+    private readonly depotArticles: Pick<DepotArticles, 'trouverParId' | 'marquerTousLus' | 'compterNonLus'>,
     private readonly serviceCache?: Pick<ServiceCache, 'supprimerPattern'>,
   ) {}
 
@@ -59,6 +59,29 @@ export class ServiceAnnotationsArticles {
   /**
    * Annotations d'un lot d'articles
    */
+  async marquerLu(utilisateurId: string, articleId: string, lu: boolean): Promise<{ lu: boolean }> {
+    await this.verifierArticle(articleId);
+    await this.depotAnnotations.marquerLu(utilisateurId, articleId, lu);
+    await this.invaliderFil(utilisateurId);
+    return { lu };
+  }
+
+  /**
+   * « Tout marquer comme lu » : borné à l'instant du clic pour ne pas avaler les articles arrivés ensuite
+   */
+  async marquerTousLus(utilisateurId: string, options: { sourceId?: string; avant?: Date }): Promise<{ marques: number }> {
+    const marques = await this.depotArticles.marquerTousLus(utilisateurId, {
+      sourceId: options.sourceId,
+      avant: options.avant ?? new Date(),
+    });
+    await this.invaliderFil(utilisateurId);
+    return { marques };
+  }
+
+  async compterNonLus(utilisateurId: string): Promise<CompteNonLus> {
+    return this.depotArticles.compterNonLus(utilisateurId);
+  }
+
   async obtenirAnnotations(utilisateurId: string, articleIds: string[]): Promise<Map<string, AnnotationArticle>> {
     if (articleIds.length === 0) {
       return new Map();

@@ -10,8 +10,9 @@ describe('ServiceAnnotationsArticles', () => {
     noter: vi.fn(),
     definirFavori: vi.fn(),
     obtenirAnnotations: vi.fn(),
+    marquerLu: vi.fn(),
   };
-  const depotArticles = { trouverParId: vi.fn() };
+  const depotArticles = { trouverParId: vi.fn(), marquerTousLus: vi.fn(), compterNonLus: vi.fn() };
   const serviceCache = { supprimerPattern: vi.fn() };
 
   const creerService = () =>
@@ -81,6 +82,56 @@ describe('ServiceAnnotationsArticles', () => {
       depotAnnotations.obtenirAnnotations.mockResolvedValue(attendu);
 
       expect(await creerService().obtenirAnnotations('user-1', ['art-1'])).toBe(attendu);
+    });
+  });
+
+  describe('marquerLu', () => {
+    it('marque un article lu puis non lu, en invalidant le cache du fil', async () => {
+      const service = creerService();
+
+      expect(await service.marquerLu('u1', 'art-1', true)).toEqual({ lu: true });
+      expect(depotAnnotations.marquerLu).toHaveBeenCalledWith('u1', 'art-1', true);
+      expect(await service.marquerLu('u1', 'art-1', false)).toEqual({ lu: false });
+      expect(serviceCache.supprimerPattern).toHaveBeenCalledWith('articles:fil:u1:*');
+    });
+
+    it('refuse un article inconnu', async () => {
+      depotArticles.trouverParId.mockResolvedValue(null);
+
+      await expect(creerService().marquerLu('u1', 'inconnu', true)).rejects.toMatchObject({ code: 'ARTICLE_INTROUVABLE' });
+      expect(depotAnnotations.marquerLu).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('marquerTousLus', () => {
+    it('marque lus les articles du fil publiés avant l\'instant demandé et renvoie le nombre', async () => {
+      depotArticles.marquerTousLus.mockResolvedValue(12);
+      const avant = new Date('2026-10-20T10:00:00Z');
+
+      const resultat = await creerService().marquerTousLus('u1', { sourceId: 'src-1', avant });
+
+      expect(resultat).toEqual({ marques: 12 });
+      expect(depotArticles.marquerTousLus).toHaveBeenCalledWith('u1', { sourceId: 'src-1', avant });
+      expect(serviceCache.supprimerPattern).toHaveBeenCalledWith('articles:fil:u1:*');
+    });
+
+    it('prend « maintenant » comme borne par défaut', async () => {
+      depotArticles.marquerTousLus.mockResolvedValue(0);
+      const debut = Date.now();
+
+      await creerService().marquerTousLus('u1', {});
+
+      const options = depotArticles.marquerTousLus.mock.calls[0][1] as { avant: Date; sourceId?: string };
+      expect(options.sourceId).toBeUndefined();
+      expect(options.avant.getTime()).toBeGreaterThanOrEqual(debut);
+    });
+  });
+
+  describe('compterNonLus', () => {
+    it('délègue au dépôt des articles', async () => {
+      depotArticles.compterNonLus.mockResolvedValue({ total: 3, parSource: { 'src-1': 3 } });
+
+      expect(await creerService().compterNonLus('u1')).toEqual({ total: 3, parSource: { 'src-1': 3 } });
     });
   });
 });
