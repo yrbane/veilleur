@@ -4,6 +4,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { createHash } from 'crypto';
+import { normaliserUrl } from '@/domaine/entites/Source';
 
 describe('ServiceSources', () => {
   // Mocks des dépôts
@@ -43,6 +45,67 @@ describe('ServiceSources', () => {
   });
 
   describe('ajouterSource', () => {
+    it('enregistre l\'URL du flux découvert à la place de la page saisie', async () => {
+      mockDetecteurSource.mockResolvedValue({ url: 'https://journal.fr/articles/feed', type: 'rss', titre: 'Journal', favicon: null });
+      mockDepotSources.creer.mockImplementation(async (donnees: Record<string, unknown>) => ({ id: 'src-1', ...donnees }));
+      mockDepotSources.ajouterPourUtilisateur.mockResolvedValue({ id: 'us-1', sourceId: 'src-1', nom: 'Journal' });
+
+      const { ServiceSources } = await import('@/domaine/services/ServiceSources');
+      const service = new ServiceSources(mockDepotSources as never, mockDepotParametres as never, mockDetecteurSource);
+      await service.ajouterSource('user-1', 'https://journal.fr');
+
+      const creee = mockDepotSources.creer.mock.calls[0][0];
+      expect(creee.url).toBe('https://journal.fr/articles/feed');
+      expect(creee.typeSource).toBe('rss');
+      // Le hash est celui du flux, pour dédupliquer avec un utilisateur qui aurait collé le flux directement
+      expect(mockDepotSources.trouverParHashUrl).toHaveBeenLastCalledWith(createHash('md5').update(normaliserUrl('https://journal.fr/articles/feed')).digest('hex'));
+    });
+
+    it('rattache l\'utilisateur à la source existante quand le flux découvert est déjà connu', async () => {
+      mockDetecteurSource.mockResolvedValue({ url: 'https://journal.fr/articles/feed', type: 'rss', titre: 'Journal', favicon: null });
+      const existante = { id: 'src-existante', url: 'https://journal.fr/articles/feed', nom: 'Journal' };
+      mockDepotSources.trouverParHashUrl.mockResolvedValueOnce(null).mockResolvedValueOnce(existante);
+      mockDepotSources.ajouterPourUtilisateur.mockResolvedValue({ id: 'us-1', sourceId: 'src-existante', nom: 'Journal' });
+
+      const { ServiceSources } = await import('@/domaine/services/ServiceSources');
+      const service = new ServiceSources(mockDepotSources as never, mockDepotParametres as never, mockDetecteurSource);
+      await service.ajouterSource('user-1', 'https://journal.fr');
+
+      expect(mockDepotSources.creer).not.toHaveBeenCalled();
+      expect(mockDepotSources.ajouterPourUtilisateur).toHaveBeenCalledWith('user-1', 'src-existante');
+    });
+
+    it('complète le protocole https quand il manque', async () => {
+      mockDetecteurSource.mockResolvedValue({ type: 'rss', titre: null, favicon: null });
+      mockDepotSources.creer.mockImplementation(async (donnees: Record<string, unknown>) => ({ id: 'src-1', ...donnees }));
+      mockDepotSources.ajouterPourUtilisateur.mockResolvedValue({ id: 'us-1', sourceId: 'src-1', nom: 'journal.fr' });
+
+      const { ServiceSources } = await import('@/domaine/services/ServiceSources');
+      const service = new ServiceSources(mockDepotSources as never, mockDepotParametres as never, mockDetecteurSource);
+      await service.ajouterSource('user-1', '  journal.fr/rss  ');
+
+      expect(mockDepotSources.creer.mock.calls[0][0].url).toBe('https://journal.fr/rss');
+      // Le détecteur reçoit la saisie brute : c'est lui qui tranche entre https et http
+      expect(mockDetecteurSource).toHaveBeenCalledWith('journal.fr/rss');
+    });
+
+    it('refuse un site injoignable avec un code dédié', async () => {
+      mockDetecteurSource.mockResolvedValue({ url: 'https://hote-inexistant.example', type: 'html', titre: null, favicon: null, joignable: false });
+      const { ServiceSources } = await import('@/domaine/services/ServiceSources');
+      const service = new ServiceSources(mockDepotSources as never, mockDepotParametres as never, mockDetecteurSource);
+
+      await expect(service.ajouterSource('user-1', 'hote-inexistant.example')).rejects.toMatchObject({ code: 'SITE_INJOIGNABLE' });
+      expect(mockDepotSources.creer).not.toHaveBeenCalled();
+    });
+
+    it('rejette une saisie sans nom de domaine', async () => {
+      const { ServiceSources } = await import('@/domaine/services/ServiceSources');
+      const service = new ServiceSources(mockDepotSources as never, mockDepotParametres as never, mockDetecteurSource);
+
+      await expect(service.ajouterSource('user-1', 'not-a-valid-url')).rejects.toMatchObject({ code: 'URL_INVALIDE' });
+      expect(mockDetecteurSource).not.toHaveBeenCalled();
+    });
+
     it('devrait ajouter une nouvelle source valide', async () => {
       const { ServiceSources } = await import('@/domaine/services/ServiceSources');
 

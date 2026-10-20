@@ -6,6 +6,7 @@
 import Parser from 'rss-parser';
 import * as cheerio from 'cheerio';
 import type { TypeSource } from '@/domaine/entites/Source';
+import type { ResultatDetection } from '@/domaine/services/ServiceSources';
 import type { ArticleBrut, MetaOpenGraph, MetaTwitter } from '@/domaine/entites/Article';
 import { env } from '@/config/environnement';
 import { loggerScraping } from '../logging/logger';
@@ -24,6 +25,43 @@ export interface ResultatExtraction {
 /**
  * Options de scraping
  */
+/**
+ * Flux trouvé pour une saisie utilisateur
+ */
+export interface FluxDecouvert {
+  url: string;
+  type: TypeSource;
+  titre: string | null;
+  favicon: string | null;
+}
+
+/**
+ * Chemins de flux les plus répandus (WordPress, Hugo, Blogger, médias…), essayés à la racine du site
+ */
+const CHEMINS_FLUX_USUELS = [
+  '/feed',
+  '/rss',
+  '/articles/feed', // Mediapart, qui n'annonce son flux nulle part dans sa page
+  '/rss.xml',
+  '/feed.xml',
+  '/atom.xml',
+  '/index.xml',
+  '/feed/',
+  '/feeds/posts/default',
+  '/?feed=rss2',
+];
+
+/** Page HTML chargée et son URL finale */
+interface PageChargee {
+  $: cheerio.CheerioAPI;
+  url: string;
+}
+
+/** Délai par requête pendant la détection (l'utilisateur attend derrière le formulaire) */
+const DELAI_DETECTION_MS = 5000;
+/** Budget total de la détection, candidats compris */
+const BUDGET_DETECTION_MS = 15000;
+
 export interface OptionsScraping {
   timeout?: number;
   userAgent?: string;
@@ -179,6 +217,175 @@ export class ServiceScraping {
       favicon: feed.image?.url ?? null,
       type: this.detecterTypeFlux(feed),
     };
+  }
+
+  /**
+   * Découvre le flux RSS/Atom d'un site : l'URL elle-même, puis les balises
+   * <link rel="alternate"> de la page, puis les chemins usuels à la racine du site.
+   */
+  async decouvrirFlux(url: string): Promise<FluxDecouvert | null> {
+    const dateLimite = Date.now() + BUDGET_DETECTION_MS;
+    const direct = await this.essayerFlux(url);
+    if (direct) {
+      return direct;
+    }
+    const page = await this.chargerPage(url);
+    return this.decouvrirFluxDepuisPage(page, dateLimite);
+  }
+
+  /**
+   * Décrit la source à enregistrer pour une saisie utilisateur : flux découvert,
+   * protocole deviné (https puis http) ou, à défaut, page HTML à scraper.
+   */
+  async detecterSource(urlSaisie: string): Promise<ResultatDetection> {
+    const saisie = urlSaisie.trim();
+    const variantes = /^[a-z][a-z0-9+.-]*:\/\//i.test(saisie)
+      ? [saisie]
+      : [`https://${saisie}`, `http://${saisie}`];
+    const dateLimite = Date.now() + BUDGET_DETECTION_MS;
+
+    for (const variante of variantes) {
+      const validation = validerUrlScraping(variante);
+      if (!validation.valide || !validation.urlNormalisee) {
+        continue;
+      }
+      const url = validation.urlNormalisee;
+
+      const direct = await this.essayerFlux(url);
+      if (direct) {
+        return { ...direct, joignable: true };
+      }
+
+      const page = await this.chargerPage(url);
+      const flux = await this.decouvrirFluxDepuisPage(page, dateLimite);
+      if (flux) {
+        return { ...flux, joignable: true };
+      }
+
+      // Le site répond mais n'expose aucun flux : on scrapera la page
+      if (page) {
+        return {
+          url: page.url,
+          type: 'html',
+          titre: page.$('title').first().text().trim() || null,
+          favicon: this.extraireFavicon(page.$, page.url),
+          joignable: true,
+        };
+      }
+    }
+
+    // Aucun protocole ne répond : adresse probablement erronée
+    return { url: variantes[0], type: 'html', titre: null, favicon: null, joignable: false };
+  }
+
+  /**
+   * Tente de parser l'URL comme un flux ; null si ce n'en est pas un
+   */
+  private async essayerFlux(url: string): Promise<FluxDecouvert | null> {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': this.options.userAgent,
+          Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.5',
+        },
+        signal: AbortSignal.timeout(DELAI_DETECTION_MS),
+      });
+      if (!response.ok) {
+        return null;
+      }
+      const feed = await this.rssParser.parseString(await response.text());
+      return {
+        url,
+        type: this.detecterTypeFlux(feed),
+        titre: feed.title ?? null,
+        favicon: feed.image?.url ?? null,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Charge une page HTML avec son URL finale (après redirections, ex. vers www.) ;
+   * null si injoignable ou en erreur
+   */
+  private async chargerPage(url: string): Promise<PageChargee | null> {
+    try {
+      const response = await fetch(url, {
+        headers: { 'User-Agent': this.options.userAgent, Accept: 'text/html' },
+        signal: AbortSignal.timeout(DELAI_DETECTION_MS),
+      });
+      if (!response.ok) {
+        return null;
+      }
+      return { $: cheerio.load(await response.text()), url: response.url || url };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Essaie les flux déclarés par la page puis les chemins usuels du site.
+   * Sans page (site injoignable), inutile de sonder les chemins usuels.
+   */
+  private async decouvrirFluxDepuisPage(
+    pageChargee: PageChargee | null,
+    dateLimite: number,
+  ): Promise<FluxDecouvert | null> {
+    if (!pageChargee) {
+      return null;
+    }
+    const { $: page, url } = pageChargee;
+    const candidats = new Set<string>();
+
+    {
+      page('link[rel="alternate"]').each((_, element) => {
+        const type = (page(element).attr('type') ?? '').toLowerCase();
+        const href = page(element).attr('href');
+        if (href && /(rss|atom|xml)/.test(type)) {
+          try {
+            candidats.add(new URL(href, url).toString());
+          } catch {
+            // href inexploitable, on l'ignore
+          }
+        }
+      });
+    }
+
+    // Liens visibles vers un flux, parfois sur un autre hôte (Blast → api.blast-info.fr/rss.xml)
+    page('a[href]').each((_, element) => {
+      const href = page(element).attr('href') ?? '';
+      if (/(rss|feed|atom)/i.test(href)) {
+        try {
+          candidats.add(new URL(href, url).toString());
+        } catch {
+          // href inexploitable, on l'ignore
+        }
+      }
+    });
+
+    const origine = new URL(url).origin;
+    for (const chemin of CHEMINS_FLUX_USUELS) {
+      candidats.add(origine + chemin);
+    }
+
+    for (const candidat of candidats) {
+      if (Date.now() > dateLimite) {
+        loggerScraping.warn({ url }, 'Budget de détection du flux épuisé');
+        break;
+      }
+      const flux = await this.essayerFlux(candidat);
+      if (flux) {
+        loggerScraping.info({ url, flux: candidat }, 'Flux découvert');
+        return {
+          ...flux,
+          titre: flux.titre ?? (page('title').first().text().trim() || null),
+          favicon: flux.favicon ?? this.extraireFavicon(page, url),
+        };
+      }
+    }
+
+    return null;
   }
 
   /**

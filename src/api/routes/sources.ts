@@ -11,12 +11,14 @@ import { DepotSourcesMariaDB, DepotParametresSourcesMariaDB } from '@/infrastruc
 import { loggerHttp } from '@/infrastructure/logging/logger';
 import { genererOPML, parserOPML, type SourceOPML } from '@/domaine/services/ServiceOPML';
 import { obtenirServiceCache } from '@/infrastructure/cache/ServiceCacheRedis';
+import { obtenirServiceScraping, type ServiceScraping } from '@/infrastructure/scraping/ServiceScraping';
 
 /**
  * Schémas de validation
  */
 const schemaAjoutSource = z.object({
-  url: z.string().url('URL invalide'),
+  // Protocole facultatif (« mediapart.fr ») : le service le complète et valide le domaine
+  url: z.string().trim().min(1, 'URL invalide').max(2048, 'URL invalide'),
   nom: z.string().min(1).max(255).optional(),
 });
 
@@ -54,7 +56,9 @@ function obtenirServiceSources(): ServiceSources {
     const depotSources = new DepotSourcesMariaDB();
     const depotParametres = new DepotParametresSourcesMariaDB();
     const serviceCache = obtenirServiceCache();
-    serviceSources = new ServiceSources(depotSources, depotParametres, undefined, serviceCache);
+    // Le détecteur trouve le flux réel et le protocole derrière une saisie comme « mediapart.fr »
+    const detecteur = (url: string): ReturnType<ServiceScraping['detecterSource']> => obtenirServiceScraping().detecterSource(url);
+    serviceSources = new ServiceSources(depotSources, depotParametres, detecteur, serviceCache);
   }
   return serviceSources;
 }
@@ -186,7 +190,7 @@ export async function routesSources(fastify: FastifyInstance): Promise<void> {
         type: 'object',
         required: ['url'],
         properties: {
-          url: { type: 'string', format: 'uri' },
+          url: { type: 'string', maxLength: 2048 },
           nom: { type: 'string', maxLength: 255 },
         },
       },

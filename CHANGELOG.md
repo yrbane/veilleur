@@ -4,7 +4,28 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
-## 0.2.4 — 2026-10-20 · « Menu connecté et cache d'images effectif »
+## 0.3.0 — 2026-10-20 · « Découverte automatique du flux et du protocole »
+
+### Ajouté
+- **Ajout d'une source par l'adresse du site** : coller `mediapart.fr` ou
+  `https://www.blast-info.fr` suffit. Veilleur cherche le flux déclaré par la
+  page (`<link rel="alternate" type="application/rss+xml">`), puis les chemins
+  usuels (`/feed`, `/rss`, `/rss.xml`, `/feed.xml`, `/atom.xml`, `/index.xml`,
+  `/feeds/posts/default`, `?feed=rss2`) et enregistre l'URL du flux trouvé.
+  Les liens visibles vers un flux sont aussi suivis, même sur un autre hôte
+  (Blast → `api.blast-info.fr/rss.xml`). Si le site n'expose aucun flux, la
+  page est enregistrée en source HTML (scraping) au lieu d'un faux flux RSS
+  qui échouait à chaque synchronisation. La détection est bornée (5 s par
+  requête, 15 s au total).
+- **Protocole deviné** : une saisie sans `http(s)://` est essayée en https
+  puis en http. Le formulaire et l'API acceptent désormais une adresse nue ;
+  un hôte sans domaine (`not-a-valid-url`) reste refusé, et un site qui ne
+  répond sur aucun protocole est refusé avec « Site injoignable » plutôt
+  qu'enregistré comme source morte.
+- Si le flux découvert est déjà suivi par d'autres utilisateurs, la source
+  existante est réutilisée au lieu d'être dupliquée.
+
+ · « Menu connecté et cache d'images effectif »
 
 ### Corrigé
 - **Menu invisible après connexion** : l'en-tête restait sur « Connexion /
