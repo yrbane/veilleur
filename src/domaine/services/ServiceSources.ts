@@ -9,7 +9,7 @@ import { normaliserUrl, SEUIL_ECHECS_SOURCE } from '@/domaine/entites/Source';
 import type { ParametresSource, MiseAJourParametres } from '@/domaine/entites/ParametresSource';
 import { createHash } from 'crypto';
 import type { ServiceCache } from '@/domaine/ports/ServiceCache';
-import { cleSourcesUtilisateur, TTL_DEFAUT } from '@/domaine/ports/ServiceCache';
+import { cleSourcesUtilisateur, PREFIXES_CACHE, TTL_DEFAUT } from '@/domaine/ports/ServiceCache';
 
 /**
  * Résultat de la détection du type de source
@@ -140,10 +140,7 @@ export class ServiceSources {
       source.id,
     );
 
-    // Invalider le cache des sources de l'utilisateur
-    if (this.serviceCache) {
-      await this.serviceCache.supprimer(cleSourcesUtilisateur(utilisateurId));
-    }
+    await this.invaliderCaches(utilisateurId);
 
     return sourceUtilisateur;
   }
@@ -159,9 +156,8 @@ export class ServiceSources {
 
     const resultat = await this.depotSources.retirerPourUtilisateur(utilisateurId, sourceId);
 
-    // Invalider le cache
-    if (this.serviceCache && resultat) {
-      await this.serviceCache.supprimer(cleSourcesUtilisateur(utilisateurId));
+    if (resultat) {
+      await this.invaliderCaches(utilisateurId);
     }
 
     return resultat;
@@ -259,8 +255,8 @@ export class ServiceSources {
 
     const resultat = await this.depotSources.basculerPause(utilisateurId, sourceId, enPause);
 
-    if (this.serviceCache && resultat) {
-      await this.serviceCache.supprimer(cleSourcesUtilisateur(utilisateurId));
+    if (resultat) {
+      await this.invaliderCaches(utilisateurId);
     }
 
     return resultat;
@@ -345,6 +341,17 @@ export class ServiceSources {
   /**
    * Valide une URL
    */
+  /**
+   * Les sources suivies changent la liste des sources ET le fil d'actualités (mis en cache
+   * par critères pendant 60 s) : sans cette invalidation, une source ajoutée n'apparaît
+   * dans le fil qu'une minute plus tard
+   */
+  private async invaliderCaches(utilisateurId: string): Promise<void> {
+    if (!this.serviceCache) return;
+    await this.serviceCache.supprimer(cleSourcesUtilisateur(utilisateurId));
+    await this.serviceCache.supprimerPattern(`${PREFIXES_CACHE.ARTICLES}fil:${utilisateurId}:*`);
+  }
+
   private estUrlValide(url: string): boolean {
     try {
       const parsed = new URL(url);

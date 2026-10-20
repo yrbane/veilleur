@@ -106,6 +106,20 @@ describe('ServiceSources', () => {
       expect(mockDetecteurSource).not.toHaveBeenCalled();
     });
 
+    it('invalide le cache des sources et celui du fil à l\'ajout d\'une source', async () => {
+      mockDetecteurSource.mockResolvedValue({ type: 'rss', titre: 'Journal', favicon: null });
+      mockDepotSources.creer.mockImplementation(async (donnees: Record<string, unknown>) => ({ id: 'src-1', ...donnees }));
+      mockDepotSources.ajouterPourUtilisateur.mockResolvedValue({ id: 'us-1', sourceId: 'src-1', nom: 'Journal' });
+      const mockCache = { supprimer: vi.fn().mockResolvedValue(true), supprimerPattern: vi.fn().mockResolvedValue(1) };
+
+      const { ServiceSources } = await import('@/domaine/services/ServiceSources');
+      const service = new ServiceSources(mockDepotSources as never, mockDepotParametres as never, mockDetecteurSource, mockCache as never);
+      await service.ajouterSource('user-1', 'https://journal.fr/feed');
+
+      expect(mockCache.supprimer).toHaveBeenCalledWith(expect.stringContaining('user-1'));
+      expect(mockCache.supprimerPattern).toHaveBeenCalledWith('articles:fil:user-1:*');
+    });
+
     it('devrait ajouter une nouvelle source valide', async () => {
       const { ServiceSources } = await import('@/domaine/services/ServiceSources');
 
