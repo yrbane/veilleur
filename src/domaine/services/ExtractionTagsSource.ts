@@ -19,11 +19,14 @@ const CATEGORIES_CREUSES = new Set([
   'articles', 'article', 'home', 'accueil', 'derniers articles', 'featured', 'misc', 'other', 'others',
 ]);
 
+/** Catégorie brute : chaîne, ou objet `{ _: texte }` quand la balise porte des attributs */
+export type CategorieBrute = string | { _?: unknown } | null | undefined;
+
 export interface IndicesTagsSource {
   /** `<category>` au niveau du flux */
-  categoriesFlux?: string[];
+  categoriesFlux?: CategorieBrute[];
   /** `<category>` de chaque article du flux */
-  categoriesArticles?: string[][];
+  categoriesArticles?: CategorieBrute[][];
   /** `<meta name="keywords">` de la page du site */
   motsClesPage?: string | null;
   /** Titres des articles du flux, dernier recours */
@@ -37,7 +40,7 @@ export function deduireTagsSource(indices: IndicesTagsSource, nombre = NOMBRE_TA
   const retenus: string[] = [];
   const vus = new Set<string>();
 
-  const ajouter = (brut: string): void => {
+  const ajouter = (brut: CategorieBrute): void => {
     if (retenus.length >= nombre) return;
     const tag = nettoyer(brut);
     if (!tag) return;
@@ -70,8 +73,9 @@ export function deduireTagsSource(indices: IndicesTagsSource, nombre = NOMBRE_TA
   }
 
   if (retenus.length === 0 && indices.titresArticles?.length) {
-    for (const mot of extraireMotsCles({ titre: '', resume: indices.titresArticles.join('. ') }, nombre)) {
-      ajouter(mot);
+    // Dernier recours : mots-clés des titres, sans les noms propres qui ne décrivent pas la source
+    for (const mot of extraireMotsCles({ titre: '', resume: indices.titresArticles.join('. ') }, nombre * 2)) {
+      if (mot[0] === mot[0]?.toLowerCase()) ajouter(mot);
     }
   }
 
@@ -81,11 +85,14 @@ export function deduireTagsSource(indices: IndicesTagsSource, nombre = NOMBRE_TA
 /**
  * Nettoie une catégorie brute ; null si inexploitable (vide, URL, trop longue)
  */
-function nettoyer(brut: string): string | null {
-  const tag = brut.replace(/\s+/g, ' ').trim();
-  if (tag.length < 2 || tag.length > LONGUEUR_MAX_TAG) return null;
+function nettoyer(brut: CategorieBrute): string | null {
+  const texte = typeof brut === 'string' ? brut : typeof brut?._ === 'string' ? brut._ : '';
+  const tag = texte.replace(/\s+/g, ' ').trim();
+  if (tag.length < 3 || tag.length > LONGUEUR_MAX_TAG) return null;
   if (/^[a-z][a-z0-9+.-]*:\/\//i.test(tag) || /^www\./i.test(tag)) return null;
   if (!/\p{L}/u.test(tag)) return null;
+  // Slug ou identifiant technique (jeux-video/actualites-gaming, no_ads, actu-BP) : pas un libellé
+  if (/[/_]/.test(tag) || (/-/.test(tag) && !/\s/.test(tag))) return null;
   return tag;
 }
 

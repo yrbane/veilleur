@@ -38,6 +38,15 @@ describe('deduireTagsSource', () => {
     expect(tags).toEqual(['Sciences']);
   });
 
+  it('accepte les catégories renvoyées sous forme d\'objet par le parseur et écarte les slugs techniques', () => {
+    const tags = deduireTagsSource({
+      categoriesFlux: [{ _: 'Politique', $: { domain: 'https://exemple.fr' } }, 'jeux-video/actualites-gaming', 'no_ads', 'actualites-business', 'GP'],
+      categoriesArticles: [[{ _: 'Culture' }], ['intelligence-artificielle']],
+    } as never);
+
+    expect(tags).toEqual(['Politique', 'Culture']);
+  });
+
   it('utilise les mots-clés de la page quand le flux n\'a aucune catégorie', () => {
     const tags = deduireTagsSource({ motsClesPage: 'astronomie, espace, physique' });
 
@@ -52,5 +61,10 @@ describe('deduireTagsSource', () => {
     expect(tags[0]).toBe('réforme');
     expect(tags).toContain('lycéen');
     expect(deduireTagsSource({})).toEqual([]);
+    // Les noms propres des titres ne décrivent pas la source
+    const sansNoms = deduireTagsSource({ titresArticles: ['Visite de Obama à São Paulo', 'Lula reçoit Obama à São Paulo'] });
+    expect(sansNoms).not.toContain('Obama');
+    expect(sansNoms).not.toContain('São');
+    expect(sansNoms).toContain('visite');
   });
 });

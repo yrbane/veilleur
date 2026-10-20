@@ -7,7 +7,7 @@ import Parser from 'rss-parser';
 import * as cheerio from 'cheerio';
 import type { TypeSource } from '@/domaine/entites/Source';
 import type { ResultatDetection } from '@/domaine/services/ServiceSources';
-import { deduireTagsSource } from '@/domaine/services/ExtractionTagsSource';
+import { deduireTagsSource, type CategorieBrute } from '@/domaine/services/ExtractionTagsSource';
 import type { ArticleBrut, MetaOpenGraph, MetaTwitter } from '@/domaine/entites/Article';
 import { env } from '@/config/environnement';
 import { loggerScraping } from '../logging/logger';
@@ -29,11 +29,8 @@ export interface ResultatExtraction {
 /**
  * `<category>` de flux : rss-parser renvoie une chaîne, un tableau ou un objet selon le flux
  */
-function normaliserCategories(brut: unknown): string[] {
-  const valeurs = Array.isArray(brut) ? brut : brut === undefined ? [] : [brut];
-  return valeurs
-    .map(v => (typeof v === 'string' ? v : typeof v === 'object' && v !== null ? String((v as { _?: unknown })._ ?? '') : ''))
-    .filter(Boolean);
+function normaliserCategories(brut: unknown): CategorieBrute[] {
+  return (Array.isArray(brut) ? brut : brut === undefined ? [] : [brut]) as CategorieBrute[];
 }
 
 /**
@@ -336,7 +333,7 @@ export class ServiceScraping {
         urlSite: typeof feed.link === 'string' ? feed.link : null,
         tags: deduireTagsSource({
           categoriesFlux: normaliserCategories((feed as { category?: unknown }).category),
-          categoriesArticles: items.map(item => item.categories ?? []),
+          categoriesArticles: items.map(item => (item.categories ?? []) as CategorieBrute[]),
           titresArticles: items.map(item => item.title ?? '').filter(Boolean),
         }),
       };
@@ -533,7 +530,8 @@ export class ServiceScraping {
 
     for (const sel of selecteurs) {
       const href = $(sel).attr('href');
-      if (href) {
+      // Une icône encodée en data: ne tient pas en base et ne se met pas en cache
+      if (href && !/^data:/i.test(href.trim())) {
         try {
           return new URL(href, baseUrl).toString();
         } catch {
