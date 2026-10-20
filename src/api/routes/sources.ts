@@ -204,7 +204,18 @@ export async function routesSources(fastify: FastifyInstance): Promise<void> {
             nom: { type: 'string' },
             typeSource: { type: 'string' },
             statut: { type: 'string' },
+            // Favicon et tags récupérés automatiquement : le client affiche la carte sans recharger
+            urlFavicon: { type: 'string', nullable: true },
             dateAjout: { type: 'string' },
+            note: { type: 'number', nullable: true },
+            estEnPause: { type: 'boolean' },
+            tags: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: { id: { type: 'string' }, nom: { type: 'string' }, slug: { type: 'string' } },
+              },
+            },
           },
         },
       },

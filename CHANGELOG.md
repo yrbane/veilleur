@@ -4,7 +4,14 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
-## 0.6.2 — 2026-10-20 · « Tags de source réellement posés »
+## 0.6.3 — 2026-10-20 · « Carte complète dès l'ajout »
+
+### Corrigé
+- La réponse de `POST /api/v1/sources` renvoie désormais le favicon, les tags,
+  la note et l'état de pause : la carte de la source fraîchement ajoutée les
+  affiche sans recharger la page.
+
+ · « Tags de source réellement posés »
 
 ### Corrigé
 - Les tags d'une source (déduits ou saisis à la main) étaient liés à
