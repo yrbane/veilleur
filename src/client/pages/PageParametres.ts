@@ -7,7 +7,8 @@ import { appliquerTheme, themeEnregistre, type Theme } from '../utils/theme';
 import { iconeHtml } from '../utils/icones';
 import { ajouterBasculeMotDePasse } from '../utils/formulaires';
 import { creerElement, $, vider } from '../utils/dom';
-import { auth, articles, estAuthentifie } from '../services/api';
+import { auth, articles, notifications, estAuthentifie } from '../services/api';
+import { pushSupporte, abonnementCourant, abonnerPush, desabonnerPush } from '../utils/notificationsPush';
 import { telechargerFichier, suffixeDate } from '../utils/telechargement';
 import { toast } from '../utils/toast';
 import type { Utilisateur, Preferences, Statut2FA } from '../services/api';
@@ -120,9 +121,10 @@ function afficherFormulaires(): void {
   // Section 2FA
   const section2FA = creerSection2FA();
 
+  const sectionNotifications = creerSectionNotifications();
   const sectionDonnees = creerSectionDonnees();
 
-  contenu.append(sectionProfil, sectionPreferences, sectionMotDePasse, section2FA, sectionDonnees);
+  contenu.append(sectionProfil, sectionPreferences, sectionNotifications, sectionMotDePasse, section2FA, sectionDonnees);
 }
 
 /**
@@ -162,6 +164,131 @@ function creerSectionProfil(): HTMLElement {
   `;
 
   section.append(titre, info);
+  return section;
+}
+
+/**
+ * Section Notifications : Web Push de ce navigateur et résumé courriel
+ */
+function creerSectionNotifications(): HTMLElement {
+  const section = creerElement('section', { classes: ['la-card', 'section-parametres'], attrs: { id: 'section-notifications' } });
+  const preferences = utilisateurCourant?.preferences ?? {};
+  section.innerHTML = `
+    <h2 class="la-card-title">${iconeHtml('notifications')} Notifications</h2>
+
+    <div class="la-form-group">
+      <p class="la-label">Nouveaux articles sur cet appareil</p>
+      <p class="la-help" id="push-etat">Vérification…</p>
+      <div class="parametres-actions">
+        <button type="button" class="la-btn secondary" id="btn-push" disabled>Activer les notifications</button>
+        <button type="button" class="la-btn ghost sm" id="btn-push-test" hidden>Envoyer un test</button>
+      </div>
+      <small class="la-help">Au plus une notification par demi-heure, regroupant les nouveautés de vos sources. Réglable source par source (« Notifications » dans les paramètres d'une source).</small>
+    </div>
+
+    <form id="form-resume" class="la-form-group">
+      <label for="pref-resume">Résumé par courriel des articles non lus</label>
+      <select id="pref-resume" name="resumeCourriel" class="la-select">
+        <option value="aucun" ${!preferences.resumeCourriel || preferences.resumeCourriel === 'aucun' ? 'selected' : ''}>Jamais</option>
+        <option value="quotidien" ${preferences.resumeCourriel === 'quotidien' ? 'selected' : ''}>Chaque matin (7 h)</option>
+        <option value="hebdomadaire" ${preferences.resumeCourriel === 'hebdomadaire' ? 'selected' : ''}>Le lundi matin</option>
+      </select>
+      <div class="parametres-actions">
+        <button type="submit" class="la-btn primary">Enregistrer</button>
+        <button type="button" class="la-btn ghost sm" id="btn-resume-test">M'envoyer un aperçu</button>
+      </div>
+      <small class="la-help">Envoyé à ${utilisateurCourant?.email ?? 'votre adresse'}, seulement s'il y a quelque chose à lire.</small>
+    </form>
+  `;
+
+  const etatPush = $('#push-etat', section) as HTMLElement;
+  const btnPush = $('#btn-push', section) as HTMLButtonElement;
+  const btnPushTest = $('#btn-push-test', section) as HTMLButtonElement;
+  let abonne = false;
+
+  const rafraichirPush = async () => {
+    if (!pushSupporte()) {
+      etatPush.textContent = 'Ce navigateur ne prend pas en charge les notifications push.';
+      return;
+    }
+    const [clePublique, abonnement, etat] = await Promise.all([
+      notifications.clePublique(),
+      abonnementCourant().catch(() => null),
+      notifications.etat().catch(() => null),
+    ]);
+    if (!clePublique) {
+      etatPush.textContent = 'Les notifications push ne sont pas activées sur ce serveur.';
+      return;
+    }
+    abonne = abonnement !== null;
+    const appareils = etat?.push.appareils ?? 0;
+    if (abonne) {
+      etatPush.textContent = `Activées sur cet appareil${appareils > 1 ? ` (${appareils} appareils au total)` : ''}.`;
+    } else if (appareils > 0) {
+      etatPush.textContent = `Désactivées ici, actives sur ${appareils} autre${appareils > 1 ? 's' : ''} appareil${appareils > 1 ? 's' : ''}.`;
+    } else if (Notification.permission === 'denied') {
+      etatPush.textContent = 'Les notifications sont bloquées par le navigateur pour ce site.';
+    } else {
+      etatPush.textContent = 'Désactivées sur cet appareil.';
+    }
+    btnPush.textContent = abonne ? 'Désactiver sur cet appareil' : 'Activer les notifications';
+    btnPush.disabled = Notification.permission === 'denied' && !abonne;
+    btnPushTest.hidden = !abonne;
+    btnPush.dataset.clePublique = clePublique;
+  };
+
+  btnPush.addEventListener('click', async () => {
+    btnPush.disabled = true;
+    try {
+      if (abonne) {
+        const endpoint = await desabonnerPush();
+        if (endpoint) await notifications.supprimerPush(endpoint);
+        toast.info('Notifications désactivées sur cet appareil');
+      } else {
+        const abonnement = await abonnerPush(btnPush.dataset.clePublique ?? '');
+        await notifications.enregistrerPush(abonnement);
+        toast.succes('Notifications activées');
+      }
+    } catch (erreur) {
+      toast.erreur((erreur as Error).message === 'Permission refusée' ? 'Vous avez refusé les notifications' : 'Impossible de modifier les notifications');
+    } finally {
+      btnPush.disabled = false;
+      await rafraichirPush();
+    }
+  });
+
+  btnPushTest.addEventListener('click', async () => {
+    try {
+      const { envoyes } = await notifications.testerPush();
+      toast.info(envoyes > 0 ? 'Notification de test envoyée' : 'Aucun appareil joignable');
+    } catch {
+      toast.erreur('Échec de l\'envoi du test');
+    }
+  });
+
+  void rafraichirPush();
+
+  const formResume = $('#form-resume', section) as HTMLFormElement;
+  formResume.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const resumeCourriel = (new FormData(formResume).get('resumeCourriel') as Preferences['resumeCourriel']) ?? 'aucun';
+    try {
+      utilisateurCourant = await auth.mettreAJourProfil({ resumeCourriel });
+      toast.succes(resumeCourriel === 'aucun' ? 'Vous ne recevrez plus de résumé' : 'Résumé courriel enregistré');
+    } catch {
+      toast.erreur('Impossible d\'enregistrer ce choix');
+    }
+  });
+  ($('#btn-resume-test', section) as HTMLButtonElement).addEventListener('click', async () => {
+    const frequence = (new FormData(formResume).get('resumeCourriel') as string) === 'hebdomadaire' ? 'hebdomadaire' : 'quotidien';
+    try {
+      const { envoye, email } = await notifications.testerResume(frequence);
+      toast.info(envoye ? `Aperçu envoyé à ${email}` : 'Rien de nouveau à lire sur la période : aucun courriel envoyé');
+    } catch {
+      toast.erreur('Le serveur ne peut pas envoyer de courriel pour le moment');
+    }
+  });
+
   return section;
 }
 

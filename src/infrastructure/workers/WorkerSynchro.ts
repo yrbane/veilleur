@@ -5,6 +5,7 @@
 
 import { Worker, Queue, Job } from 'bullmq';
 import { obtenirRedisBullMQ } from '../cache/connexionRedis';
+import { obtenirServiceNotifications } from '../notifications/fabrique';
 import { obtenirServiceScraping } from '../scraping/ServiceScraping';
 import { DepotSourcesMariaDB } from '../persistence/DepotSourcesMariaDB';
 import { DepotArticlesMariaDB } from '../persistence/DepotArticlesMariaDB';
@@ -245,6 +246,16 @@ async function traiterSynchroToutes(
 
   const totalNouveaux = resultats.reduce((acc, r) => acc + r.nouveauxArticles, 0);
   loggerWorker.info({ nombreSources: sources.length, totalNouveaux }, 'Synchronisation globale terminée');
+
+  // Prévenir les abonnés Web Push des nouveautés (jamais bloquant pour la synchro)
+  if (totalNouveaux > 0) {
+    try {
+      const bilan = await obtenirServiceNotifications().notifierNouveauxArticles(resultats);
+      if (bilan.envois > 0) loggerWorker.info(bilan, 'Notifications push envoyées');
+    } catch (erreur) {
+      loggerWorker.error({ erreur }, 'Échec des notifications push');
+    }
+  }
 
   return resultats;
 }

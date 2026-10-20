@@ -4,6 +4,32 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.16.0 — 2026-10-21 · « Notifications »
+
+### Ajouté
+- Notifications Web Push : après chaque synchronisation globale, les abonnés
+  des sources qui ont reçu de nouveaux articles sont prévenus (« 12 nouveaux
+  articles · Le Monde, franceinfo »), au plus une fois par demi-heure
+  (`NOTIFICATIONS_PUSH_INTERVALLE_MIN`). Le réglage « Notifications » déjà
+  présent dans les paramètres de chaque source est enfin honoré (« aucune »
+  coupe la source). Clic sur la notification → fil des non-lus.
+- Paramètres → « Notifications » : activer / désactiver sur cet appareil,
+  nombre d'appareils, bouton « Envoyer un test ». Service worker `/sw.js`
+  enregistré au chargement (base de la future PWA).
+- Résumé courriel des articles non lus, chaque matin à 7 h ou le lundi matin
+  (préférence `resumeCourriel`), groupé par source, texte brut + HTML, lien de
+  désabonnement ; bouton « M'envoyer un aperçu ». Rien n'est envoyé quand il
+  n'y a rien à lire.
+- API : `GET /notifications/push/cle-publique`, `GET /notifications/etat`,
+  `POST`/`DELETE /notifications/push/abonnements`, `POST /notifications/push/test`,
+  `POST /notifications/resume/test`.
+- Migration `0010_abonnements_push` (table `abonnements_push`), worker BullMQ
+  `resumes` (cron 7 h), dépendances `web-push` et `nodemailer`.
+- Configuration : `APP_URL`, `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` /
+  `VAPID_SUBJECT` (push désactivé sans clés), `SMTP_HOST` / `SMTP_PORT` /
+  `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` (courriel
+  désactivé sans hôte). Voir `.env.example`.
+
 ## 0.15.0 — 2026-10-21 · « Communauté et parcours »
 
 ### Ajouté

@@ -38,6 +38,7 @@ const schemaMiseAJourProfil = z.object({
     frequenceRafraichissement: z.number().min(5).max(120).optional(),
     pseudo: z.string().trim().min(2).max(30).optional(),
     classementPublic: z.boolean().optional(),
+    resumeCourriel: z.enum(['aucun', 'quotidien', 'hebdomadaire']).optional(),
   }).optional(),
 });
 
@@ -454,6 +455,7 @@ export async function routesAuth(fastify: FastifyInstance): Promise<void> {
               frequenceRafraichissement: { type: 'number', minimum: 5, maximum: 120 },
               pseudo: { type: 'string', minLength: 2, maxLength: 30 },
               classementPublic: { type: 'boolean' },
+              resumeCourriel: { type: 'string', enum: ['aucun', 'quotidien', 'hebdomadaire'] },
             },
           },
         },

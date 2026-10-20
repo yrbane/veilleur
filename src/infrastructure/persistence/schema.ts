@@ -458,3 +458,24 @@ export const cachesSourcesRelations = relations(cachesSources, ({ one }) => ({
     references: [sources.id],
   }),
 }));
+
+/**
+ * Abonnements Web Push (un par navigateur/appareil)
+ */
+export const abonnementsPush = mysqlTable(
+  'abonnements_push',
+  {
+    id: varchar('id', { length: 36 }).primaryKey(),
+    utilisateurId: varchar('utilisateur_id', { length: 36 })
+      .notNull()
+      .references(() => utilisateurs.id, { onDelete: 'cascade' }),
+    endpoint: varchar('endpoint', { length: 1024 }).notNull(),
+    clePublique: varchar('cle_publique', { length: 255 }).notNull(),
+    secretAuth: varchar('secret_auth', { length: 255 }).notNull(),
+    userAgent: varchar('user_agent', { length: 255 }),
+    dateCreation: timestamp('date_creation').defaultNow().notNull(),
+  },
+  (table) => ({
+    idxUtilisateur: index('idx_abonnement_push_utilisateur').on(table.utilisateurId),
+  }),
+);

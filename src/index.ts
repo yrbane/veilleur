@@ -14,6 +14,7 @@ import {
   creerQueueImages,
   creerWorkerImages,
 } from './infrastructure/workers/WorkerImages';
+import { creerQueueResumes, creerWorkerResumes, planifierResumesRecurrents } from './infrastructure/workers/WorkerResumes';
 
 async function demarrer(): Promise<void> {
   // Démarrer le serveur API
@@ -24,15 +25,20 @@ async function demarrer(): Promise<void> {
   const workerSynchro = creerWorkerSynchro();
   const queueImages = creerQueueImages();
   const workerImages = creerWorkerImages();
+  const queueResumes = creerQueueResumes();
+  const workerResumes = creerWorkerResumes();
 
   // Planifier la synchronisation récurrente
   await planifierSynchroRecurrente(queueSynchro);
+  await planifierResumesRecurrents(queueResumes);
 
   logger.info('Workers démarrés');
 
   // Gestion propre de l'arrêt
   const arreter = async () => {
     logger.info('Arrêt des workers...');
+    await workerResumes.close();
+    await queueResumes.close();
     await workerImages.close();
     await queueImages.close();
     await workerSynchro.close();
