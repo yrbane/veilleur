@@ -257,9 +257,10 @@ export interface Article {
   urlImage?: string;
   urlImageOriginale?: string;
   auteur?: string;
+  sourceId: string;
   source: {
     nom: string;
-    urlFavicon?: string;
+    urlFavicon?: string | null;
   };
   note?: number | null;
   favori?: boolean;

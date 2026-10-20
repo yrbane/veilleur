@@ -16,12 +16,15 @@
           <span class="logo-texte">Veilleur</span>
         </a>
         <div class="nav-principale" id="nav-liens">
-          <a href="/" class="nav-lien" data-nav><span class="icone" aria-hidden="true">feed</span>Fil d'actualités</a>
-          <a href="/sources" class="nav-lien" data-nav><span class="icone" aria-hidden="true">rss_feed</span>Mes sources</a>
-          <a href="/decouverte" class="nav-lien" data-nav><span class="icone" aria-hidden="true">explore</span>Découverte</a>
+          <a href="/" class="nav-lien" data-nav title="Fil d'actualités"><span class="icone" aria-hidden="true">feed</span><span class="nav-libelle">Fil d'actualités</span></a>
+          <a href="/sources" class="nav-lien" data-nav title="Mes sources"><span class="icone" aria-hidden="true">rss_feed</span><span class="nav-libelle">Mes sources</span></a>
+          <a href="/decouverte" class="nav-lien" data-nav title="Découverte"><span class="icone" aria-hidden="true">explore</span><span class="nav-libelle">Découverte</span></a>
         </div>
-        <div class="nav-actions" id="nav-auth">
-          <!-- Contenu dynamique selon l'état d'authentification -->
+        <div class="nav-actions">
+          <button type="button" class="la-btn ghost icon-only" id="btn-theme" aria-label="Changer de thème"></button>
+          <div class="nav-auth" id="nav-auth">
+            <!-- Contenu dynamique selon l'état d'authentification -->
+          </div>
         </div>
       </nav>
     </header>

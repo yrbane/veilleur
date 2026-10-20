@@ -20,6 +20,7 @@ export function appliquerTheme(theme: Theme): void {
   } catch {
     // Stockage indisponible (navigation privée) : le thème vaut pour la session
   }
+  document.dispatchEvent(new CustomEvent<Theme>('veilleur:theme', { detail: theme }));
 }
 
 export function themeEnregistre(): Theme {
@@ -29,4 +30,19 @@ export function themeEnregistre(): Theme {
   } catch {
     return 'auto';
   }
+}
+
+const ORDRE_BASCULE: Theme[] = ['auto', 'clair', 'sombre'];
+
+/** Thème suivant quand on clique sur le bouton de l'en-tête */
+export function themeSuivant(theme: Theme): Theme {
+  return ORDRE_BASCULE[(ORDRE_BASCULE.indexOf(theme) + 1) % ORDRE_BASCULE.length] ?? 'auto';
+}
+
+export function iconeTheme(theme: Theme): string {
+  return { auto: 'brightness_auto', clair: 'light_mode', sombre: 'dark_mode' }[theme];
+}
+
+export function libelleTheme(theme: Theme): string {
+  return { auto: 'Thème automatique (système)', clair: 'Thème clair', sombre: 'Thème sombre' }[theme];
 }

@@ -4,6 +4,37 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.8.0 — 2026-10-20 · « Favicons en cache, thème en un clic »
+
+### Ajouté
+- Cache local des favicons : `GET /api/v1/favicons/:sourceId` télécharge une
+  fois le favicon de la source (URL validée contre le SSRF, redirections
+  contrôlées, 256 Ko max, types image seulement), le garde sous
+  `IMAGES_CHEMIN_STOCKAGE/favicons/` et le sert depuis l'origine de Veilleur.
+  Le navigateur ne contacte plus jamais les sites sources ; un échec n'est pas
+  réessayé pendant une heure, un fichier périmé est resservi si le site ne
+  répond plus.
+- Bouton de thème dans l'en-tête (automatique → clair → sombre), synchronisé
+  avec le sélecteur de la page Paramètres.
+- Bouton « revenir en haut » dès que l'on a défilé le fil, et raccourci clavier
+  `/` qui place le curseur dans la recherche.
+- Œil pour afficher ou masquer les mots de passe (connexion, inscription,
+  changement de mot de passe).
+
+### Modifié
+- Barre d'outils du fil sur une seule ligne : tri, note et favoris côte à côte.
+- Navigation compacte sur mobile : icônes seules, libellés conservés pour les
+  lecteurs d'écran et en infobulle.
+- La réponse du fil expose `sourceId` sur chaque article (utilisé pour le
+  favicon).
+
+### Corrigé
+- La police Google déclarée par Lunar Aurora est retirée au build (plugin
+  PostCSS) : plus d'erreur CSP dans la console à chaque chargement.
+- Côté serveur, le vhost Apache ne superpose plus sa CSP globale à celle de
+  l'application : les favicons et images externes autorisés par helmet ne sont
+  plus bloqués par l'intersection des deux en-têtes.
+
 ## 0.7.1 — 2026-10-20 · « Icônes servies par Veilleur »
 
 ### Corrigé

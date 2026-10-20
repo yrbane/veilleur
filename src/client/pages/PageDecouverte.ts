@@ -4,6 +4,7 @@
  */
 
 import { icone, iconeHtml } from '../utils/icones';
+import { urlFaviconLocale } from '../utils/favicons';
 import { creerElement, vider } from '../utils/dom';
 import { communaute, sources as apiSources, estAuthentifie } from '../services/api';
 import type { SourcePopulaire, TagPopulaire, CriteresCommunaute } from '../services/api';
@@ -306,9 +307,10 @@ function creerCarteSourcePopulaire(source: SourcePopulaire): HTMLElement {
   const entete = creerElement('div', { classes: ['carte-pop-entete'] });
 
   const favicon = creerElement('div', { classes: ['carte-pop-favicon'] });
-  if (source.urlFavicon) {
+  const urlFavicon = urlFaviconLocale(source);
+  if (urlFavicon) {
     const img = creerElement('img', {
-      attrs: { src: source.urlFavicon, alt: '' },
+      attrs: { src: urlFavicon, alt: '' },
     });
     (img as HTMLImageElement).onerror = () => {
       favicon.innerHTML = iconeHtml('public');

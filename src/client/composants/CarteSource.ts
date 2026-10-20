@@ -4,6 +4,7 @@
  */
 
 import { icone, iconeHtml } from '../utils/icones';
+import { urlFaviconLocale } from '../utils/favicons';
 import { creerElement } from '../utils/dom';
 import { extraireDomaine } from '../utils/format';
 import { sources, articles, tags as apiTags } from '../services/api';
@@ -184,10 +185,11 @@ export function creerCarteSource(
     classes: ['carte-source-favicon'],
   });
 
-  if (source.urlFavicon) {
+  const urlFavicon = urlFaviconLocale(source);
+  if (urlFavicon) {
     const img = creerElement('img', {
       attrs: {
-        src: source.urlFavicon,
+        src: urlFavicon,
         alt: '',
       },
     });

@@ -4,6 +4,7 @@
  */
 
 import { iconeHtml } from '../utils/icones';
+import { ajouterBasculeMotDePasse } from '../utils/formulaires';
 import { creerElement, $, vider } from '../utils/dom';
 import { auth, ErreurAPI } from '../services/api';
 import { toast } from '../utils/toast';
@@ -52,6 +53,7 @@ export function afficherPageConnexion(container: Element): void {
     </div>
   `;
 
+  ajouterBasculeMotDePasse(carte);
   page.append(carte);
   container.append(page);
 
@@ -143,6 +145,7 @@ export function afficherPageInscription(container: Element): void {
     </div>
   `;
 
+  ajouterBasculeMotDePasse(carte);
   page.append(carte);
   container.append(page);
 

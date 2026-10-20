@@ -64,7 +64,7 @@
 
 ### 📰 Agrégation
 - Ajout de sources RSS et sites web : collez l'adresse du site (`mediapart.fr`), le flux et le protocole sont détectés automatiquement
-- Favicon et tags de la source récupérés automatiquement à l'ajout (catégories du flux, mots-clés du site)
+- Favicon et tags de la source récupérés automatiquement à l'ajout (catégories du flux, mots-clés du site) ; favicons mis en cache et servis par Veilleur, le navigateur ne contacte jamais les sites sources
 - Extraction des métadonnées (Open Graph, Twitter Cards)
 
 ### 🎯 Personnalisation
@@ -73,7 +73,8 @@
 - Articles notés et mis en favoris, classés automatiquement par cinq mots-clés extraits du texte
 - Fil trié (date, note, titre, source), filtré, avec recherche plein texte et chargement au défilement
 - Paramètres avancés par source
-- Thème clair, sombre ou automatique, mémorisé dans le navigateur
+- Thème clair, sombre ou automatique en un clic dans l'en-tête, mémorisé dans le navigateur
+- Raccourci `/` vers la recherche, retour en haut du fil, navigation compacte sur mobile
 
 </td>
 <td width="50%">

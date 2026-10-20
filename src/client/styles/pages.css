@@ -860,6 +860,13 @@
   color: var(--couleur-texte-secondaire);
 }
 
+/* Sélecteurs à leur largeur naturelle : tri, note et favoris tiennent sur une ligne */
+.fil-outils .la-select {
+  width: auto;
+  min-width: 9rem;
+  margin-right: var(--espace-2);
+}
+
 .fil-outils select {
   padding: var(--espace-1) var(--espace-2);
   font-size: var(--taille-sm);
