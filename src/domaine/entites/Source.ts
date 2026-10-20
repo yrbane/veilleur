@@ -51,6 +51,8 @@ export type AjoutSource = z.infer<typeof schemaAjoutSource>;
  * Source avec informations utilisateur
  */
 export interface SourceUtilisateur extends Source {
+  /** Identifiant de l'abonnement (ligne utilisateurs_sources), distinct de l'id de la source */
+  utilisateurSourceId: string;
   dateAjout: Date;
   note: number | null;
   estEnPause: boolean;
@@ -95,4 +97,20 @@ export async function hashUrl(url: string): Promise<string> {
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   // Tronquer à 32 caractères pour compatibilité avec le schéma BDD
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+}
+
+/**
+ * Lit la colonne JSON des tags suggérés : MariaDB la renvoie en chaîne, MySQL en tableau
+ */
+export function parserTagsSuggeres(valeur: unknown): string[] | undefined {
+  let tags: unknown = valeur;
+  if (typeof tags === 'string') {
+    try {
+      tags = JSON.parse(tags);
+    } catch {
+      return undefined;
+    }
+  }
+  if (!Array.isArray(tags)) return undefined;
+  return tags.filter((t): t is string => typeof t === 'string');
 }

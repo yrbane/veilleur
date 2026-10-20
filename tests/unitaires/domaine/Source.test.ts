@@ -4,6 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+  parserTagsSuggeres,
   schemaSource,
   schemaAjoutSource,
   normaliserUrl,
@@ -200,5 +201,15 @@ describe('Source', () => {
 
       expect(doitEtreEnErreur(source)).toBe(true);
     });
+  });
+});
+
+describe('parserTagsSuggeres', () => {
+  it('accepte un tableau ou sa forme JSON en chaîne (MariaDB), sinon rien', () => {
+    expect(parserTagsSuggeres(['Politique', 'Monde'])).toEqual(['Politique', 'Monde']);
+    expect(parserTagsSuggeres('["Politique","Monde"]')).toEqual(['Politique', 'Monde']);
+    expect(parserTagsSuggeres(null)).toBeUndefined();
+    expect(parserTagsSuggeres('pas du json')).toBeUndefined();
+    expect(parserTagsSuggeres([1, 'ok'])).toEqual(['ok']);
   });
 });

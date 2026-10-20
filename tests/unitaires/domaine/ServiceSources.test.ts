@@ -52,7 +52,7 @@ describe('ServiceSources', () => {
     it('pose automatiquement le favicon et les tags déduits à la détection', async () => {
       mockDetecteurSource.mockResolvedValue({ url: 'https://journal.fr/feed', type: 'rss', titre: 'Journal', favicon: 'https://journal.fr/icone.png', tags: ['Politique', 'Écologie'] });
       mockDepotSources.creer.mockImplementation(async (donnees: Record<string, unknown>) => ({ id: 'src-1', ...donnees }));
-      mockDepotSources.ajouterPourUtilisateur.mockResolvedValue({ id: 'us-1', sourceId: 'src-1', nom: 'Journal', tags: [] });
+      mockDepotSources.ajouterPourUtilisateur.mockResolvedValue({ id: 'src-1', utilisateurSourceId: 'us-1', sourceId: 'src-1', nom: 'Journal', tags: [] });
       const { ServiceSources } = await import('@/domaine/services/ServiceSources');
       const service = new ServiceSources(mockDepotSources as never, mockDepotParametres as never, mockDetecteurSource, undefined, mockDepotTags);
 
@@ -68,7 +68,7 @@ describe('ServiceSources', () => {
 
     it('reprend les tags suggérés d\'une source déjà connue, sans nouvelle détection', async () => {
       mockDepotSources.trouverParHashUrl.mockResolvedValue({ id: 'src-existante', url: 'https://journal.fr/feed', nom: 'Journal', tagsSuggeres: ['Sciences'] });
-      mockDepotSources.ajouterPourUtilisateur.mockResolvedValue({ id: 'us-2', sourceId: 'src-existante', nom: 'Journal', tags: [] });
+      mockDepotSources.ajouterPourUtilisateur.mockResolvedValue({ id: 'src-existante', utilisateurSourceId: 'us-2', sourceId: 'src-existante', nom: 'Journal', tags: [] });
       const { ServiceSources } = await import('@/domaine/services/ServiceSources');
       const service = new ServiceSources(mockDepotSources as never, mockDepotParametres as never, mockDetecteurSource, undefined, mockDepotTags);
 
@@ -82,7 +82,7 @@ describe('ServiceSources', () => {
     it('enregistre l\'URL du flux découvert à la place de la page saisie', async () => {
       mockDetecteurSource.mockResolvedValue({ url: 'https://journal.fr/articles/feed', type: 'rss', titre: 'Journal', favicon: null });
       mockDepotSources.creer.mockImplementation(async (donnees: Record<string, unknown>) => ({ id: 'src-1', ...donnees }));
-      mockDepotSources.ajouterPourUtilisateur.mockResolvedValue({ id: 'us-1', sourceId: 'src-1', nom: 'Journal' });
+      mockDepotSources.ajouterPourUtilisateur.mockResolvedValue({ id: 'src-1', utilisateurSourceId: 'us-1', sourceId: 'src-1', nom: 'Journal' });
 
       const { ServiceSources } = await import('@/domaine/services/ServiceSources');
       const service = new ServiceSources(mockDepotSources as never, mockDepotParametres as never, mockDetecteurSource);
@@ -99,7 +99,7 @@ describe('ServiceSources', () => {
       mockDetecteurSource.mockResolvedValue({ url: 'https://journal.fr/articles/feed', type: 'rss', titre: 'Journal', favicon: null });
       const existante = { id: 'src-existante', url: 'https://journal.fr/articles/feed', nom: 'Journal' };
       mockDepotSources.trouverParHashUrl.mockResolvedValueOnce(null).mockResolvedValueOnce(existante);
-      mockDepotSources.ajouterPourUtilisateur.mockResolvedValue({ id: 'us-1', sourceId: 'src-existante', nom: 'Journal' });
+      mockDepotSources.ajouterPourUtilisateur.mockResolvedValue({ id: 'src-existante', utilisateurSourceId: 'us-1', sourceId: 'src-existante', nom: 'Journal' });
 
       const { ServiceSources } = await import('@/domaine/services/ServiceSources');
       const service = new ServiceSources(mockDepotSources as never, mockDepotParametres as never, mockDetecteurSource);
@@ -112,7 +112,7 @@ describe('ServiceSources', () => {
     it('complète le protocole https quand il manque', async () => {
       mockDetecteurSource.mockResolvedValue({ type: 'rss', titre: null, favicon: null });
       mockDepotSources.creer.mockImplementation(async (donnees: Record<string, unknown>) => ({ id: 'src-1', ...donnees }));
-      mockDepotSources.ajouterPourUtilisateur.mockResolvedValue({ id: 'us-1', sourceId: 'src-1', nom: 'journal.fr' });
+      mockDepotSources.ajouterPourUtilisateur.mockResolvedValue({ id: 'src-1', utilisateurSourceId: 'us-1', sourceId: 'src-1', nom: 'journal.fr' });
 
       const { ServiceSources } = await import('@/domaine/services/ServiceSources');
       const service = new ServiceSources(mockDepotSources as never, mockDepotParametres as never, mockDetecteurSource);
@@ -143,7 +143,7 @@ describe('ServiceSources', () => {
     it('invalide le cache des sources et celui du fil à l\'ajout d\'une source', async () => {
       mockDetecteurSource.mockResolvedValue({ type: 'rss', titre: 'Journal', favicon: null });
       mockDepotSources.creer.mockImplementation(async (donnees: Record<string, unknown>) => ({ id: 'src-1', ...donnees }));
-      mockDepotSources.ajouterPourUtilisateur.mockResolvedValue({ id: 'us-1', sourceId: 'src-1', nom: 'Journal' });
+      mockDepotSources.ajouterPourUtilisateur.mockResolvedValue({ id: 'src-1', utilisateurSourceId: 'us-1', sourceId: 'src-1', nom: 'Journal' });
       const mockCache = { supprimer: vi.fn().mockResolvedValue(true), supprimerPattern: vi.fn().mockResolvedValue(1) };
 
       const { ServiceSources } = await import('@/domaine/services/ServiceSources');
