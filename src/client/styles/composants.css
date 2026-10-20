@@ -831,3 +831,38 @@
     width: 100%;
   }
 }
+
+/* Skeletons */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--couleur-bg-secondaire) 25%,
+    var(--couleur-bg-tertiaire) 50%,
+    var(--couleur-bg-secondaire) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite ease-in-out;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-carte {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espace-3);
+  padding: var(--espace-4);
+  background-color: var(--couleur-bg-primaire);
+  border: 1px solid var(--couleur-bordure);
+  border-radius: var(--radius-lg);
+  min-height: 120px;
+}
+
+.skeleton-image { height: 180px; width: 100%; border-radius: var(--radius-md); }
+.skeleton-titre { height: 24px; width: 90%; }
+.skeleton-texte { height: 16px; width: 100%; }
+.skeleton-texte-court { height: 16px; width: 60%; }
+.skeleton-meta { height: 14px; width: 40%; margin-top: auto; }

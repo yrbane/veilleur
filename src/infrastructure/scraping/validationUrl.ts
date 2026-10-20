@@ -113,6 +113,7 @@ function contientCaracteresInterdits(url: string): boolean {
     /\\u[0-9a-f]{4}/i,               // Échappements Unicode
     /%00/,                            // Null byte
     /%0[ad]/i,                        // CR/LF
+    // eslint-disable-next-line no-control-regex -- détection volontaire des caractères de contrôle
     /[\x00-\x1f\x7f]/,               // Caractères de contrôle
   ];
 

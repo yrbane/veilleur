@@ -75,6 +75,7 @@ export function validerIdCuid(id: string): string | null {
 export function nettoyerPourLogs(valeur: string, longueurMax = 1000): string {
   return valeur
     // Supprimer les caractères de contrôle (sauf newline et tab)
+    // eslint-disable-next-line no-control-regex -- suppression volontaire des caractères de contrôle
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
     // Limiter la longueur
     .substring(0, longueurMax)

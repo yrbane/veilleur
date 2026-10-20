@@ -14,34 +14,35 @@ RESET := \033[0m
 # =============================================================================
 
 help: ## Afficher cette aide
-	@echo ""
-	@echo "$(CYAN)Veilleur$(RESET) - Commandes disponibles"
-	@echo ""
+	@printf ""
+	@printf "$(CYAN)Veilleur$(RESET) - Commandes disponibles"
+	@printf ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-15s$(RESET) %s\n", $$1, $$2}'
-	@echo ""
+	@printf ""
 
 # =============================================================================
 # Développement
 # =============================================================================
 
 dev: ## Démarrer l'environnement de développement
-	@echo "$(CYAN)Démarrage de Veilleur en mode développement...$(RESET)"
+	@printf "$(CYAN)Démarrage de Veilleur en mode développement...$(RESET)\n"
 	docker compose up -d
-	@echo "$(GREEN)Veilleur est prêt !$(RESET)"
-	@echo "  App:     http://localhost:3000"
-	@echo "  Adminer: make debug puis http://localhost:8080"
-	@echo "  Redis:   make debug puis http://localhost:8081"
+	@printf "$(GREEN)Veilleur est prêt !$(RESET)\n"
+	@printf "  Frontend (Vite): http://localhost:5173\n"
+	@printf "  API Backend:     http://localhost:8080\n"
+	@printf "  Adminer:         make debug puis http://localhost:8082\n"
+	@printf "  Redis UI:        make debug puis http://localhost:8081\n"
 
 up: dev ## Alias pour dev
 
 down: ## Arrêter tous les conteneurs
-	@echo "$(YELLOW)Arrêt des conteneurs...$(RESET)"
+	@printf "$(YELLOW)Arrêt des conteneurs...$(RESET)\n"
 	docker compose down
 
 stop: down ## Alias pour down
 
 restart: ## Redémarrer tous les conteneurs
-	@echo "$(YELLOW)Redémarrage...$(RESET)"
+	@printf "$(YELLOW)Redémarrage...$(RESET)\n"
 	docker compose restart
 
 logs: ## Afficher les logs (tous les services)
@@ -61,11 +62,11 @@ logs-redis: ## Afficher les logs de Redis
 # =============================================================================
 
 debug: ## Démarrer avec les outils de debug (Adminer, Redis Commander)
-	@echo "$(CYAN)Démarrage avec outils de debug...$(RESET)"
+	@printf "$(CYAN)Démarrage avec outils de debug...$(RESET)\n"
 	docker compose --profile debug up -d
-	@echo "$(GREEN)Outils de debug disponibles :$(RESET)"
-	@echo "  Adminer (BDD):  http://localhost:8080"
-	@echo "  Redis UI:       http://localhost:8081"
+	@printf "$(GREEN)Outils de debug disponibles :$(RESET)\n"
+	@printf "  Adminer (BDD):  http://localhost:8080"
+	@printf "  Redis UI:       http://localhost:8081"
 
 # =============================================================================
 # Shells
@@ -85,8 +86,12 @@ redis-shell: ## Ouvrir un shell Redis
 # =============================================================================
 
 migrate: ## Appliquer les migrations Drizzle
-	@echo "$(CYAN)Application des migrations...$(RESET)"
+	@printf "$(CYAN)Application des migrations...$(RESET)\n"
 	docker compose exec app npm run db:migrate
+
+seed: ## Initialiser les données par défaut (médias de gauche et scientifiques)
+	@printf "$(CYAN)Initialisation des sources par défaut...$(RESET)\n"
+	docker compose exec app npm run db:seed
 
 migrate-generate: ## Générer une nouvelle migration
 	docker compose exec app npm run db:generate
@@ -136,7 +141,7 @@ check: lint typecheck test ## Vérification complète (lint + types + tests)
 # =============================================================================
 
 build: ## Builder l'image de production
-	@echo "$(CYAN)Build de l'image de production...$(RESET)"
+	@printf "$(CYAN)Build de l'image de production...$(RESET)\n"
 	docker build -t veilleur:latest --target production .
 
 build-dev: ## Builder l'image de développement
@@ -147,7 +152,7 @@ build-dev: ## Builder l'image de développement
 # =============================================================================
 
 prod: ## Démarrer en mode production
-	@echo "$(CYAN)Démarrage en mode production...$(RESET)"
+	@printf "$(CYAN)Démarrage en mode production...$(RESET)\n"
 	docker compose -f docker-compose.prod.yml up -d
 
 prod-down: ## Arrêter le mode production
@@ -161,7 +166,7 @@ prod-logs: ## Logs en production
 # =============================================================================
 
 clean: ## Nettoyer les conteneurs et volumes
-	@echo "$(YELLOW)Nettoyage complet...$(RESET)"
+	@printf "$(YELLOW)Nettoyage complet...$(RESET)\n"
 	docker compose down -v --remove-orphans
 	docker compose --profile debug down -v --remove-orphans
 
@@ -169,7 +174,7 @@ clean-images: ## Supprimer les images Veilleur
 	docker rmi veilleur:latest veilleur:dev 2>/dev/null || true
 
 clean-all: clean clean-images ## Nettoyage total (conteneurs, volumes, images)
-	@echo "$(GREEN)Nettoyage terminé !$(RESET)"
+	@printf "$(GREEN)Nettoyage terminé !$(RESET)\n"
 
 # =============================================================================
 # Status
@@ -181,5 +186,5 @@ status: ## Afficher le statut des conteneurs
 ps: status ## Alias pour status
 
 health: ## Vérifier la santé des services
-	@echo "$(CYAN)État de santé des services :$(RESET)"
+	@printf "$(CYAN)État de santé des services :$(RESET)\n"
 	@docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"

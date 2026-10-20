@@ -49,10 +49,10 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 veilleur
 
-# Copier uniquement les fichiers nécessaires
+# Copier uniquement les fichiers nécessaires (dépendances de production seulement)
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/package*.json ./
+RUN npm ci --omit=dev --no-audit --no-fund
 
 # Copier les migrations Drizzle
 COPY --from=builder /app/drizzle ./drizzle
@@ -62,13 +62,13 @@ RUN chown -R veilleur:nodejs /app
 
 USER veilleur
 
-EXPOSE 3000
+EXPOSE 8080
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/v1/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/v1/health || exit 1
 
-CMD ["node", "dist/api/serveur.js"]
+CMD ["node", "dist/serveur.js"]
 
 # =============================================================================
 # Stage 5: Development
@@ -86,7 +86,7 @@ RUN npm install
 # Le code source sera monté en volume
 COPY . .
 
-EXPOSE 3000
+EXPOSE 8080
 
 # Hot reload avec tsx
 CMD ["npm", "run", "dev"]

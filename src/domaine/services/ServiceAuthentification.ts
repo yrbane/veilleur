@@ -84,7 +84,7 @@ export function validerForceMotDePasse(motDePasse: string): { valide: boolean; e
     erreurs.push('Le mot de passe doit contenir au moins un chiffre');
   }
 
-  if (REGLES_MOT_DE_PASSE.requiertSpecial && !/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/`~';]/.test(motDePasse)) {
+  if (REGLES_MOT_DE_PASSE.requiertSpecial && !/[!@#$%^&*(),.?":{}|<>_\-+=[\]\\/`~';]/.test(motDePasse)) {
     erreurs.push('Le mot de passe doit contenir au moins un caractère spécial');
   }
 

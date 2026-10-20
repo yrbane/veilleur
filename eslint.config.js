@@ -18,7 +18,7 @@ export default [
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
-        project: './tsconfig.json',
+        project: './tsconfig.eslint.json',
       },
       globals: {
         ...globals.node,
@@ -58,6 +58,9 @@ export default [
       'build/',
       'coverage/',
       'drizzle/migrations/',
+      'src/client/hooks/',
+      'playwright-report/',
+      'test-results/',
       '*.min.js',
     ],
   },

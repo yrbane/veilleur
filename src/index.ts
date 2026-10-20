@@ -10,32 +10,40 @@ import {
   creerWorkerSynchro,
   planifierSynchroRecurrente,
 } from './infrastructure/workers/WorkerSynchro';
+import {
+  creerQueueImages,
+  creerWorkerImages,
+} from './infrastructure/workers/WorkerImages';
 
 async function demarrer(): Promise<void> {
   // Démarrer le serveur API
   await demarrerServeur();
 
-  // Initialiser la queue et le worker de synchronisation
-  const queue = creerQueueSynchro();
-  const worker = creerWorkerSynchro();
+  // Initialiser les queues et les workers
+  const queueSynchro = creerQueueSynchro();
+  const workerSynchro = creerWorkerSynchro();
+  const queueImages = creerQueueImages();
+  const workerImages = creerWorkerImages();
 
   // Planifier la synchronisation récurrente
-  await planifierSynchroRecurrente(queue);
+  await planifierSynchroRecurrente(queueSynchro);
 
-  logger.info('Worker de synchronisation démarré');
+  logger.info('Workers démarrés');
 
   // Gestion propre de l'arrêt
   const arreter = async () => {
-    logger.info('Arrêt du worker...');
-    await worker.close();
-    await queue.close();
+    logger.info('Arrêt des workers...');
+    await workerImages.close();
+    await queueImages.close();
+    await workerSynchro.close();
+    await queueSynchro.close();
   };
 
   process.on('SIGINT', arreter);
   process.on('SIGTERM', arreter);
 }
 
-demarrer().catch(erreur => {
-  logger.fatal({ erreur }, "Impossible de démarrer l'application");
+demarrer().catch((erreur) => {
+  logger.error({ erreur }, 'Erreur fatale au démarrage');
   process.exit(1);
 });

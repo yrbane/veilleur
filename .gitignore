@@ -44,6 +44,15 @@ playwright/.cache/
 # Drizzle
 drizzle/meta/
 
+# Cache d'images local (IMAGES_CHEMIN_STOCKAGE)
+data/
+
+# Cache Vite
+.vite/
+
+# Captures des tests E2E
+tests/e2e/screenshots/
+
 # Docker volumes (local dev)
 docker/mariadb/data/
 docker/redis/data/

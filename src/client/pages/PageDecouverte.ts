@@ -279,7 +279,7 @@ async function chargerSourcesPopulaires(): Promise<void> {
     if (paginationEl) {
       afficherPagination(paginationEl, resultat.pagination);
     }
-  } catch (erreur) {
+  } catch {
     vider(grille);
     grille.innerHTML = `
       <div class="message-vide">

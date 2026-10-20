@@ -255,6 +255,7 @@ export interface Article {
   datePublication: string;
   resume?: string;
   urlImage?: string;
+  urlImageOriginale?: string;
   auteur?: string;
   source: {
     nom: string;
@@ -483,12 +484,19 @@ export const articles = {
     page = 1,
     limite = 20,
     sourceId?: string,
+    recherche?: string,
+    curseur?: string,
+    direction?: 'avant' | 'apres'
   ): Promise<ResultatPagine<Article>> {
-    let url = `/articles/fil?page=${page}&limite=${limite}`;
-    if (sourceId) {
-      url += `&sourceId=${sourceId}`;
-    }
-    return requete<ResultatPagine<Article>>(url);
+    const params = new URLSearchParams();
+    if (page) params.set('page', String(page));
+    if (limite) params.set('limite', String(limite));
+    if (sourceId) params.set('sourceId', sourceId);
+    if (recherche) params.set('recherche', recherche);
+    if (curseur) params.set('curseur', curseur);
+    if (direction) params.set('direction', direction);
+
+    return requete<ResultatPagine<Article>>(`/articles/fil?${params.toString()}`);
   },
 
   async obtenir(id: string): Promise<Article> {

@@ -37,6 +37,7 @@ const CARACTERES_DANGEREUX = [
  */
 const PATTERNS_DANGEREUX = [
   /\/\/[^/]/,    // Double slash suivi d'autre chose que / (protocol-relative)
+  // eslint-disable-next-line no-control-regex -- détection volontaire des caractères de contrôle
   /[\x00-\x1f]/, // Caractères de contrôle
 ];
 

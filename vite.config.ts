@@ -6,10 +6,17 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import compression from 'vite-plugin-compression';
+import { readFileSync } from 'fs';
+
+const { version } = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8')) as { version: string };
 
 export default defineConfig({
   root: 'src/client',
   base: '/',
+  // Version injectée dans le client (affichée dans le pied de page)
+  define: {
+    __VERSION_APP__: JSON.stringify(version),
+  },
   publicDir: 'public',
   build: {
     outDir: '../../dist/client',
@@ -29,10 +36,6 @@ export default defineConfig({
         main: resolve(__dirname, 'src/client/index.html'),
       },
       output: {
-        // Séparation vendor/app pour meilleur caching
-        manualChunks: {
-          vendor: ['alpinejs'],
-        },
         // Nommage des chunks avec hash pour cache busting
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
@@ -68,7 +71,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
     },

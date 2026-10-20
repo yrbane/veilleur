@@ -39,6 +39,7 @@ export const TYPES = {
   SOURCE: 'src',
   UTILISATEUR: 'usr',
   ABONNEMENT: 'abo',
+  IMAGE: 'img',
 
   // Cache
   FIL: 'fil',
@@ -189,6 +190,18 @@ export const cles = {
     synchronisation: (sourceId: string) =>
       genererCle(NAMESPACES.LOCK, 'sync', sourceId),
   },
+
+  // Cache d'images
+  image: {
+    parHash: (hashUrl: string) =>
+      genererCle(NAMESPACES.CACHE, TYPES.IMAGE, hashUrl),
+
+    statut: (hashUrl: string) =>
+      genererCle(NAMESPACES.CACHE, TYPES.IMAGE, 'statut', hashUrl),
+
+    enTraitement: (hashUrl: string) =>
+      genererCle(NAMESPACES.LOCK, TYPES.IMAGE, hashUrl),
+  },
 };
 
 /**
@@ -210,6 +223,10 @@ export const patterns = {
   // Toutes les sessions d'un utilisateur
   sessionsUtilisateur: (utilisateurId: string) =>
     `${NAMESPACES.APP}:${NAMESPACES.SESSION}:*:${utilisateurId}*`,
+
+  // Toutes les images en cache
+  imagesCache: () =>
+    `${NAMESPACES.APP}:${NAMESPACES.CACHE}:${TYPES.IMAGE}:*`,
 };
 
 /**

@@ -2,7 +2,7 @@
  * Veilleur - Implémentation du dépôt articles avec MariaDB
  */
 
-import { eq, and, lt, desc, sql, inArray } from 'drizzle-orm';
+import { eq, and, lt, desc, asc, sql, inArray } from 'drizzle-orm';
 import type {
   DepotArticles,
   CriteresArticles,
@@ -16,6 +16,7 @@ import { loggerBdd } from '../logging/logger';
 import { createId } from '@paralleldrive/cuid2';
 import type { ServiceCache } from '@/domaine/ports/ServiceCache';
 import { PREFIXES_CACHE, TTL_DEFAUT } from '@/domaine/ports/ServiceCache';
+import { decoderCurseur, encoderCurseur } from './paginationCurseur';
 
 /**
  * Implémentation du dépôt articles avec Drizzle ORM
@@ -215,13 +216,11 @@ export class DepotArticlesMariaDB implements DepotArticles {
     criteres?: CriteresArticles,
   ): Promise<ResultatPagineArticles> {
     const db = obtenirBdd();
-    const page = criteres?.page ?? 1;
     const limite = criteres?.limite ?? 20;
-    const offset = (page - 1) * limite;
 
     try {
-      // Récupérer les IDs des sources de l'utilisateur
-      const sourcesQuery = db
+      // 1. Récupérer les sources de l'utilisateur
+      const sourcesUtilisateur = await db
         .select({ sourceId: utilisateursSources.sourceId })
         .from(utilisateursSources)
         .where(
@@ -230,6 +229,15 @@ export class DepotArticlesMariaDB implements DepotArticles {
             eq(utilisateursSources.estEnPause, false),
           ),
         );
+
+      let sourceIds = sourcesUtilisateur.map(s => s.sourceId);
+
+      if (sourceIds.length === 0) {
+        return {
+          donnees: [],
+          pagination: criteres?.curseur ? undefined : { page: 1, limite, total: 0, totalPages: 0 },
+        };
+      }
 
       // Filtrer par tag si spécifié
       if (criteres?.tag) {
@@ -243,31 +251,27 @@ export class DepotArticlesMariaDB implements DepotArticles {
         if (tagFound) {
           const tagId = tagFound.id;
           const utilisateurSourcesAvecTag = await db
-            .select({ utilisateurSourceId: utilisateursSourcesTags.utilisateurSourceId })
-            .from(utilisateursSourcesTags)
-            .where(eq(utilisateursSourcesTags.tagId, tagId));
+            .select({ sourceId: utilisateursSources.sourceId })
+            .from(utilisateursSources)
+            .innerJoin(utilisateursSourcesTags, eq(utilisateursSources.id, utilisateursSourcesTags.utilisateurSourceId))
+            .where(
+              and(
+                eq(utilisateursSources.utilisateurId, utilisateurId),
+                eq(utilisateursSourcesTags.tagId, tagId),
+              ),
+            );
 
-          const usIds = utilisateurSourcesAvecTag.map(u => u.utilisateurSourceId);
-          if (usIds.length === 0) {
+          sourceIds = utilisateurSourcesAvecTag.map(u => u.sourceId);
+          if (sourceIds.length === 0) {
             return {
               donnees: [],
-              pagination: { page, limite, total: 0, totalPages: 0 },
+              pagination: criteres?.curseur ? undefined : { page: 1, limite, total: 0, totalPages: 0 },
             };
           }
         }
       }
 
-      const sourcesUtilisateur = await sourcesQuery;
-      const sourceIds = sourcesUtilisateur.map(s => s.sourceId);
-
-      if (sourceIds.length === 0) {
-        return {
-          donnees: [],
-          pagination: { page, limite, total: 0, totalPages: 0 },
-        };
-      }
-
-      // Construire les conditions pour les articles
+      // 2. Construire les conditions WHERE
       const conditions = [inArray(articles.sourceId, sourceIds)];
 
       if (criteres?.sourceId) {
@@ -278,16 +282,27 @@ export class DepotArticlesMariaDB implements DepotArticles {
         conditions.push(sql`${articles.datePublication} >= ${criteres.depuis}`);
       }
 
-      // Compter le total
-      const totalResult = await db
-        .select({ count: sql<number>`COUNT(*)` })
-        .from(articles)
-        .where(and(...conditions));
+      if (criteres?.recherche) {
+        // Mode IN BOOLEAN MODE pour permettre des recherches avancées (+mot -mot)
+        // et mieux gérer les mots courts
+        conditions.push(sql`MATCH(${articles.titre}, ${articles.resume}) AGAINST (${criteres.recherche} IN BOOLEAN MODE)`);
+      }
 
-      const total = totalResult[0]?.count ?? 0;
+      // Support du curseur
+      const curseur = criteres?.curseur ? decoderCurseur(criteres.curseur) : null;
+      const direction = criteres?.direction ?? 'apres';
 
-      // Récupérer les articles avec source
-      const resultats = await db
+      if (curseur) {
+        // Condition stable: (date < valeur) OR (date = valeur AND id < id)
+        conditions.push(
+          sql`(${articles.datePublication} ${sql.raw(direction === 'apres' ? '<' : '>')} ${new Date(curseur.valeurTri as string)} 
+          OR (${articles.datePublication} = ${new Date(curseur.valeurTri as string)} 
+          AND ${articles.id} ${sql.raw(direction === 'apres' ? '<' : '>')} ${curseur.id}))`,
+        );
+      }
+
+      // 3. Exécuter la requête
+      const query = db
         .select({
           article: articles,
           source: {
@@ -298,11 +313,26 @@ export class DepotArticlesMariaDB implements DepotArticles {
         .from(articles)
         .innerJoin(sources, eq(articles.sourceId, sources.id))
         .where(and(...conditions))
-        .orderBy(desc(articles.datePublication))
-        .limit(limite)
-        .offset(offset);
+        .orderBy(direction === 'apres' ? desc(articles.datePublication) : asc(articles.datePublication), direction === 'apres' ? desc(articles.id) : asc(articles.id))
+        .limit(limite + 1); // +1 pour détecter s'il y a une suite
 
-      const articlesAvecSource: ArticleAvecSource[] = resultats.map(r => ({
+      // Support de l'offset si pas de curseur (legacy)
+      if (!criteres?.curseur && criteres?.page) {
+        const offset = (criteres.page - 1) * limite;
+        query.offset(offset);
+      }
+
+      const resultats = await query;
+
+      const aPlusDirection = resultats.length > limite;
+      const rows = aPlusDirection ? resultats.slice(0, limite) : resultats;
+
+      // Inverser si on allait vers l'avant (plus récent) pour garder l'ordre chronologique inverse
+      if (direction === 'avant') {
+        rows.reverse();
+      }
+
+      const articlesAvecSource: ArticleAvecSource[] = rows.map(r => ({
         ...this.versArticle(r.article),
         source: {
           nom: r.source.nom,
@@ -310,15 +340,48 @@ export class DepotArticlesMariaDB implements DepotArticles {
         },
       }));
 
-      return {
-        donnees: articlesAvecSource,
-        pagination: {
-          page,
-          limite,
-          total,
-          totalPages: Math.ceil(total / limite),
-        },
-      };
+      // 4. Construire le résultat
+      if (criteres?.curseur || (!criteres?.page && !criteres?.curseur)) {
+        // Mode curseur
+        const premier = articlesAvecSource[0];
+        const dernier = articlesAvecSource[articlesAvecSource.length - 1];
+
+        const aPlusAvant = direction === 'avant' ? aPlusDirection : !!curseur;
+        const aPlusApres = direction === 'apres' ? aPlusDirection : true;
+
+        return {
+          donnees: articlesAvecSource,
+          curseurs: {
+            debut: premier ? encoderCurseur({ id: premier.id, datePublication: premier.datePublication }, 'datePublication') : null,
+            fin: dernier ? encoderCurseur({ id: dernier.id, datePublication: dernier.datePublication }, 'datePublication') : null,
+            suivant: (direction === 'apres' && aPlusDirection) || (direction === 'avant' && !!curseur) ? encoderCurseur({ id: dernier!.id, datePublication: dernier!.datePublication }, 'datePublication') : null,
+            precedent: (direction === 'avant' && aPlusDirection) || (direction === 'apres' && !!curseur) ? encoderCurseur({ id: premier!.id, datePublication: premier!.datePublication }, 'datePublication') : null,
+          },
+          aPlus: {
+            avant: aPlusAvant,
+            apres: aPlusApres,
+          },
+        };
+      } else {
+        // Mode offset (legacy)
+        const totalResult = await db
+          .select({ count: sql<number>`COUNT(*)` })
+          .from(articles)
+          .where(and(inArray(articles.sourceId, sourceIds)));
+
+        const total = totalResult[0]?.count ?? 0;
+        const page = criteres?.page ?? 1;
+
+        return {
+          donnees: articlesAvecSource,
+          pagination: {
+            page,
+            limite,
+            total,
+            totalPages: Math.ceil(total / limite),
+          },
+        };
+      }
     } catch (erreur) {
       loggerBdd.error({ erreur, utilisateurId }, 'Erreur lors du listing du fil');
       throw erreur;

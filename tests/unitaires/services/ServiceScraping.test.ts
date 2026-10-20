@@ -15,28 +15,6 @@ vi.mock('../../../src/infrastructure/logging/logger', () => ({
   },
 }));
 
-// Flux RSS de test
-const fluxRssTest = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
-  <channel>
-    <title>Test RSS Feed</title>
-    <link>https://example.com</link>
-    <description>Un flux RSS de test</description>
-    <item>
-      <title>Premier article</title>
-      <link>https://example.com/article/1</link>
-      <description>Description du premier article</description>
-      <pubDate>Mon, 15 Jan 2024 10:00:00 GMT</pubDate>
-    </item>
-    <item>
-      <title>Deuxième article</title>
-      <link>https://example.com/article/2</link>
-      <description>Description du deuxième article</description>
-      <pubDate>Sun, 14 Jan 2024 10:00:00 GMT</pubDate>
-    </item>
-  </channel>
-</rss>`;
-
 // Page HTML de test
 const pageHtmlTest = `<!DOCTYPE html>
 <html>
@@ -196,18 +174,6 @@ describe('ServiceScraping - Nettoyage', () => {
 
   // Accéder aux méthodes privées via des tests indirects
   it('devrait nettoyer le HTML des résumés lors de l\'extraction', async () => {
-    const fluxAvecHtml = `<?xml version="1.0" encoding="UTF-8"?>
-    <rss version="2.0">
-      <channel>
-        <title>Test</title>
-        <item>
-          <title>Article</title>
-          <link>https://example.com/article</link>
-          <description><![CDATA[<p>Contenu avec <strong>HTML</strong></p>]]></description>
-        </item>
-      </channel>
-    </rss>`;
-
     // Le test complet nécessiterait un serveur mock
     // On vérifie juste que le service existe et est configuré
     expect(service).toBeDefined();
