@@ -395,6 +395,11 @@ Fichiers : `deploy/nethttp/veilleur.service` (service durci, seul `data/images` 
 inscriptible), `deploy/nethttp/015-news.nethttp.net.conf` (proxy vers `127.0.0.1:8090`),
 `deploy/nethttp/env.production` (modèle d'environnement).
 
+Migrations et sources par défaut tournent via `systemd-run` avec le même
+`EnvironmentFile` que le service : le `.env` suit la syntaxe systemd, et toute
+valeur contenant un espace, une parenthèse ou un chevron (`SCRAPING_USER_AGENT`,
+`SMTP_FROM`) doit être entre guillemets doubles.
+
 ```bash
 ssh nethttp 'journalctl -u veilleur -n 100 -f'   # logs
 ssh nethttp 'sudo systemctl status veilleur'      # état du service

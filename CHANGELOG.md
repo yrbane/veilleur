@@ -4,6 +4,20 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.17.2 — 2026-10-21 · « Installeur fiabilisé »
+
+### Corrigé
+- L'installeur nethttp lançait migrations et seed après un `source` bash du
+  `.env` de production ; la valeur non quotée de `SCRAPING_USER_AGENT`
+  (parenthèses) arrêtait la lecture à la ligne 28 et les variables suivantes
+  (`APP_URL`, VAPID, SMTP) manquaient en silence. Ces scripts passent désormais
+  par `systemd-run` avec le même `EnvironmentFile` que le service, et un échec
+  fait échouer le déploiement.
+- Gabarits `deploy/nethttp/env.production` et `.env.example` : les valeurs
+  contenant espaces, parenthèses ou chevrons sont entre guillemets doubles.
+  Un test vérifie que chaque valeur reste sourçable par bash et que
+  l'installeur ne « source » plus le `.env`.
+
 ## 0.17.1 — 2026-10-21 · « Lunar Aurora assaini »
 
 ### Modifié

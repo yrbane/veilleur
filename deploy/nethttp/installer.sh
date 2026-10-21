@@ -89,8 +89,12 @@ echo "→ npm ci --omit=dev"
 # 5. Migrations (à chaque déploiement) et sources par défaut (une seule fois)
 # ---------------------------------------------------------------------------
 executer_app() {
-  # Lance « node $1 » comme veilleur, dans $APP, avec l'environnement de production
-  runuser -u "$UTILISATEUR" -- bash -c 'set -a; . "$1/.env"; set +a; cd "$1/app" && exec "$2" "$3"' _ "$RACINE" "$NODE" "$1"
+  # Lance « node $1 » comme veilleur, dans $APP, avec le même EnvironmentFile que le service :
+  # systemd lit le .env tel quel (guillemets, parenthèses, chevrons) là où un « source »
+  # bash s'arrêterait à la première valeur non quotée. --wait propage le code de sortie.
+  systemd-run --quiet --wait --pipe --collect --uid="$UTILISATEUR" --gid="$UTILISATEUR" \
+    -p EnvironmentFile="$RACINE/.env" -p WorkingDirectory="$APP" \
+    "$NODE" "$1" </dev/null
 }
 echo "→ migrations"
 executer_app dist/migrer.js
