@@ -64,4 +64,12 @@ describe('traiterDecouverteImage', () => {
     expect(resultat).toEqual({ articleId: 'a1', urlImage: null });
     expect((deps.mettreAJour.mock.calls[0]![1] as Partial<Article>).dateRechercheImage).toBeInstanceOf(Date);
   });
+
+  it('utilise la vignette YouTube sans lire la page', async () => {
+    const deps = dependances(article({ lien: 'https://www.youtube.com/watch?v=MENoB3Rex28' }));
+    const resultat = await traiterDecouverteImage({ type: 'decouvrir-image', articleId: 'a1' }, deps);
+    expect(resultat.urlImage).toBe('https://i.ytimg.com/vi/MENoB3Rex28/hqdefault.jpg');
+    expect(deps.enrichir).not.toHaveBeenCalled();
+    expect(deps.enfilerImage).toHaveBeenCalledWith('https://i.ytimg.com/vi/MENoB3Rex28/hqdefault.jpg', 'a1');
+  });
 });

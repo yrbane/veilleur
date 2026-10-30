@@ -685,7 +685,8 @@ export class ServiceScraping {
     try {
       const response = await fetch(urlSecurisee, {
         headers: {
-          'User-Agent': this.options.userAgent,
+          'User-Agent': USER_AGENT_NAVIGATEUR, // les pages d'articles refusent souvent les agents inconnus
+          'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.7',
           Accept: 'text/html',
         },
         signal: AbortSignal.timeout(this.options.timeout),
@@ -701,7 +702,13 @@ export class ServiceScraping {
       const openGraph: MetaOpenGraph = {
         titre: $('meta[property="og:title"]').attr('content'),
         description: $('meta[property="og:description"]').attr('content'),
-        image: $('meta[property="og:image"]').attr('content'),
+        // Image annoncée par la page : Open Graph d'abord, puis les variantes courantes
+        image:
+          $('meta[property="og:image"]').attr('content') ??
+          $('meta[property="og:image:secure_url"]').attr('content') ??
+          $('meta[name="og:image"]').attr('content') ??
+          $('meta[itemprop="image"]').attr('content') ??
+          $('link[rel="image_src"]').attr('href'),
         type: $('meta[property="og:type"]').attr('content'),
         url: $('meta[property="og:url"]').attr('content'),
         siteName: $('meta[property="og:site_name"]').attr('content'),
@@ -862,6 +869,9 @@ export class ServiceScraping {
  * Instance singleton du service
  */
 let instanceScraping: ServiceScraping | null = null;
+
+/** Agent présenté aux pages d'articles lors de l'enrichissement (les flux gardent l'agent Veilleur) */
+export const USER_AGENT_NAVIGATEUR = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
 
 export function obtenirServiceScraping(): ServiceScraping {
   if (!instanceScraping) {

@@ -30,3 +30,24 @@ function normaliserUrlImage(valeur: string | undefined, urlPage: string): string
 export function choisirImageDecouverte(metas: MetadonneesPage, urlPage: string): string | null {
   return normaliserUrlImage(metas.openGraph.image, urlPage) ?? normaliserUrlImage(metas.twitter.image, urlPage);
 }
+
+const ID_VIDEO_YOUTUBE = /^[A-Za-z0-9_-]{11}$/;
+
+/**
+ * Image déductible de l'adresse seule, sans lire la page.
+ * YouTube : la page sert un écran de consentement sans Open Graph aux serveurs, mais la vignette est publique.
+ */
+export function imageConnueDepuisUrl(urlPage: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(urlPage);
+  } catch {
+    return null;
+  }
+  const hote = url.hostname.replace(/^(www|m)\./, '');
+  let idVideo: string | null = null;
+  if (hote === 'youtube.com' && url.pathname === '/watch') idVideo = url.searchParams.get('v');
+  else if (hote === 'youtu.be') idVideo = url.pathname.slice(1).split('/')[0] ?? null;
+  if (!idVideo || !ID_VIDEO_YOUTUBE.test(idVideo)) return null;
+  return `https://i.ytimg.com/vi/${idVideo}/hqdefault.jpg`;
+}

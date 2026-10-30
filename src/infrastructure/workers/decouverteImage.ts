@@ -6,7 +6,7 @@
 
 import type { Article } from '@/domaine/entites/Article';
 import type { DepotArticles } from '@/domaine/ports/DepotArticles';
-import { choisirImageDecouverte, type MetadonneesPage } from '@/domaine/services/decouverteImage';
+import { choisirImageDecouverte, imageConnueDepuisUrl, type MetadonneesPage } from '@/domaine/services/decouverteImage';
 import type { JobDecouverteImage, ResultatDecouverteImage } from '../images/types';
 import { loggerJobs } from '../logging/logger';
 
@@ -34,13 +34,16 @@ export async function traiterDecouverteImage(donnees: JobDecouverteImage, deps: 
   }
 
   let metas: MetadonneesPage = { openGraph: {}, twitter: {} };
-  try {
-    metas = await deps.enrichir(article.lien);
-  } catch (erreur) {
-    loggerJobs.warn({ articleId: article.id, lien: article.lien, erreur: erreur instanceof Error ? erreur.message : erreur }, 'Découverte d\'image : page illisible');
+  const imageConnue = imageConnueDepuisUrl(article.lien);
+  if (!imageConnue) {
+    try {
+      metas = await deps.enrichir(article.lien);
+    } catch (erreur) {
+      loggerJobs.warn({ articleId: article.id, lien: article.lien, erreur: erreur instanceof Error ? erreur.message : erreur }, 'Découverte d\'image : page illisible');
+    }
   }
 
-  const urlImage = choisirImageDecouverte(metas, article.lien);
+  const urlImage = imageConnue ?? choisirImageDecouverte(metas, article.lien);
   const changements: Partial<Article> = {
     metaOpenGraph: compacter({ ...article.metaOpenGraph, ...metas.openGraph }),
     metaTwitter: compacter({ ...article.metaTwitter, ...metas.twitter }),

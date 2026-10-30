@@ -29,3 +29,15 @@ describe('choisirImageDecouverte', () => {
     expect(choisirImageDecouverte({ openGraph: { image: 'data:,' }, twitter: { image: 'https://cdn.exemple.org/tw.jpg' } }, page)).toBe('https://cdn.exemple.org/tw.jpg');
   });
 });
+
+describe('imageConnueDepuisUrl', () => {
+  it('déduit la vignette YouTube sans lire la page (la page sert un écran de consentement aux serveurs)', async () => {
+    const { imageConnueDepuisUrl } = await import('@/domaine/services/decouverteImage');
+    expect(imageConnueDepuisUrl('https://www.youtube.com/watch?v=MENoB3Rex28')).toBe('https://i.ytimg.com/vi/MENoB3Rex28/hqdefault.jpg');
+    expect(imageConnueDepuisUrl('https://youtu.be/MENoB3Rex28?t=12')).toBe('https://i.ytimg.com/vi/MENoB3Rex28/hqdefault.jpg');
+    expect(imageConnueDepuisUrl('https://m.youtube.com/watch?v=MENoB3Rex28&list=x')).toBe('https://i.ytimg.com/vi/MENoB3Rex28/hqdefault.jpg');
+    expect(imageConnueDepuisUrl('https://www.youtube.com/@chaine')).toBeNull();
+    expect(imageConnueDepuisUrl('https://exemple.org/video?v=abc')).toBeNull();
+    expect(imageConnueDepuisUrl('pas une url')).toBeNull();
+  });
+});

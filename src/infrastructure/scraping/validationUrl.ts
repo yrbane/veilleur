@@ -108,7 +108,7 @@ function estHoteBloque(hote: string): boolean {
 function contientCaracteresInterdits(url: string): boolean {
   // Caractères qui pourraient être utilisés pour contourner les filtres
   const patternsInterdits = [
-    /@/,                              // Credentials dans URL
+    /^[a-z][a-z0-9+.-]*:\/\/[^/?#]*@/i, // Identifiants dans l'autorité (user:pass@hôte) ; le « @ » d'un chemin Mastodon reste permis
     /\\x[0-9a-f]{2}/i,               // Échappements hexadécimaux
     /\\u[0-9a-f]{4}/i,               // Échappements Unicode
     /%00/,                            // Null byte

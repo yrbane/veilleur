@@ -4,6 +4,12 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.23.1 — 2026-10-30 · « Pages mieux lues »
+
+### Corrigé
+- Découverte d'image : la lecture des pages d'articles se présente comme un navigateur (Medium et plusieurs grands titres refusaient l'agent « Veilleur »), accepte `og:image:secure_url`, `itemprop="image"` et `link rel="image_src"` en repli, et déduit la vignette YouTube de l'adresse sans lire la page (qui ne sert qu'un écran de consentement aux serveurs).
+- Validation anti-SSRF : le « @ » n'est plus refusé dans le chemin d'une adresse (profils Mastodon), seulement devant l'hôte.
+
 ## 0.23.0 — 2026-10-30 · « Images retrouvées »
 
 ### Ajouté
