@@ -165,6 +165,7 @@ export class DepotArticlesMariaDB implements DepotArticles {
       if (donnees.metaOpenGraph !== undefined) updateData.metaOpenGraph = donnees.metaOpenGraph;
       if (donnees.metaTwitter !== undefined) updateData.metaTwitter = donnees.metaTwitter;
       if (donnees.hashContenu !== undefined) updateData.hashContenu = donnees.hashContenu;
+      if (donnees.dateRechercheImage !== undefined) updateData.dateRechercheImage = donnees.dateRechercheImage;
 
       if (Object.keys(updateData).length === 0) {
         return this.trouverParId(id);
@@ -807,6 +808,7 @@ export class DepotArticlesMariaDB implements DepotArticles {
       metaTwitter: (row.metaTwitter as MetaTwitter) ?? {},
       hashContenu: row.hashContenu,
       dateExtraction: row.dateExtraction,
+      dateRechercheImage: row.dateRechercheImage ?? null,
     };
   }
 }

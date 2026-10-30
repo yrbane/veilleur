@@ -65,7 +65,7 @@
 ### 📰 Agrégation
 - Ajout de sources RSS et sites web : collez l'adresse du site (`mediapart.fr`), le flux et le protocole sont détectés automatiquement
 - Favicon et tags de la source récupérés automatiquement à l'ajout (catégories du flux, mots-clés du site) ; favicons mis en cache et servis par Veilleur, le navigateur ne contacte jamais les sites sources
-- Extraction des métadonnées (Open Graph, Twitter Cards)
+- Extraction des métadonnées (Open Graph, Twitter Cards) ; quand le flux ne fournit pas d'image, la page de l'article est lue pour en trouver une
 
 ### 🎯 Personnalisation
 - Notation des sources (1-5 étoiles)

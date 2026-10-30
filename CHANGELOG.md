@@ -4,6 +4,14 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.23.0 — 2026-10-30 · « Images retrouvées »
+
+### Ajouté
+- Découverte d'image : quand un flux ne fournit pas d'illustration (Hacker News, certains SPIP), la page de l'article est lue et son image Open Graph ou Twitter Cards devient l'illustration, puis part dans le cache d'images. Nouveau job `decouvrir-image` dans la file des images, enfilé à chaque synchronisation pour les articles créés sans image (une tentative, espacée de 1,5 s).
+- Les métadonnées Open Graph et Twitter lues à cette occasion sont conservées sur l'article (`meta_open_graph`, `meta_twitter`).
+- Colonne `articles.date_recherche_image` (migration 0012) : chaque page n'est examinée qu'une fois, même sans résultat.
+- Script de rattrapage `npm run images:decouvrir:prod -- [--limite N] [--espacement MS]` pour les articles existants sans image.
+
 ## 0.22.1 — 2026-10-30 · « 2FA visible »
 
 ### Corrigé

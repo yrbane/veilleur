@@ -149,7 +149,18 @@ export interface JobNettoyageImages {
 /**
  * Données des jobs de la queue images
  */
-export type DonneesJobImage = JobImage | JobNettoyageImages;
+/** Découverte de l'image d'un article qui n'en a pas (lecture des métadonnées de sa page) */
+export interface JobDecouverteImage {
+  type: 'decouvrir-image';
+  articleId: string;
+}
+
+export type DonneesJobImage = JobImage | JobNettoyageImages | JobDecouverteImage;
+
+export interface ResultatDecouverteImage {
+  articleId: string;
+  urlImage: string | null;
+}
 
 /**
  * Résultat d'un job image

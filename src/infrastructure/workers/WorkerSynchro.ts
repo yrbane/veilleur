@@ -10,7 +10,7 @@ import { obtenirServiceScraping } from '../scraping/ServiceScraping';
 import { DepotSourcesMariaDB } from '../persistence/DepotSourcesMariaDB';
 import { DepotArticlesMariaDB } from '../persistence/DepotArticlesMariaDB';
 import { loggerJobs as loggerWorker } from '../logging/logger';
-import { creerQueueImages, ajouterJobImage } from './WorkerImages';
+import { creerQueueImages, ajouterJobImage, ajouterJobDecouverteImage } from './WorkerImages';
 import type { DonneesJobImage } from '../images';
 
 /**
@@ -148,6 +148,7 @@ async function traiterSynchroSource(
     // Sauvegarder les nouveaux articles
     let nouveauxArticles = 0;
     const imagesACacher: Array<{ url: string; articleId?: string }> = [];
+    const articlesSansImage: string[] = [];
 
     for (const articleBrut of resultat.articles) {
       const existe = await depotArticles.existeParLien(articleBrut.lien);
@@ -166,9 +167,11 @@ async function traiterSynchroSource(
         });
         nouveauxArticles++;
 
-        // Ajouter l'image à cacher si présente
+        // Ajouter l'image à cacher si présente, sinon la chercher sur la page de l'article
         if (articleBrut.urlImage) {
           imagesACacher.push({ url: articleBrut.urlImage, articleId: article.id });
+        } else {
+          articlesSansImage.push(article.id);
         }
       }
     }
@@ -186,6 +189,13 @@ async function traiterSynchroSource(
       );
     }
 
+    if (queueImages && articlesSansImage.length > 0) {
+      for (const [i, articleId] of articlesSansImage.entries()) {
+        await ajouterJobDecouverteImage(queueImages, articleId, i * 1500).catch(err => {
+          loggerWorker.warn({ erreur: err, articleId }, 'Échec ajout job découverte image');
+        });
+      }
+    }
     // Mettre à jour la date de dernière synchro
     await depotSources.mettreAJour(sourceId, {
       dateDerniereSynchro: new Date(),
