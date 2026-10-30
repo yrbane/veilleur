@@ -15,6 +15,7 @@ import { creerListeSkeletons } from '../composants/SkeletonArticle';
 import { toast } from '../utils/toast';
 import type { Article, MotCleFil, OptionsFil, Statistiques, Tag, TriFil } from '../services/api';
 import { colorerTag } from '../utils/couleursTags';
+import { modeEnregistre, appliquerMode, creerSelecteurAffichage } from '../utils/affichageArticles';
 
 const TAILLE_PAGE = 20;
 const CLE_FILTRES = 'veilleur.fil.filtres';
@@ -108,6 +109,7 @@ export async function afficherPageAccueil(container: Element): Promise<void> {
   // Conteneur du fil
   const fil = creerElement('div', { classes: ['fil-actualites'] });
   const liste = creerElement('div', { classes: ['fil-liste'], attrs: { id: 'fil-liste' } });
+  appliquerMode(liste, modeEnregistre());
   liste.appendChild(creerListeSkeletons(6));
 
   // Sentinelle de chargement au défilement
@@ -306,7 +308,13 @@ function creerBarreOutils(): HTMLElement {
     },
   });
 
-  barre.append(labelTri, selectTri, labelSource, selectSource, labelPeriode, selectPeriode, labelNote, selectNote, btnFavoris, btnALire, btnNonLus, btnToutLu, motsClesFiltre);
+  // Liste ou tuiles (mémorisé)
+  const selecteurAffichage = creerSelecteurAffichage(modeEnregistre(), mode => {
+    const fil = $('#fil-liste');
+    if (fil) appliquerMode(fil as HTMLElement, mode);
+  });
+
+  barre.append(labelTri, selectTri, labelSource, selectSource, labelPeriode, selectPeriode, labelNote, selectNote, btnFavoris, btnALire, btnNonLus, btnToutLu, selecteurAffichage, motsClesFiltre);
   return barre;
 }
 
