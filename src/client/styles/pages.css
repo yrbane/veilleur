@@ -897,6 +897,30 @@
     align-items: flex-start;
   }
 
+  .fil-recherche {
+    flex-basis: 100%;
+  }
+
+  .fil-commandes-droite {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .fil-bascules .chip-bascule {
+    font-size: 0;
+    gap: 0;
+  }
+
+  .fil-bascules .chip-bascule .icone {
+    font-size: 1.25rem;
+  }
+
+  .popover-panneau {
+    right: auto;
+    left: 0;
+  }
+
   .page-accueil-stats {
     width: 100%;
     justify-content: space-around;
@@ -919,69 +943,267 @@
   }
 }
 
-/* Fil : recherche, tri, filtres et défilement infini (0.4.0) */
+/* Fil : barre de commandes sur une ligne (0.20.0) — recherche, tri, filtres, bascules, affichage */
+.fil-commandes {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--espace-2) var(--espace-3);
+}
+
 .fil-recherche {
   display: flex;
-  gap: var(--espace-2);
-  margin-bottom: var(--espace-3);
+  align-items: center;
+  flex: 1 1 16rem;
+  min-width: 0;
+  position: relative;
 }
 
 .fil-recherche .la-input {
   flex: 1;
   min-width: 0;
+  padding-right: 2.5rem;
 }
 
-.fil-outils {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--espace-2);
-  margin-bottom: var(--espace-4);
-}
-
-/* Rubriques : tags de sources en puces, au-dessus des outils (0.13.0) */
-.fil-rubriques {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--espace-2);
-  margin-bottom: var(--espace-3);
-}
-
-.fil-rubriques.masque {
-  display: none;
-}
-
-.chip-rubrique .badge-non-lus {
-  margin-left: var(--espace-1);
-}
-
-.fil-outils-label {
-  font-size: var(--taille-sm);
+.fil-recherche-bouton {
+  position: absolute;
+  right: 0.25rem;
   color: var(--couleur-texte-secondaire);
 }
 
-/* Sélecteurs à leur largeur naturelle : tri, note et favoris tiennent sur une ligne */
-.fil-outils .la-select {
-  width: auto;
-  min-width: 9rem;
-  margin-right: var(--espace-2);
+.fil-commandes-droite {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--espace-2);
+  margin-left: auto;
 }
 
-.fil-outils select {
-  padding: var(--espace-1) var(--espace-2);
+/* Tri : icône + sélecteur sans bordure, à sa largeur naturelle */
+.fil-tri {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espace-1);
+  color: var(--couleur-texte-secondaire);
+}
+
+.fil-tri .la-select,
+.popover-champ .la-select {
+  width: auto;
+  padding: var(--espace-1) 2rem var(--espace-1) var(--espace-3);
   font-size: var(--taille-sm);
   font-family: var(--police-sans);
   color: var(--couleur-texte);
   background-color: var(--couleur-fond-carte);
   border: 1px solid var(--couleur-bordure);
-  border-radius: var(--rayon-md);
+  border-radius: var(--rayon-full);
 }
 
-.fil-outils-tags {
+.fil-tri .la-select:hover {
+  border-color: var(--couleur-primaire);
+}
+
+/* Bascules favoris / à lire / non lus : groupe soudé */
+.fil-bascules {
+  display: inline-flex;
+}
+
+.fil-bascules .chip-bascule {
+  border-radius: 0;
+  margin-left: -1px;
+}
+
+.fil-bascules .chip-bascule:first-child {
+  border-radius: var(--rayon-full) 0 0 var(--rayon-full);
+  margin-left: 0;
+}
+
+.fil-bascules .chip-bascule:last-child {
+  border-radius: 0 var(--rayon-full) var(--rayon-full) 0;
+}
+
+.fil-bascules .chip-bascule.active {
+  position: relative;
+  z-index: 1;
+}
+
+/* Menu déroulant (popover) */
+.popover {
+  position: relative;
+}
+
+.popover-declencheur.actif {
+  border-color: var(--couleur-primaire);
+  color: var(--couleur-primaire);
+}
+
+.popover-chevron {
+  font-size: 1.1em;
+  transition: transform var(--transition-rapide);
+}
+
+.popover-declencheur[aria-expanded="true"] .popover-chevron {
+  transform: rotate(180deg);
+}
+
+.popover-badge {
+  background: var(--couleur-primaire);
+  color: var(--couleur-texte-inverse);
+}
+
+.popover-panneau {
+  position: absolute;
+  top: calc(100% + var(--espace-2));
+  right: 0;
+  z-index: 30;
+  min-width: 16rem;
+  padding: var(--espace-3);
+  box-shadow: var(--ombre-lg);
+  animation: popover-apparition var(--transition-rapide) ease-out;
+}
+
+@keyframes popover-apparition {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.popover-filtres {
   display: flex;
+  flex-direction: column;
+  gap: var(--espace-3);
+}
+
+.popover-champ {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espace-3);
+  font-size: var(--taille-sm);
+}
+
+.popover-champ-libelle {
+  color: var(--couleur-texte-secondaire);
+}
+
+.popover-champ .la-select {
+  max-width: 12rem;
+}
+
+.popover-reinitialiser {
+  align-self: flex-end;
+}
+
+/* Rail des filtres rapides : rubriques, tendances et mots-clés sur une ligne, dépliable */
+.rail-puces {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espace-2);
+  min-width: 0;
+}
+
+.rail-puces.masque {
+  display: none;
+}
+
+.rail-piste {
+  display: flex;
+  align-items: center;
+  gap: var(--espace-3);
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+  mask-image: linear-gradient(to right, #000 calc(100% - 3rem), transparent);
+}
+
+.rail-piste::-webkit-scrollbar {
+  display: none;
+}
+
+.rail-puces.deplie .rail-piste {
   flex-wrap: wrap;
-  gap: var(--espace-1);
+  overflow: visible;
+  mask-image: none;
+}
+
+.rail-groupe {
+  display: flex;
+  align-items: center;
+  gap: var(--espace-2);
+  flex-shrink: 0;
+}
+
+.rail-puces.deplie .rail-groupe {
+  align-items: flex-start;
+  flex-shrink: 1;
+  width: 100%;
+}
+
+.rail-puces.deplie .rail-groupe + .rail-groupe::before {
+  display: none;
+}
+
+.rail-puces.deplie .rail-groupe-icone {
+  padding-top: 0.45rem;
+}
+
+.rail-groupe.masque {
+  display: none;
+}
+
+.rail-groupe + .rail-groupe::before {
+  content: '';
+  width: 1px;
+  height: 1.5rem;
+  background: var(--couleur-bordure);
+  flex-shrink: 0;
+}
+
+.rail-groupe-icone {
+  display: inline-flex;
+  color: var(--couleur-texte-muted);
+  font-size: var(--taille-sm);
+}
+
+.rail-groupe-puces {
+  display: flex;
+  align-items: center;
+  gap: var(--espace-2);
+}
+
+.rail-puces.deplie .rail-groupe-puces {
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.rail-groupe-puces .la-chip {
+  white-space: nowrap;
+}
+
+.rail-deplier {
+  flex-shrink: 0;
+  transition: transform var(--transition-rapide);
+}
+
+.rail-deplier.masque {
+  display: none;
+}
+
+.rail-puces.deplie .rail-deplier {
+  transform: rotate(180deg);
+}
+
+.chip-rubrique .badge-non-lus {
+  margin-left: var(--espace-1);
 }
 
 .fil-sentinelle {

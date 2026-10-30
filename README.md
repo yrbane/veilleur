@@ -70,6 +70,7 @@
 ### 🎯 Personnalisation
 - Notation des sources (1-5 étoiles)
 - Fil en liste ou en tuiles (grille fluide), au choix et mémorisé ; mise en page pleine largeur
+- Barre de commandes compacte (recherche, tri, panneau de filtres, bascules) et rail dépliable des rubriques, tendances et mots-clés
 - Tags de sources déduits automatiquement, modifiables à la main ; ils forment les rubriques du fil, avec le compte de non-lus. Chaque tag porte une couleur stable dérivée de son nom (roue de teintes oklch harmonisée avec le thème, clair et sombre)
 - Articles notés et mis en favoris, classés automatiquement par cinq mots-clés extraits du texte
 - Fil trié (date, note, titre, source), filtré par source, période, note, favoris, liste de lecture, non lus et mots-clés, avec chargement au défilement
