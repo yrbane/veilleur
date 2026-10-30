@@ -4,6 +4,21 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.19.0 — 2026-10-30 · « Pleine largeur et tuiles »
+
+### Ajouté
+- Le fil se lit en liste (une carte par ligne, comme avant) ou en tuiles :
+  grille fluide de cartes avec l'image en bandeau, titre et résumé sur trois
+  lignes, actions calées en bas. Sélecteur Liste / Tuiles dans la barre
+  d'outils, choix mémorisé dans le navigateur
+  (`src/client/utils/affichageArticles.ts`, testé).
+
+### Modifié
+- Mise en page fluide : plus de largeur maximale de 1200 px, l'en-tête et le
+  contenu occupent toute la fenêtre avec des marges latérales qui suivent
+  l'écran (`--gouttiere`, de 1 à 3 rem). En liste, titre et résumé gardent
+  une longueur de ligne lisible (110 caractères au plus).
+
 ## 0.18.1 — 2026-10-30 · « Tags de sources sérialisés »
 
 ### Corrigé

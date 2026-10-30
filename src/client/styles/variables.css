@@ -97,7 +97,9 @@
   --transition-lente: var(--la-transition-slow);
 
   /* Largeurs */
-  --largeur-max-contenu: 1200px;
+  /* Mise en page fluide (0.19.0) : pas de largeur maximale, des marges latérales qui suivent l'écran */
+  --largeur-max-contenu: none;
+  --gouttiere: clamp(1rem, 2.5vw, 3rem);
   --largeur-max-article: 720px;
   --largeur-sidebar: 280px;
 

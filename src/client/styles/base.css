@@ -33,7 +33,7 @@ body {
   gap: var(--espace-4);
   max-width: var(--largeur-max-contenu);
   margin: 0 auto;
-  padding: var(--espace-3) var(--espace-4);
+  padding: var(--espace-3) var(--gouttiere);
 }
 
 .logo {
@@ -88,7 +88,7 @@ body {
   max-width: var(--largeur-max-contenu);
   width: 100%;
   margin: 0 auto;
-  padding: var(--espace-6) var(--espace-4);
+  padding: var(--espace-6) var(--gouttiere);
 }
 
 /* Pied de page */
