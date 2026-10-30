@@ -11,6 +11,7 @@ import { sources, articles, tags as apiTags } from '../services/api';
 import { toast } from '../utils/toast';
 import { creerPanneauParametres } from './PanneauParametres';
 import type { Source, Tag } from '../services/api';
+import { colorerTag } from '../utils/couleursTags';
 
 interface OptionsCarteSource {
   onSupprimer?: (id: string) => void;
@@ -65,38 +66,35 @@ function creerSectionTags(sourceId: string, tagsInitiaux: Tag[] = []): HTMLEleme
     classes: ['liste-tags'],
   });
 
-  // Afficher les tags existants
-  const afficherTags = (tagsList: Tag[]) => {
-    listeTags.innerHTML = '';
-    tagsList.forEach(tag => {
-      const badge = creerElement('span', {
-        classes: ['la-badge primary badge-tag'],
-        attrs: { 'data-tag-id': tag.id },
-      });
+  // Badge coloré d'après le nom du tag, avec son bouton de retrait
+  const creerBadgeTag = (tag: Tag): HTMLElement => {
+    const badge = colorerTag(creerElement('span', {
+      classes: ['la-badge badge-tag'],
+      attrs: { 'data-tag-id': tag.id },
+    }), tag.nom);
 
-      const nomTag = creerElement('span', { texte: tag.nom });
-      const btnRetirer = creerElement('button', {
-        classes: ['btn-retirer-tag'],
-        attrs: { type: 'button', title: 'Retirer ce tag', 'aria-label': `Retirer le tag ${tag.nom}` },
-        icone: 'close',
-        onClick: async (e) => {
-          e.stopPropagation();
-          try {
-            await apiTags.retirerDeSource(sourceId, tag.id);
-            badge.remove();
-            toast.succes(`Tag "${tag.nom}" retiré`);
-          } catch {
-            toast.erreur('Erreur lors du retrait du tag');
-          }
-        },
-      });
-
-      badge.append(nomTag, btnRetirer);
-      listeTags.append(badge);
+    const nomTag = creerElement('span', { texte: tag.nom });
+    const btnRetirer = creerElement('button', {
+      classes: ['btn-retirer-tag'],
+      attrs: { type: 'button', title: 'Retirer ce tag', 'aria-label': `Retirer le tag ${tag.nom}` },
+      icone: 'close',
+      onClick: async (e) => {
+        e.stopPropagation();
+        try {
+          await apiTags.retirerDeSource(sourceId, tag.id);
+          badge.remove();
+          toast.succes(`Tag "${tag.nom}" retiré`);
+        } catch {
+          toast.erreur('Erreur lors du retrait du tag');
+        }
+      },
     });
+
+    badge.append(nomTag, btnRetirer);
+    return badge;
   };
 
-  afficherTags(tagsInitiaux);
+  listeTags.append(...tagsInitiaux.map(creerBadgeTag));
 
   // Formulaire d'ajout de tag
   const formAjout = creerElement('div', {
@@ -123,30 +121,7 @@ function creerSectionTags(sourceId: string, tagsInitiaux: Tag[] = []): HTMLEleme
         const { tag } = await apiTags.ajouterASource(sourceId, nom);
 
         // Ajouter visuellement le nouveau tag
-        const badge = creerElement('span', {
-          classes: ['la-badge primary badge-tag'],
-          attrs: { 'data-tag-id': tag.id },
-        });
-
-        const nomTag = creerElement('span', { texte: tag.nom });
-        const btnRetirer = creerElement('button', {
-          classes: ['btn-retirer-tag'],
-          attrs: { type: 'button', title: 'Retirer ce tag', 'aria-label': `Retirer le tag ${tag.nom}` },
-          icone: 'close',
-          onClick: async (e) => {
-            e.stopPropagation();
-            try {
-              await apiTags.retirerDeSource(sourceId, tag.id);
-              badge.remove();
-              toast.succes(`Tag "${tag.nom}" retiré`);
-            } catch {
-              toast.erreur('Erreur lors du retrait du tag');
-            }
-          },
-        });
-
-        badge.append(nomTag, btnRetirer);
-        listeTags.append(badge);
+        listeTags.append(creerBadgeTag(tag));
 
         inputTag.value = '';
         toast.succes(`Tag "${tag.nom}" ajouté`);

@@ -278,6 +278,88 @@
   gap: var(--espace-1);
 }
 
+/* ---------------------------------------------------------------------------
+ * Tags colorés (0.18.0) : la teinte vient du nom (utils/couleursTags.ts, --tag-teinte),
+ * chroma et luminosité sont communs pour rester harmonieux ; le thème sombre ne
+ * change que les luminosités. Appliqué aux badges de sources, aux puces de
+ * rubriques du fil et aux tags de la Découverte.
+ * ------------------------------------------------------------------------- */
+.tag-colore {
+  --tag-teinte: 262;
+  --tag-fond: oklch(94% 0.045 var(--tag-teinte));
+  --tag-fond-survol: oklch(90% 0.08 var(--tag-teinte));
+  --tag-bordure: oklch(82% 0.09 var(--tag-teinte));
+  --tag-texte: oklch(36% 0.13 var(--tag-teinte));
+  --tag-plein: oklch(52% 0.17 var(--tag-teinte));
+  --tag-texte-plein: oklch(99% 0.01 var(--tag-teinte));
+}
+
+[data-theme="dark"] .tag-colore {
+  --tag-fond: oklch(27% 0.06 var(--tag-teinte));
+  --tag-fond-survol: oklch(33% 0.09 var(--tag-teinte));
+  --tag-bordure: oklch(42% 0.1 var(--tag-teinte));
+  --tag-texte: oklch(87% 0.09 var(--tag-teinte));
+  --tag-plein: oklch(70% 0.16 var(--tag-teinte));
+  --tag-texte-plein: oklch(16% 0.04 var(--tag-teinte));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .tag-colore {
+    --tag-fond: oklch(27% 0.06 var(--tag-teinte));
+    --tag-fond-survol: oklch(33% 0.09 var(--tag-teinte));
+    --tag-bordure: oklch(42% 0.1 var(--tag-teinte));
+    --tag-texte: oklch(87% 0.09 var(--tag-teinte));
+    --tag-plein: oklch(70% 0.16 var(--tag-teinte));
+    --tag-texte-plein: oklch(16% 0.04 var(--tag-teinte));
+  }
+}
+
+/* Badge de source (Mes sources) et mini-badge (Découverte) : fond doux, texte teinté */
+.la-badge.badge-tag.tag-colore,
+.badge-tag-mini.tag-colore {
+  background: var(--tag-fond);
+  color: var(--tag-texte);
+  border: 1px solid var(--tag-bordure);
+}
+
+/* Puces cliquables (rubriques du fil, tags populaires) : contour teinté, plein quand actives */
+.la-chip.chip-rubrique.tag-colore,
+.badge-tag-populaire.tag-colore {
+  background: var(--tag-fond);
+  border-color: var(--tag-bordure);
+  color: var(--tag-texte);
+}
+
+.la-chip.chip-rubrique.tag-colore:hover,
+.badge-tag-populaire.tag-colore:hover {
+  background: var(--tag-fond-survol);
+  border-color: var(--tag-plein);
+  color: var(--tag-texte);
+}
+
+.la-chip.chip-rubrique.tag-colore.active,
+.la-chip.chip-rubrique.tag-colore[aria-pressed="true"],
+.badge-tag-populaire.tag-colore.active {
+  background: var(--tag-plein);
+  border-color: var(--tag-plein);
+  color: var(--tag-texte-plein);
+}
+
+.badge-tag-populaire.tag-colore .tag-count {
+  color: inherit;
+  opacity: 0.7;
+}
+
+.la-chip.chip-rubrique.tag-colore .badge-non-lus {
+  background: var(--tag-plein);
+  color: var(--tag-texte-plein);
+}
+
+.la-chip.chip-rubrique.tag-colore.active .badge-non-lus {
+  background: var(--tag-texte-plein);
+  color: var(--tag-plein);
+}
+
 .btn-retirer-tag {
   display: inline-flex;
   background: none;

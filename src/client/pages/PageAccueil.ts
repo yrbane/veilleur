@@ -14,6 +14,7 @@ import { creerCarteArticle } from '../composants/CarteArticle';
 import { creerListeSkeletons } from '../composants/SkeletonArticle';
 import { toast } from '../utils/toast';
 import type { Article, MotCleFil, OptionsFil, Statistiques, Tag, TriFil } from '../services/api';
+import { colorerTag } from '../utils/couleursTags';
 
 const TAILLE_PAGE = 20;
 const CLE_FILTRES = 'veilleur.fil.filtres';
@@ -409,6 +410,7 @@ function afficherRubriques(liste: Tag[], nonLusParTag: Record<string, number>): 
       texte: nom,
       onClick: () => choisir(slug),
     });
+    if (slug) colorerTag(puce, nom);
     if (nonLus > 0) {
       puce.append(
         creerElement('span', {

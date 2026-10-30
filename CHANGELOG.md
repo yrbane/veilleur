@@ -4,6 +4,25 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.18.0 — 2026-10-30 · « Tags en couleurs »
+
+### Ajouté
+- Chaque tag a sa couleur, dérivée de son nom : le nom normalisé (sans casse
+  ni accents) est haché puis projeté sur une roue de 24 teintes espacées de
+  15° à partir de la teinte primaire du thème. Chroma et luminosité sont
+  communs à tous les tags, les couleurs restent donc harmonieuses entre
+  elles et avec Lunar Aurora ; le thème sombre n'ajuste que les luminosités.
+- Appliqué partout où un tag s'affiche : puces de rubriques du fil (fond
+  teinté, plein quand la rubrique est active, pastille de non-lus assortie),
+  badges des sources dans « Mes sources », tags populaires et mini-badges de
+  la Découverte. Un même tag garde sa couleur d'une page à l'autre.
+- Module `src/client/utils/couleursTags.ts` (`teinteTag`, `colorerTag`),
+  testé.
+
+### Modifié
+- « Mes sources » : le badge de tag (et son bouton de retrait) n'est plus
+  construit en double pour l'affichage initial et l'ajout.
+
 ## 0.17.2 — 2026-10-21 · « Installeur fiabilisé »
 
 ### Corrigé
