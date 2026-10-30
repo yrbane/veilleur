@@ -75,7 +75,7 @@ export class DepotAdministrationMariaDB implements DepotAdministration {
         SUM(date_publication >= DATE_SUB(NOW(), INTERVAL 1 DAY)) AS dernieres24h,
         SUM(date_publication >= DATE_SUB(NOW(), INTERVAL 7 DAY)) AS derniers7j,
         SUM(url_image IS NOT NULL AND url_image <> '') AS avecImage,
-        SUM(url_image_cache IS NOT NULL) AS imagesCachees
+        (SELECT COUNT(*) FROM images_cachees WHERE statut = 'termine') AS imagesCachees
       FROM articles`);
     return { total: n(l.total), dernieres24h: n(l.dernieres24h), derniers7j: n(l.derniers7j), avecImage: n(l.avecImage), imagesCachees: n(l.imagesCachees) };
   }

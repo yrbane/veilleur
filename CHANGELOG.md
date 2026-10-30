@@ -4,6 +4,11 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.21.1 — 2026-10-30 · « Images en cache comptées »
+
+### Corrigé
+- Tableau de bord : le compteur « Images en cache » affichait 0 ; il compte désormais les images réellement mises en cache (statut terminé) au lieu d'une colonne d'article jamais renseignée.
+
 ## 0.21.0 — 2026-10-30 · « Tableau de bord »
 
 ### Ajouté
