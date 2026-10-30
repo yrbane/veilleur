@@ -368,13 +368,15 @@ async function changerMotDePasse(form: HTMLFormElement): Promise<void> {
 
 function creerCarte2FA(): HTMLElement {
   const { carte, corps } = creerCarte({ id: 'section-2fa', icone: 'phonelink_lock', titre: 'Authentification à deux facteurs', description: 'Un code de votre application d\'authentification à chaque connexion.' });
-  corps.append(creerElement('div', { classes: ['section-2fa-contenu'], attrs: { id: 'contenu-2fa' } }));
-  afficherContenu2FA();
+  const contenu = creerElement('div', { classes: ['section-2fa-contenu'], attrs: { id: 'contenu-2fa' } });
+  corps.append(contenu);
+  // La carte n'est pas encore dans le document : on passe l'élément plutôt que de le chercher
+  afficherContenu2FA(contenu);
   return carte;
 }
 
-function afficherContenu2FA(): void {
-  const contenu = $('#contenu-2fa');
+function afficherContenu2FA(cible?: Element): void {
+  const contenu = cible ?? $('#contenu-2fa');
   if (!contenu) return;
   vider(contenu);
   if (statut2FA?.actif) {
@@ -400,7 +402,7 @@ function afficher2FAInactive(contenu: Element): void {
     </div>
   `;
   contenu.append(wrapper);
-  $('#btn-activer-2fa')?.addEventListener('click', () => demarrerActivation2FA());
+  $('#btn-activer-2fa', contenu)?.addEventListener('click', () => demarrerActivation2FA());
 }
 
 function afficher2FAActive(contenu: Element): void {
@@ -426,7 +428,7 @@ function afficher2FAActive(contenu: Element): void {
     </div>
   `;
   contenu.append(wrapper);
-  const formDesactiver = $('#form-desactiver-2fa') as HTMLFormElement | null;
+  const formDesactiver = $('#form-desactiver-2fa', contenu) as HTMLFormElement | null;
   formDesactiver?.addEventListener('submit', async (e) => {
     e.preventDefault();
     await desactiver2FA(formDesactiver);
