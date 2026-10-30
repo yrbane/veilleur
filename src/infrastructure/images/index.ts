@@ -17,6 +17,8 @@ export type {
   OptionsTraitement,
   JobImage,
   JobNettoyageImages,
+  JobDecouverteImage,
+  ResultatDecouverteImage,
   DonneesJobImage,
   ResultatJobImage,
 } from './types';

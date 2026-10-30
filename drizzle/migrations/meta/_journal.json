@@ -85,6 +85,13 @@
       "when": 1793359428059,
       "tag": "0011_role_utilisateur",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1793372400000,
+      "tag": "0012_recherche_image",
+      "breakpoints": true
     }
   ]
 }

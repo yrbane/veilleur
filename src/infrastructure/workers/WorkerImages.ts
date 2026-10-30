@@ -13,7 +13,10 @@ import {
   initialiserServiceImagesCache,
   obtenirGestionnaireStockage,
 } from '../images';
-import type { DonneesJobImage, ResultatJobImage, JobImage, JobNettoyageImages } from '../images';
+import type { DonneesJobImage, ResultatJobImage, ResultatDecouverteImage, JobImage, JobNettoyageImages } from '../images';
+import { DepotArticlesMariaDB } from '../persistence/DepotArticlesMariaDB';
+import { obtenirServiceScraping } from '../scraping/ServiceScraping';
+import { traiterDecouverteImage } from './decouverteImage';
 
 /**
  * Nom de la queue d'images
@@ -51,25 +54,40 @@ export function creerQueueImages(): Queue<DonneesJobImage> {
 /**
  * Crée le worker d'images
  */
-export function creerWorkerImages(): Worker<DonneesJobImage, ResultatJobImage | number> {
+export function creerWorkerImages(): Worker<DonneesJobImage, ResultatJobImage | ResultatDecouverteImage | number> {
   const connexion = obtenirRedisBullMQ();
 
   // Initialiser le dépôt et le service
   const depotImages = new DepotImagesCacheMariaDB();
   const serviceImages = initialiserServiceImagesCache(depotImages);
 
+  // La découverte d'image lit la page de l'article puis ré-enfile le téléchargement dans cette même file
+  const depotArticles = new DepotArticlesMariaDB();
+  const queueDecouverte = creerQueueImages();
+  const dependancesDecouverte = {
+    depotArticles,
+    enrichir: (url: string) => obtenirServiceScraping().enrichirArticle(url),
+    enfilerImage: (urlImage: string, articleId: string) => ajouterJobImage(queueDecouverte, urlImage, articleId),
+  };
+
   // Initialiser les dossiers de stockage
   obtenirGestionnaireStockage().initialiser().catch(err => {
     loggerJobs.error({ erreur: err }, 'Erreur initialisation dossiers images');
   });
 
-  const worker = new Worker<DonneesJobImage, ResultatJobImage | number>(
+  const worker = new Worker<DonneesJobImage, ResultatJobImage | ResultatDecouverteImage | number>(
     NOM_QUEUE_IMAGES,
     async (job: Job<DonneesJobImage>) => {
       loggerJobs.debug({ jobId: job.id, type: job.data.type }, 'Traitement job image');
 
       if (job.data.type === 'telecharger-image') {
         return traiterTelechargementImage(job.data, serviceImages);
+      }
+
+      if (job.data.type === 'decouvrir-image') {
+
+        return traiterDecouverteImage(job.data, dependancesDecouverte);
+
       }
 
       if (job.data.type === 'nettoyage-images') {
@@ -96,6 +114,8 @@ export function creerWorkerImages(): Worker<DonneesJobImage, ResultatJobImage | 
         { jobId: job.id, hashUrl: res.hashUrl, succes: res.succes },
         'Job image terminé',
       );
+    } else if (job.data.type === 'decouvrir-image') {
+      loggerJobs.debug({ jobId: job.id, ...(result as ResultatDecouverteImage) }, 'Découverte d\'image terminée');
     } else {
       loggerJobs.info({ jobId: job.id, supprimees: result }, 'Nettoyage images terminé');
     }
@@ -249,4 +269,36 @@ export async function ajouterJobsImages(
   await queue.addBulk(jobs);
 
   loggerJobs.debug({ count: images.length }, 'Jobs images ajoutés en lot');
+}
+
+/**
+ * Enfile la découverte d'image d'un article sans illustration (une seule tentative, dédupliquée par article)
+ */
+export async function ajouterJobDecouverteImage(
+  queue: Queue<DonneesJobImage>,
+  articleId: string,
+  delaiMs = 0,
+): Promise<string | undefined> {
+  const job = await queue.add(
+    `decouverte-${articleId}`,
+    { type: 'decouvrir-image', articleId },
+    { jobId: `decouvrir-${articleId}`, attempts: 1, delay: delaiMs },
+  );
+  return job.id;
+}
+
+/**
+ * Enfile en lot des découvertes d'image, espacées pour ménager les sites visités
+ */
+export async function ajouterJobsDecouverteImages(
+  queue: Queue<DonneesJobImage>,
+  articleIds: string[],
+  espacementMs = 1500,
+): Promise<void> {
+  await queue.addBulk(articleIds.map((articleId, i) => ({
+    name: `decouverte-${articleId}`,
+    data: { type: 'decouvrir-image' as const, articleId },
+    opts: { jobId: `decouvrir-${articleId}`, attempts: 1, delay: i * espacementMs },
+  })));
+  loggerJobs.info({ articles: articleIds.length, espacementMs }, 'Découvertes d\'image enfilées en lot');
 }

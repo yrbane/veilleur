@@ -171,6 +171,8 @@ export const articles = mysqlTable(
     metaTwitter: json('meta_twitter').$type<MetaTwitter>().default({}),
     hashContenu: char('hash_contenu', { length: 32 }).unique(),
     dateExtraction: timestamp('date_extraction').notNull().defaultNow(),
+    // Dernière recherche d'image sur la page de l'article (null : jamais tentée)
+    dateRechercheImage: timestamp('date_recherche_image'),
   },
   table => ({
     idxSourceDate: index('idx_article_source_date').on(table.sourceId, table.datePublication),

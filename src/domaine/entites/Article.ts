@@ -48,6 +48,8 @@ export const schemaArticle = z.object({
   metaTwitter: schemaMetaTwitter.default({}),
   hashContenu: z.string().length(32).nullable(),
   dateExtraction: z.date(),
+  // Date de la dernière recherche d'image sur la page (découverte Open Graph), null si jamais tentée
+  dateRechercheImage: z.date().nullable().optional(),
   // Mots-clés extraits automatiquement (classement sans intervention de l'utilisateur)
   motsCles: z.array(z.string().max(50)).optional(),
 });
