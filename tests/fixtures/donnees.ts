@@ -12,6 +12,7 @@ export const utilisateurTest = {
   dateCreation: new Date('2024-01-01'),
   preferences: {},
   estActif: true,
+  role: 'membre' as const,
 };
 
 export const sourceRssTest = {

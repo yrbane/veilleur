@@ -199,6 +199,7 @@ export class ServiceAuthentification {
         frequenceRafraichissement: 30,
       },
       estActif: true,
+      role: 'membre',
       totpSecret: null,
       totpActif: false,
     });

@@ -4,6 +4,19 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.21.0 — 2026-10-30 · « Tableau de bord »
+
+### Ajouté
+- Rôle utilisateur `membre` / `admin` (migration 0011) : le premier compte de l'instance devient administrateur ; script de secours `npm run admin:promouvoir:prod -- <email>`.
+- Page `/admin` réservée aux administrateurs, avec lien « Admin » dans la navigation : vue d'ensemble (comptes, actifs de la semaine, sources, articles, lectures, images en cache), graphiques Chart.js (activité sur 30 jours, heures de publication, sources par type, images par statut, notes attribuées, sources les plus suivies, rubriques, nuage des mots-clés), couleurs tirées du thème et reconstruites au changement clair / sombre.
+- Onglet Comptes : liste paginée avec recherche, changement de rôle, désactivation (sessions révoquées), suppression complète d'un compte avec confirmation. Un administrateur ne peut ni se rétrograder ni se supprimer, et l'instance garde toujours au moins un administrateur.
+- Onglet Sources : liste paginée (type, statut, échecs, abonnés, articles, dernière synchro), synchronisation prioritaire et activation / désactivation d'une source (échecs remis à zéro).
+- Onglet Système : version, Node, durée de service, mémoire du processus, état et mémoire de Redis, taille de la base, compteurs des files BullMQ.
+- API `/api/v1/admin/*` protégée par un garde qui relit le rôle en base à chaque requête (401 puis 403 `ACCES_REFUSE`) ; les statistiques sont anonymes (aucune adresse hors de la gestion des comptes).
+
+### Corrigé
+- Les résumés d'articles n'affichent plus d'entités HTML en clair (`&nbsp;`, `&amp;`) : le texte était échappé deux fois avant d'être inséré comme nœud texte.
+
 ## 0.20.0 — 2026-10-30 · « Barre compacte »
 
 ### Ajouté

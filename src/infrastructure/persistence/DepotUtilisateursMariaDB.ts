@@ -111,6 +111,9 @@ export class DepotUtilisateursMariaDB implements DepotUtilisateurs {
       if (donnees.estActif !== undefined) {
         updateData.estActif = donnees.estActif;
       }
+      if (donnees.role !== undefined) {
+        updateData.role = donnees.role;
+      }
       if (donnees.dateDerniereConnexion !== undefined) {
         updateData.dateDerniereConnexion = donnees.dateDerniereConnexion;
       }
@@ -207,6 +210,7 @@ export class DepotUtilisateursMariaDB implements DepotUtilisateurs {
         frequenceRafraichissement: 30,
       },
       estActif: row.estActif ?? true,
+      role: row.role ?? 'membre',
       totpSecret: row.totpSecret ?? null,
       totpActif: row.totpActif ?? false,
     };

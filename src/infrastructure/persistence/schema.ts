@@ -77,6 +77,8 @@ export const utilisateurs = mysqlTable(
     dateDerniereConnexion: timestamp('date_derniere_connexion'),
     preferences: json('preferences').$type<Preferences>().default({}),
     estActif: boolean('est_actif').default(true),
+    /** Rôle : membre ou administrateur (tableau de bord, gestion des comptes) */
+    role: mysqlEnum('role', ['membre', 'admin']).notNull().default('membre'),
     // Champs 2FA TOTP
     totpSecret: varchar('totp_secret', { length: 64 }),
     totpActif: boolean('totp_actif').default(false),

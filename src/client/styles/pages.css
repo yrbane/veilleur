@@ -1484,3 +1484,264 @@
   align-items: center;
   margin: var(--espace-2) 0;
 }
+
+/* ============================================
+   Administration
+   ============================================ */
+
+.page-admin {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espace-4);
+}
+
+.admin-onglets {
+  display: flex;
+  gap: var(--espace-1);
+  border-bottom: 1px solid var(--couleur-bordure);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.admin-onglet {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espace-2);
+  padding: var(--espace-2) var(--espace-3);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  color: var(--couleur-texte-secondaire);
+  font: inherit;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+
+  &:hover { color: var(--couleur-texte); }
+
+  &.actif {
+    color: var(--couleur-primaire);
+    border-bottom-color: var(--couleur-primaire);
+  }
+}
+
+.admin-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--espace-3);
+}
+
+.admin-kpi {
+  position: relative;
+  padding: var(--espace-3) var(--espace-4);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.admin-kpi-icone {
+  position: absolute;
+  top: var(--espace-3);
+  right: var(--espace-3);
+  color: var(--couleur-primaire);
+  opacity: 0.55;
+
+  .material-symbols-outlined { font-size: 1.6rem; }
+}
+
+.admin-kpi-valeur {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.admin-kpi-libelle {
+  font-weight: 600;
+  color: var(--couleur-texte);
+}
+
+.admin-kpi-detail {
+  font-size: 0.8rem;
+  color: var(--couleur-texte-secondaire);
+}
+
+.admin-grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: var(--espace-3);
+  margin-top: var(--espace-4);
+}
+
+.admin-carte {
+  padding: var(--espace-3) var(--espace-4) var(--espace-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--espace-3);
+  min-width: 0;
+
+  &.large { grid-column: 1 / -1; }
+}
+
+.admin-carte-entete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--espace-2);
+}
+
+.admin-carte-titre {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.admin-carte-indication {
+  font-size: 0.8rem;
+  color: var(--couleur-texte-secondaire);
+}
+
+.admin-graphique {
+  position: relative;
+  height: 16rem;
+
+  .admin-carte.large & { height: 18rem; }
+}
+
+.admin-nuage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espace-2);
+  align-items: center;
+}
+
+.admin-nuage-mot {
+  gap: 0.35rem;
+  cursor: default;
+}
+
+.admin-nuage-nombre {
+  font-size: 0.7em;
+  opacity: 0.7;
+}
+
+.admin-barre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espace-2);
+  margin-bottom: var(--espace-3);
+}
+
+.admin-recherche {
+  flex: 1 1 16rem;
+  max-width: 28rem;
+}
+
+.admin-compteur {
+  font-size: 0.85rem;
+  color: var(--couleur-texte-secondaire);
+}
+
+.admin-table {
+  overflow-x: auto;
+  border: 1px solid var(--couleur-bordure);
+  border-radius: var(--rayon-md, 0.75rem);
+  background: var(--couleur-fond-carte);
+
+  .la-table {
+    width: 100%;
+    margin: 0;
+    font-size: 0.875rem;
+  }
+
+  th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.alerte { color: var(--couleur-danger); font-weight: 600; }
+  tr.inactif td { opacity: 0.55; }
+  tr.moi { background: color-mix(in oklch, var(--couleur-primaire) 6%, transparent); }
+  tr.en-erreur td:first-child { box-shadow: inset 3px 0 0 var(--couleur-danger); }
+}
+
+.admin-cellule-compte,
+.admin-cellule-source {
+  display: flex;
+  align-items: center;
+  gap: var(--espace-2);
+  min-width: 14rem;
+}
+
+.admin-courriel {
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.admin-badges {
+  display: inline-flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.admin-favicon {
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+
+.admin-source-infos {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-source-nom { font-weight: 500; }
+
+.admin-source-url {
+  font-size: 0.75rem;
+  color: var(--couleur-texte-secondaire);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 22rem;
+}
+
+.admin-select {
+  min-width: 9rem;
+  padding-block: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.admin-actions {
+  white-space: nowrap;
+
+  .la-btn + .la-btn { margin-left: 0.25rem; }
+  .la-btn.danger:not(:disabled):hover { color: var(--couleur-danger); }
+}
+
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espace-3);
+  margin-top: var(--espace-3);
+}
+
+.admin-pagination-etat {
+  font-size: 0.85rem;
+  color: var(--couleur-texte-secondaire);
+}
+
+.admin-vide {
+  text-align: center;
+  color: var(--couleur-texte-secondaire);
+  padding: var(--espace-4) !important;
+}
+
+@media (max-width: 640px) {
+  .admin-onglet .nav-libelle,
+  .admin-carte-indication { display: none; }
+  .admin-graphique { height: 13rem; }
+  .admin-kpi-valeur { font-size: 1.4rem; }
+}

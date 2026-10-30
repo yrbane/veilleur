@@ -27,6 +27,7 @@ import { routesImages } from './routes/images';
 import { routesFavicons } from './routes/favicons';
 import { routesTendances } from './routes/tendances';
 import { routesProgression } from './routes/progression';
+import { routesAdmin } from './routes/admin';
 import { routesNotifications } from './routes/notifications';
 import { pluginAuthentification } from './middlewares/authentification';
 import { protectionCSRF } from './middlewares/csrf';
@@ -330,6 +331,9 @@ export async function creerServeur(): Promise<FastifyInstance> {
 
   // Gamification : progression de l'utilisateur
   await serveur.register(routesProgression, { prefix: '/api/v1/progression' });
+
+  // Administration (rôle admin)
+  await serveur.register(routesAdmin, { prefix: '/api/v1/admin' });
 
   // Notifications Web Push et résumés courriel
   await serveur.register(routesNotifications, { prefix: '/api/v1/notifications' });

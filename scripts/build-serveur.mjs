@@ -20,6 +20,7 @@ const pointsEntree = {
   'rattraper-images': 'src/infrastructure/workers/rattraperImages.ts',
   'rattraper-mots-cles': 'src/infrastructure/workers/rattraperMotsCles.ts',
   'rattraper-sources': 'src/infrastructure/workers/rattraperSources.ts',
+  'promouvoir-admin': 'src/infrastructure/workers/promouvoirAdmin.ts',
 };
 
 await build({

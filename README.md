@@ -103,6 +103,10 @@
 - Points, six niveaux, douze badges et série de jours de lecture, déduits de votre activité
 - Classement public sur la base du volontariat, sous pseudo
 
+### 🛡️ Administration
+- Tableau de bord réservé aux administrateurs (`/admin`) : statistiques anonymes et graphiques sur 30 jours, gestion des comptes (rôle, désactivation, suppression) et des sources (synchronisation, statut), état du système (Redis, base, files)
+- Le premier compte de l'instance est administrateur ; `npm run admin:promouvoir:prod -- <email>` en promeut un autre
+
 ### ⚡ Performance
 - Cache agressif (90% hit rate)
 - Réponses < 200ms (p95)
