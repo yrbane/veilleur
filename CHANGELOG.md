@@ -4,6 +4,15 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.18.1 — 2026-10-30 · « Tags de sources sérialisés »
+
+### Corrigé
+- L'API « sources » déclarait les tags comme objets sans propriétés : Fastify les
+  renvoyait vides (`{}`), les badges de « Mes sources » s'affichaient sans nom
+  et, depuis la 0.18.0, la page échouait en calculant une couleur sans nom.
+  Schéma partagé `src/api/schemas/tag.ts` (id, nom, slug, dateCreation),
+  testé à la sérialisation.
+
 ## 0.18.0 — 2026-10-30 · « Tags en couleurs »
 
 ### Ajouté
