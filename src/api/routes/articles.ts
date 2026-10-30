@@ -460,6 +460,7 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
             sourceId: { type: 'string' },
             nouveauxArticles: { type: 'number' },
             articlesIgnores: { type: 'number' },
+            totalArticles: { type: 'number' },
             erreur: { type: 'string', nullable: true },
           },
         },
@@ -473,17 +474,20 @@ export async function routesArticles(fastify: FastifyInstance): Promise<void> {
       const resultat = await service.synchroniserSource(request.params.sourceId, {
         enrichirMetadonnees: true,
       });
+      // Une source déjà suivie par d'autres renvoie souvent « 0 nouveau » : le total dit ce qui est déjà là
+      const totalArticles = await obtenirDepotArticles().compterParSource(request.params.sourceId);
 
       loggerHttp.info(
         {
           utilisateurId: utilisateur.sub,
           sourceId: request.params.sourceId,
           nouveauxArticles: resultat.nouveauxArticles,
+          totalArticles,
         },
         'Synchronisation manuelle',
       );
 
-      return reply.send(resultat);
+      return reply.send({ ...resultat, totalArticles });
     } catch (erreur) {
       return gererErreurArticle(erreur, reply);
     }

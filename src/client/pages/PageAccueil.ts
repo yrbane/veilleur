@@ -4,16 +4,17 @@
  * et chargement au défilement
  */
 
-import { iconeHtml } from '../utils/icones';
+import { icone, iconeHtml } from '../utils/icones';
 import { creerElement, $, vider } from '../utils/dom';
 import { formatNombre } from '../utils/format';
 import { articles, sources, tags, tendances as apiTendances, estAuthentifie } from '../services/api';
-import { creerBlocTendances } from '../composants/Tendances';
+import { creerPopover } from '../composants/Popover';
+import { creerRailPuces, type RailPuces } from '../composants/RailPuces';
 import { termesRecherche } from '../utils/surlignage';
 import { creerCarteArticle } from '../composants/CarteArticle';
 import { creerListeSkeletons } from '../composants/SkeletonArticle';
 import { toast } from '../utils/toast';
-import type { Article, MotCleFil, OptionsFil, Statistiques, Tag, TriFil } from '../services/api';
+import type { Article, MotCleFil, OptionsFil, Statistiques, Tag, Tendance, TriFil } from '../services/api';
 import { colorerTag } from '../utils/couleursTags';
 import { modeEnregistre, appliquerMode, creerSelecteurAffichage } from '../utils/affichageArticles';
 
@@ -77,6 +78,8 @@ let enChargement = false;
 let requeteEnCours = 0;
 let observateur: IntersectionObserver | null = null;
 let minuterieRecherche: ReturnType<typeof setTimeout> | null = null;
+/** Rail des filtres rapides (rubriques, tendances, mots-clés), rempli après chargement */
+let rail: RailPuces | null = null;
 
 /**
  * Affiche la page d'accueil
@@ -118,25 +121,28 @@ export async function afficherPageAccueil(container: Element): Promise<void> {
     attrs: { id: 'fil-sentinelle', 'aria-live': 'polite' },
   });
 
-  const blocTendances = creerBlocTendances({
-    titre: 'Tendances dans votre fil',
-    charger: async () => (await apiTendances.fil(10)).donnees,
-    onChoix: mot => filtrerParMotCle(mot),
+  rail = creerRailPuces({
+    libelle: 'Filtres rapides',
+    groupes: [
+      { id: 'fil-rubriques', icone: 'label', titre: 'Rubriques' },
+      { id: 'fil-tendances', icone: 'local_fire_department', titre: 'Tendances dans votre fil' },
+      { id: 'fil-mots-cles', icone: 'tag', titre: 'Mots-clés fréquents' },
+    ],
   });
-  fil.append(creerBarreRecherche(), creerBarreRubriques(), blocTendances, creerBarreOutils(), liste, sentinelle);
+  fil.append(creerBarreCommandes(), rail, liste, sentinelle);
   page.append(entete, fil);
   container.append(page);
 
   observerDefilement(sentinelle);
 
   // Charger les données
-  await Promise.all([chargerStatistiques(), chargerMotsClesFiltre(), chargerArticles(1), blocTendances.rafraichir()]);
+  await Promise.all([chargerStatistiques(), chargerTendances(), chargerMotsClesFiltre(), chargerArticles(1)]);
 }
 
 /**
- * Barre de recherche plein texte dans tous les articles du fil
+ * Champ de recherche plein texte dans tous les articles du fil
  */
-function creerBarreRecherche(): HTMLElement {
+function creerChampRecherche(): HTMLElement {
   const formulaire = creerElement('form', { classes: ['fil-recherche'], attrs: { role: 'search' } });
   const champ = creerElement('input', {
     classes: ['la-input'],
@@ -169,7 +175,7 @@ function creerBarreRecherche(): HTMLElement {
   });
 
   const bouton = creerElement('button', {
-    classes: ['la-btn', 'primary'],
+    classes: ['la-btn', 'ghost', 'icon-only', 'fil-recherche-bouton'],
     attrs: { type: 'submit', 'aria-label': 'Rechercher' },
     icone: 'search',
   });
@@ -178,17 +184,52 @@ function creerBarreRecherche(): HTMLElement {
 }
 
 /**
- * Barre de tri et de filtres
+ * Sélecteur étiqueté du panneau de filtres
  */
-function creerBarreOutils(): HTMLElement {
-  const barre = creerElement('div', { classes: ['fil-outils'] });
+function creerChampSelect(id: string, libelle: string, options: Array<{ valeur: string; libelle: string }>, valeur: string, onChange: (valeur: string) => void): HTMLElement {
+  const champ = creerElement('label', { classes: ['popover-champ'], attrs: { for: id } });
+  champ.append(creerElement('span', { classes: ['popover-champ-libelle'], texte: libelle }));
+  const select = creerElement('select', { classes: ['la-select'], attrs: { id } }) as HTMLSelectElement;
+  for (const option of options) {
+    select.append(creerElement('option', { attrs: { value: option.valeur }, texte: option.libelle }));
+  }
+  select.value = valeur;
+  select.addEventListener('change', () => onChange(select.value));
+  champ.append(select);
+  return champ;
+}
+
+/**
+ * Bascule (favoris, à lire, non lus) : une puce pressable
+ */
+function creerBascule(id: string, nomIcone: string, libelle: string, lire: () => boolean, ecrire: (v: boolean) => void): HTMLElement {
+  const puce = creerElement('button', {
+    classes: ['la-chip chip-filtre chip-bascule', lire() ? 'active' : ''],
+    attrs: { type: 'button', id, 'aria-pressed': String(lire()), title: libelle },
+    icone: nomIcone,
+    texte: libelle,
+    onClick: () => {
+      ecrire(!lire());
+      puce.classList.toggle('active', lire());
+      puce.setAttribute('aria-pressed', String(lire()));
+      appliquerFiltres();
+    },
+  });
+  return puce;
+}
+
+/**
+ * Barre de commandes sur une ligne : recherche, tri, panneau de filtres, bascules, tout lu, affichage
+ */
+function creerBarreCommandes(): HTMLElement {
+  const barre = creerElement('div', { classes: ['fil-commandes'] });
 
   // Tri
-  const labelTri = creerElement('label', { classes: ['fil-outils-label'], attrs: { for: 'fil-tri' }, texte: 'Trier' });
-  const selectTri = creerElement('select', { classes: ['la-select'], attrs: { id: 'fil-tri' } }) as HTMLSelectElement;
+  const tri = creerElement('div', { classes: ['fil-tri'], attrs: { title: 'Trier' } });
+  tri.append(icone('sort'));
+  const selectTri = creerElement('select', { classes: ['la-select'], attrs: { id: 'fil-tri', 'aria-label': 'Trier' } }) as HTMLSelectElement;
   for (const choix of CHOIX_TRI) {
-    const option = creerElement('option', { attrs: { value: choix.valeur }, texte: choix.libelle });
-    selectTri.append(option);
+    selectTri.append(creerElement('option', { attrs: { value: choix.valeur }, texte: choix.libelle }));
   }
   selectTri.value = `${filtres.tri}:${filtres.ordre}`;
   selectTri.addEventListener('change', () => {
@@ -197,102 +238,64 @@ function creerBarreOutils(): HTMLElement {
     filtres.ordre = ordre;
     appliquerFiltres();
   });
+  tri.append(selectTri);
 
-  // Note minimale
-  const labelNote = creerElement('label', { classes: ['fil-outils-label'], attrs: { for: 'fil-note-min' }, texte: 'Note' });
-  const selectNote = creerElement('select', { classes: ['la-select'], attrs: { id: 'fil-note-min' } }) as HTMLSelectElement;
-  selectNote.append(creerElement('option', { attrs: { value: '' }, texte: 'Toutes' }));
-  for (let n = 1; n <= 5; n++) {
-    selectNote.append(creerElement('option', { attrs: { value: String(n) }, texte: `${n} étoile${n > 1 ? 's' : ''} et plus` }));
-  }
-  selectNote.value = filtres.noteMin ? String(filtres.noteMin) : '';
-  selectNote.addEventListener('change', () => {
-    filtres.noteMin = selectNote.value ? Number(selectNote.value) : undefined;
+  // Panneau de filtres : source, période, note
+  const panneau = creerElement('div', { classes: ['popover-filtres'] });
+  const nombreFiltres = (): number => [filtres.sourceId, filtres.periode, filtres.noteMin].filter(Boolean).length;
+  const champSource = creerChampSelect('fil-source', 'Source', [{ valeur: '', libelle: 'Toutes' }], filtres.sourceId ?? '', valeur => {
+    filtres.sourceId = valeur || undefined;
     appliquerFiltres();
   });
-
-  // Source
-  const labelSource = creerElement('label', { classes: ['fil-outils-label'], attrs: { for: 'fil-source' }, texte: 'Source' });
-  const selectSource = creerElement('select', { classes: ['la-select'], attrs: { id: 'fil-source' } }) as HTMLSelectElement;
-  selectSource.append(creerElement('option', { attrs: { value: '' }, texte: 'Toutes' }));
+  const selectSource = champSource.querySelector('select') as HTMLSelectElement;
   if (filtres.sourceId) {
-    // Option provisoire pour conserver la sélection avant l'arrivée de la liste
-    selectSource.append(creerElement('option', { attrs: { value: filtres.sourceId }, texte: '…' }));
+    // En attendant la liste : on garde la source mémorisée sélectionnable
+    selectSource.append(creerElement('option', { attrs: { value: filtres.sourceId }, texte: 'Source choisie' }));
     selectSource.value = filtres.sourceId;
   }
-  selectSource.addEventListener('change', () => {
-    filtres.sourceId = selectSource.value || undefined;
-    appliquerFiltres();
-  });
   void remplirSelectSources(selectSource);
-
-  // Période
-  const labelPeriode = creerElement('label', { classes: ['fil-outils-label'], attrs: { for: 'fil-periode' }, texte: 'Période' });
-  const selectPeriode = creerElement('select', { classes: ['la-select'], attrs: { id: 'fil-periode' } }) as HTMLSelectElement;
-  selectPeriode.append(creerElement('option', { attrs: { value: '' }, texte: 'Tout' }));
-  for (const choix of CHOIX_PERIODE) {
-    selectPeriode.append(creerElement('option', { attrs: { value: choix.valeur }, texte: choix.libelle }));
-  }
-  selectPeriode.value = filtres.periode ?? '';
-  selectPeriode.addEventListener('change', () => {
-    filtres.periode = (selectPeriode.value || undefined) as Periode | undefined;
+  const champPeriode = creerChampSelect('fil-periode', 'Période', [{ valeur: '', libelle: 'Tout' }, ...CHOIX_PERIODE.map(c => ({ valeur: c.valeur, libelle: c.libelle }))], filtres.periode ?? '', valeur => {
+    filtres.periode = (valeur || undefined) as Periode | undefined;
     appliquerFiltres();
   });
-
-  // Favoris
-  const btnFavoris = creerElement('button', {
-    classes: ['la-chip chip-filtre', filtres.favoris ? 'active' : ''],
-    attrs: { type: 'button', id: 'fil-favoris', 'aria-pressed': String(filtres.favoris) },
-    icone: 'favorite',
-    texte: 'Favoris',
+  const champNote = creerChampSelect('fil-note-min', 'Note', [{ valeur: '', libelle: 'Toutes' }, ...[1, 2, 3, 4, 5].map(n => ({ valeur: String(n), libelle: `${n} étoile${n > 1 ? 's' : ''} et plus` }))], filtres.noteMin ? String(filtres.noteMin) : '', valeur => {
+    filtres.noteMin = valeur ? Number(valeur) : undefined;
+    appliquerFiltres();
+  });
+  const reinitialiser = creerElement('button', {
+    classes: ['la-btn', 'ghost', 'sm', 'popover-reinitialiser'],
+    attrs: { type: 'button' },
+    icone: 'restart_alt',
+    texte: 'Réinitialiser',
     onClick: () => {
-      filtres.favoris = !filtres.favoris;
-      btnFavoris.classList.toggle('active', filtres.favoris);
-      btnFavoris.setAttribute('aria-pressed', String(filtres.favoris));
+      filtres.sourceId = undefined;
+      filtres.periode = undefined;
+      filtres.noteMin = undefined;
+      selectSource.value = '';
+      (champPeriode.querySelector('select') as HTMLSelectElement).value = '';
+      (champNote.querySelector('select') as HTMLSelectElement).value = '';
       appliquerFiltres();
     },
   });
+  panneau.append(champSource, champPeriode, champNote, reinitialiser);
+  const popoverFiltres = creerPopover({ libelle: 'Filtres', icone: 'tune', contenu: panneau });
+  popoverFiltres.definirBadge(nombreFiltres());
+  panneau.addEventListener('change', () => popoverFiltres.definirBadge(nombreFiltres()));
+  reinitialiser.addEventListener('click', () => popoverFiltres.definirBadge(0));
 
-  // Mots-clés du fil (remplis après chargement)
-  const motsClesFiltre = creerElement('div', {
-    classes: ['fil-outils-tags'],
-    attrs: { id: 'fil-mots-cles', 'aria-label': 'Filtrer par mot-clé' },
-  });
-
-  // Non lus
-  const btnNonLus = creerElement('button', {
-    classes: ['la-chip chip-filtre', filtres.nonLus ? 'active' : ''],
-    attrs: { type: 'button', id: 'fil-non-lus', 'aria-pressed': String(filtres.nonLus) },
-    icone: 'mark_email_unread',
-    texte: 'Non lus',
-    onClick: () => {
-      filtres.nonLus = !filtres.nonLus;
-      btnNonLus.classList.toggle('active', filtres.nonLus);
-      btnNonLus.setAttribute('aria-pressed', String(filtres.nonLus));
-      appliquerFiltres();
-    },
-  });
-
-  // Liste de lecture
-  const btnALire = creerElement('button', {
-    classes: ['la-chip chip-filtre', filtres.aLire ? 'active' : ''],
-    attrs: { type: 'button', id: 'fil-a-lire', 'aria-pressed': String(filtres.aLire) },
-    icone: 'bookmark',
-    texte: 'À lire',
-    onClick: () => {
-      filtres.aLire = !filtres.aLire;
-      btnALire.classList.toggle('active', filtres.aLire);
-      btnALire.setAttribute('aria-pressed', String(filtres.aLire));
-      appliquerFiltres();
-    },
-  });
+  // Bascules
+  const bascules = creerElement('div', { classes: ['fil-bascules'], attrs: { role: 'group', 'aria-label': 'Filtres rapides' } });
+  bascules.append(
+    creerBascule('fil-favoris', 'favorite', 'Favoris', () => filtres.favoris, v => { filtres.favoris = v; }),
+    creerBascule('fil-a-lire', 'bookmark', 'À lire', () => filtres.aLire, v => { filtres.aLire = v; }),
+    creerBascule('fil-non-lus', 'mark_email_unread', 'Non lus', () => filtres.nonLus, v => { filtres.nonLus = v; }),
+  );
 
   // Tout marquer comme lu (borné à l'instant du clic)
   const btnToutLu = creerElement('button', {
-    classes: ['la-btn', 'ghost', 'sm', 'btn-tout-lu'],
-    attrs: { type: 'button', id: 'fil-tout-lu', title: 'Marquer comme lus tous les articles du fil' },
+    classes: ['la-btn', 'ghost', 'sm', 'icon-only', 'btn-tout-lu'],
+    attrs: { type: 'button', id: 'fil-tout-lu', title: 'Tout marquer lu', 'aria-label': 'Marquer comme lus tous les articles du fil' },
     icone: 'done_all',
-    texte: 'Tout marquer lu',
     onClick: async () => {
       (btnToutLu as HTMLButtonElement).disabled = true;
       try {
@@ -314,8 +317,42 @@ function creerBarreOutils(): HTMLElement {
     if (fil) appliquerMode(fil as HTMLElement, mode);
   });
 
-  barre.append(labelTri, selectTri, labelSource, selectSource, labelPeriode, selectPeriode, labelNote, selectNote, btnFavoris, btnALire, btnNonLus, btnToutLu, selecteurAffichage, motsClesFiltre);
+  const droite = creerElement('div', { classes: ['fil-commandes-droite'] });
+  droite.append(tri, popoverFiltres, bascules, btnToutLu, selecteurAffichage);
+  barre.append(creerChampRecherche(), droite);
   return barre;
+}
+
+/**
+ * Tendances du fil : mots en forte hausse sur 24 h, en tête du rail
+ */
+async function chargerTendances(): Promise<void> {
+  const conteneur = $('#fil-tendances');
+  if (!conteneur) return;
+  let tendances: Tendance[] = [];
+  try {
+    tendances = (await apiTendances.fil(8)).donnees;
+  } catch {
+    // Les tendances sont un bonus : rien à signaler si elles manquent
+  }
+  vider(conteneur);
+  for (const tendance of tendances) {
+    const puce = creerElement('button', {
+      classes: ['la-chip chip-filtre chip-tendance', tendance.score >= 2 ? 'forte' : '', filtres.motCle === tendance.mot ? 'active' : ''],
+      attrs: {
+        type: 'button',
+        'data-mot': tendance.mot,
+        'aria-pressed': String(filtres.motCle === tendance.mot),
+        title: `${tendance.nombreRecents} article${tendance.nombreRecents > 1 ? 's' : ''} en 24 h, ${tendance.nombreReference} les 7 jours précédents`,
+      },
+      icone: tendance.score >= 2 ? 'trending_up' : undefined,
+      texte: tendance.mot,
+      onClick: () => filtrerParMotCle(filtres.motCle === tendance.mot ? undefined : tendance.mot),
+    });
+    puce.append(creerElement('span', { classes: ['chip-tendance-nombre'], texte: String(tendance.nombreRecents) }));
+    conteneur.append(puce);
+  }
+  rail?.actualiser();
 }
 
 /**
@@ -336,9 +373,12 @@ async function chargerMotsClesFiltre(): Promise<void> {
 function afficherMotsClesFiltre(conteneur: Element, motsCles: MotCleFil[]): void {
   vider(conteneur);
   // Le mot-clé filtré vient peut-être d'une carte et n'est pas dans les plus fréquents : on l'affiche quand même
-  const liste = filtres.motCle && !motsCles.some(m => m.mot === filtres.motCle)
-    ? [{ mot: filtres.motCle, nombreArticles: 0 }, ...motsCles]
-    : motsCles;
+  // Un mot déjà présent dans les tendances n'est pas répété
+  const dejaEnTendance = new Set([...document.querySelectorAll('#fil-tendances [data-mot]')].map(p => p.getAttribute('data-mot')));
+  const frequents = motsCles.filter(m => !dejaEnTendance.has(m.mot));
+  const liste = filtres.motCle && !dejaEnTendance.has(filtres.motCle) && !frequents.some(m => m.mot === filtres.motCle)
+    ? [{ mot: filtres.motCle, nombreArticles: 0 }, ...frequents]
+    : frequents;
   for (const { mot, nombreArticles } of liste) {
     const chip = creerElement('button', {
       classes: ['la-chip chip-filtre', filtres.motCle === mot ? 'active' : ''],
@@ -348,6 +388,7 @@ function afficherMotsClesFiltre(conteneur: Element, motsCles: MotCleFil[]): void
     });
     conteneur.append(chip);
   }
+  rail?.actualiser();
 }
 
 /**
@@ -355,40 +396,30 @@ function afficherMotsClesFiltre(conteneur: Element, motsCles: MotCleFil[]): void
  */
 function filtrerParMotCle(mot: string | undefined): void {
   filtres.motCle = mot;
-  const conteneur = $('#fil-mots-cles');
-  if (conteneur) {
-    const present = [...conteneur.querySelectorAll('.chip-filtre')].some(c => c.getAttribute('data-mot') === mot);
-    if (mot && !present) {
-      void chargerMotsClesFiltre();
-    } else {
-      conteneur.querySelectorAll('.chip-filtre').forEach(c => {
-        const actif = c.getAttribute('data-mot') === mot;
-        c.classList.toggle('active', actif);
-        c.setAttribute('aria-pressed', String(actif));
-      });
-    }
+  const puces = [...document.querySelectorAll('#fil-tendances [data-mot], #fil-mots-cles [data-mot]')];
+  if (mot && !puces.some(c => c.getAttribute('data-mot') === mot)) {
+    void chargerMotsClesFiltre();
+  } else {
+    puces.forEach(c => {
+      const actif = c.getAttribute('data-mot') === mot;
+      c.classList.toggle('active', actif);
+      c.setAttribute('aria-pressed', String(actif));
+    });
   }
   appliquerFiltres();
   if (mot) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 /**
- * Rubriques : les tags de sources de l'utilisateur, en puces avec leurs non-lus (remplies après chargement)
+ * Rubriques : les tags de sources de l'utilisateur, en puces avec leurs non-lus, dans le rail
  */
-function creerBarreRubriques(): HTMLElement {
-  return creerElement('nav', {
-    classes: ['fil-rubriques', 'masque'],
-    attrs: { id: 'fil-rubriques', 'aria-label': 'Rubriques' },
-  });
-}
-
 function afficherRubriques(liste: Tag[], nonLusParTag: Record<string, number>): void {
   const barre = $('#fil-rubriques');
   if (!barre) return;
   vider(barre);
   const rubriques = [...liste].sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
-  barre.classList.toggle('masque', rubriques.length === 0);
   if (rubriques.length === 0) {
+    rail?.actualiser();
     if (filtres.tag) {
       filtres.tag = undefined;
       appliquerFiltres();
@@ -434,6 +465,7 @@ function afficherRubriques(liste: Tag[], nonLusParTag: Record<string, number>): 
   for (const rubrique of rubriques) {
     barre.append(creerPuce(rubrique.slug, rubrique.nom, nonLusParTag[rubrique.slug] ?? 0));
   }
+  rail?.actualiser();
 }
 
 /**

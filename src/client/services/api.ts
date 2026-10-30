@@ -653,7 +653,7 @@ export const articles = {
 
   async synchroniser(
     sourceId: string,
-  ): Promise<{ nouveauxArticles: number; articlesIgnores: number }> {
+  ): Promise<{ nouveauxArticles: number; articlesIgnores: number; totalArticles: number }> {
     return requete(`/articles/synchroniser/${sourceId}`, { method: 'POST' });
   },
 

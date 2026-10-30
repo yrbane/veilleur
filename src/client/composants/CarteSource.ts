@@ -9,6 +9,7 @@ import { creerElement } from '../utils/dom';
 import { extraireDomaine } from '../utils/format';
 import { sources, articles, tags as apiTags } from '../services/api';
 import { toast } from '../utils/toast';
+import { messageSynchronisation } from '../utils/messageSynchro';
 import { creerPanneauParametres } from './PanneauParametres';
 import type { Source, Tag } from '../services/api';
 import { colorerTag } from '../utils/couleursTags';
@@ -263,7 +264,7 @@ export function creerCarteSource(
         btnSync.replaceChildren(icone('hourglass_top'));
         const result = await articles.synchroniser(source.id);
         btnSync.replaceChildren(icone('sync'));
-        toast.succes(`${result.nouveauxArticles} nouveaux articles`);
+        toast.succes(messageSynchronisation(result));
       } catch {
         btnSync.replaceChildren(icone('sync'));
         toast.erreur('Erreur lors de la synchronisation');

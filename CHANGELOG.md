@@ -4,6 +4,26 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.20.0 — 2026-10-30 · « Barre compacte »
+
+### Ajouté
+- Barre de commandes du fil sur une seule ligne : recherche, tri, bouton « Filtres »
+  qui déplie un panneau (source, période, note) avec le nombre de filtres actifs en
+  badge, bascules Favoris / À lire / Non lus soudées, « Tout marquer lu » et le
+  sélecteur Liste / Tuiles.
+- Rail de filtres rapides sur la deuxième ligne : rubriques, tendances du fil et
+  mots-clés fréquents côte à côte, défilement horizontal avec fondu, bouton pour
+  tout déplier ; un mot déjà en tendance n'est plus répété dans les mots-clés.
+- Composants réutilisables `Popover` (menu déroulant accessible : ARIA, Échap,
+  clic en dehors) et `RailPuces`, couverts par des tests.
+
+### Modifié
+- Synchronisation manuelle d'une source : le retour indique aussi le nombre total
+  d'articles de la source, et le message dit « Source à jour : N articles déjà dans
+  votre fil » plutôt que « 0 nouveaux articles » quand le flux est déjà connu
+  (cas d'un flux partagé par plusieurs comptes, comme Reporterre).
+- Sur mobile, la recherche prend toute la largeur et les bascules passent en icônes.
+
 ## 0.19.0 — 2026-10-30 · « Pleine largeur et tuiles »
 
 ### Ajouté
