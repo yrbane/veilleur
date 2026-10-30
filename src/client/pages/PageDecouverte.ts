@@ -12,6 +12,7 @@ import type { SourcePopulaire, TagPopulaire, CriteresCommunaute, ArticleApprecie
 import { formatDateRelative } from '../utils/format';
 import { toast } from '../utils/toast';
 import { naviguerVers } from '../main';
+import { colorerTag } from '../utils/couleursTags';
 
 let criteresActuels: CriteresCommunaute = {
   page: 1,
@@ -230,7 +231,7 @@ async function chargerTagsPopulaires(): Promise<void> {
     listeTags.append(btnTous);
 
     tags.forEach((tag: TagPopulaire) => {
-      const badge = creerElement('button', {
+      const badge = colorerTag(creerElement('button', {
         classes: ['badge-tag-populaire', criteresActuels.tag === tag.slug ? 'active' : ''],
         onClick: async () => {
           criteresActuels.tag = tag.slug;
@@ -239,7 +240,7 @@ async function chargerTagsPopulaires(): Promise<void> {
           badge.classList.add('active');
           await chargerSourcesPopulaires();
         },
-      });
+      }), tag.nom);
 
       const nom = creerElement('span', { texte: tag.nom });
       const count = creerElement('span', {
@@ -378,11 +379,7 @@ function creerCarteSourcePopulaire(source: SourcePopulaire): HTMLElement {
   // Tags
   const tagsEl = creerElement('div', { classes: ['carte-pop-tags'] });
   source.tags.slice(0, 3).forEach(tag => {
-    const badge = creerElement('span', {
-      classes: ['badge-tag-mini'],
-      texte: tag.nom,
-    });
-    tagsEl.append(badge);
+    tagsEl.append(colorerTag(creerElement('span', { classes: ['badge-tag-mini'], texte: tag.nom }), tag.nom));
   });
   if (source.tags.length > 3) {
     const more = creerElement('span', {
