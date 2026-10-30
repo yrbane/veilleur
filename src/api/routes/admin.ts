@@ -29,6 +29,8 @@ const schemaListe = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limite: z.coerce.number().int().min(1).max(100).default(25),
   recherche: z.string().trim().max(200).optional(),
+  tri: z.string().trim().max(40).optional(),
+  ordre: z.enum(['asc', 'desc']).optional(),
 });
 
 const schemaChangementsUtilisateur = z.object({
@@ -135,7 +137,7 @@ export async function routesAdmin(fastify: FastifyInstance): Promise<void> {
   fastify.get('/utilisateurs', {
     schema: {
       tags: ['Administration'], summary: 'Liste paginée des comptes', security: [{ bearerAuth: [] }],
-      querystring: { type: 'object', properties: { page: { type: 'number' }, limite: { type: 'number' }, recherche: { type: 'string' } } },
+      querystring: { type: 'object', properties: { page: { type: 'number' }, limite: { type: 'number' }, recherche: { type: 'string' }, tri: { type: 'string' }, ordre: { type: 'string', enum: ['asc', 'desc'] } } },
     },
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
@@ -182,7 +184,7 @@ export async function routesAdmin(fastify: FastifyInstance): Promise<void> {
   fastify.get('/sources', {
     schema: {
       tags: ['Administration'], summary: 'Liste paginée des sources, abonnés et articles', security: [{ bearerAuth: [] }],
-      querystring: { type: 'object', properties: { page: { type: 'number' }, limite: { type: 'number' }, recherche: { type: 'string' } } },
+      querystring: { type: 'object', properties: { page: { type: 'number' }, limite: { type: 'number' }, recherche: { type: 'string' }, tri: { type: 'string' }, ordre: { type: 'string', enum: ['asc', 'desc'] } } },
     },
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {

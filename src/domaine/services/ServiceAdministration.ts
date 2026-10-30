@@ -97,10 +97,60 @@ export interface TableauDeBord {
   motsClesFrequents: Array<{ mot: string; nombre: number }>;
 }
 
+export type OrdreTri = 'asc' | 'desc';
+
 export interface OptionsListe {
   page: number;
   limite: number;
   recherche?: string;
+  /** Clé de tri (voir TRIS_UTILISATEURS / TRIS_SOURCES) ; inconnue → tri par défaut */
+  tri?: string;
+  ordre?: OrdreTri;
+}
+
+/** Une colonne triable : expression SQL (alias ou colonne) et ordre naturel */
+export interface ColonneTri {
+  expression: string;
+  ordre: OrdreTri;
+}
+
+export interface TrisListe {
+  colonnes: Record<string, ColonneTri>;
+  defaut: ColonneTri;
+}
+
+/** Les libellés se lisent de A à Z, les compteurs et dates du plus grand ou récent au plus petit */
+export const TRIS_UTILISATEURS: TrisListe = {
+  colonnes: {
+    email: { expression: 'u.email', ordre: 'asc' },
+    role: { expression: 'u.role', ordre: 'asc' },
+    dateCreation: { expression: 'u.date_creation', ordre: 'desc' },
+    dateDerniereConnexion: { expression: 'u.date_derniere_connexion', ordre: 'desc' },
+    nombreSources: { expression: 'nombreSources', ordre: 'desc' },
+    nombreLectures: { expression: 'nombreLectures', ordre: 'desc' },
+  },
+  defaut: { expression: 'u.date_creation', ordre: 'desc' },
+};
+
+export const TRIS_SOURCES: TrisListe = {
+  colonnes: {
+    nom: { expression: 's.nom', ordre: 'asc' },
+    typeSource: { expression: 's.type_source', ordre: 'asc' },
+    statut: { expression: 's.statut', ordre: 'asc' },
+    nombreEchecs: { expression: 's.nombre_echecs', ordre: 'desc' },
+    abonnes: { expression: 'abonnes', ordre: 'desc' },
+    articles: { expression: 'articles', ordre: 'desc' },
+    dateDerniereSynchro: { expression: 's.date_derniere_synchro', ordre: 'desc' },
+  },
+  defaut: { expression: 's.nombre_echecs', ordre: 'desc' },
+};
+
+/**
+ * Résout la clé de tri demandée contre la liste blanche : jamais d'expression venue du client dans le SQL
+ */
+export function resoudreTri(tris: TrisListe, tri: string | undefined, ordre: OrdreTri | undefined): ColonneTri {
+  const colonne = tri !== undefined && Object.prototype.hasOwnProperty.call(tris.colonnes, tri) ? tris.colonnes[tri]! : tris.defaut;
+  return { expression: colonne.expression, ordre: ordre ?? colonne.ordre };
 }
 
 export interface ResultatListe<T> {

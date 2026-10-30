@@ -18,6 +18,7 @@ import type {
   SourceAdmin,
   UtilisateurAdmin,
 } from '@/domaine/services/ServiceAdministration';
+import { TRIS_SOURCES, TRIS_UTILISATEURS, resoudreTri } from '@/domaine/services/ServiceAdministration';
 import type { RoleUtilisateur } from '@/domaine/entites/Utilisateur';
 import { obtenirBdd } from './connexion';
 import { loggerBdd } from '../logging/logger';
@@ -153,8 +154,9 @@ export class DepotAdministrationMariaDB implements DepotAdministration {
   async listerSources(options: OptionsListe): Promise<ResultatListe<SourceAdmin>> {
     const motif = `%${options.recherche ?? ''}%`;
     const filtre = options.recherche ? sql`WHERE s.nom LIKE ${motif} OR s.url LIKE ${motif}` : sql``;
+    const tri = resoudreTri(TRIS_SOURCES, options.tri, options.ordre);
     const [lignes, total] = await Promise.all([
-      this.lignes(sql`${this.selectionSource} ${filtre} ORDER BY s.nombre_echecs DESC, s.nom ASC LIMIT ${options.limite} OFFSET ${(options.page - 1) * options.limite}`),
+      this.lignes(sql`${this.selectionSource} ${filtre} ORDER BY ${sql.raw(tri.expression)} ${sql.raw(tri.ordre.toUpperCase())}, s.nom ASC LIMIT ${options.limite} OFFSET ${(options.page - 1) * options.limite}`),
       this.premiere(sql`SELECT COUNT(*) AS total FROM sources s ${filtre}`),
     ]);
     return { donnees: lignes.map(l => this.versSource(l)), total: n(total.total) };
@@ -190,8 +192,9 @@ export class DepotAdministrationMariaDB implements DepotAdministration {
   async listerUtilisateurs(options: OptionsListe): Promise<ResultatListe<UtilisateurAdmin>> {
     const motif = `%${options.recherche ?? ''}%`;
     const filtre = options.recherche ? sql`WHERE u.email LIKE ${motif}` : sql``;
+    const tri = resoudreTri(TRIS_UTILISATEURS, options.tri, options.ordre);
     const [lignes, total] = await Promise.all([
-      this.lignes(sql`${this.selectionUtilisateur} ${filtre} ORDER BY u.date_creation DESC LIMIT ${options.limite} OFFSET ${(options.page - 1) * options.limite}`),
+      this.lignes(sql`${this.selectionUtilisateur} ${filtre} ORDER BY ${sql.raw(tri.expression)} ${sql.raw(tri.ordre.toUpperCase())}, u.email ASC LIMIT ${options.limite} OFFSET ${(options.page - 1) * options.limite}`),
       this.premiere(sql`SELECT COUNT(*) AS total FROM utilisateurs u ${filtre}`),
     ]);
     return { donnees: lignes.map(l => this.versUtilisateur(l)), total: n(total.total) };

@@ -4,6 +4,13 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.22.0 — 2026-10-30 · « Paramètres unifiés »
+
+### Modifié
+- La page Paramètres occupe toute la largeur et se parcourt par une navigation latérale (horizontale sur mobile) : Compte (identité, rôle, état 2FA, préférences en grille), Sécurité (mot de passe et 2FA côte à côte), Notifications (push et résumé courriel), Application et données (installation et export). La section ouverte est dans l'ancre de l'adresse (`/parametres#securite`).
+- L'administration vit dans la même page, dans un groupe « Administration » visible seulement pour les administrateurs : Vue d'ensemble, Comptes, Sources, Système. Le lien « Admin » de la navigation disparaît ; `/admin` redirige vers `/parametres#apercu`.
+- Tables de l'administration triables par colonne (clic sur l'en-tête, `aria-sort`) : comptes par courriel, rôle, inscription, dernière connexion, sources, lectures ; sources par nom, type, statut, échecs, abonnés, articles, dernière synchro. Le tri est fait par le serveur sur une liste blanche de colonnes (`tri`, `ordre`).
+
 ## 0.21.1 — 2026-10-30 · « Images en cache comptées »
 
 ### Corrigé

@@ -1,26 +1,18 @@
 /**
- * Veilleur - Page d'administration : tableau de bord (statistiques anonymes, graphiques),
- * gestion des comptes, des sources et état du système. Réservée au rôle admin.
+ * Veilleur - Panneaux d'administration affichés dans la page Paramètres (rôle admin) :
+ * tableau de bord (statistiques anonymes, graphiques), comptes, sources, état du système.
  */
 
 import type { Chart, ChartConfiguration } from 'chart.js';
-import { creerElement, $, vider } from '../utils/dom';
-import { icone, iconeHtml } from '../utils/icones';
+import { creerElement, vider } from '../utils/dom';
+import { icone } from '../utils/icones';
 import { formatDate, formatDateRelative, formatNombre } from '../utils/format';
 import { urlFaviconLocale } from '../utils/favicons';
 import { toast } from '../utils/toast';
-import { admin, auth, estAuthentifie } from '../services/api';
+import { admin } from '../services/api';
 import type { EtatSysteme, SourceAdmin, TableauDeBord, Utilisateur, UtilisateurAdmin } from '../services/api';
 import { creerGraphique, formatDuree, formatOctets, fusionnerOptions, libellesJours, optionsCommunes, palette, variableTheme } from '../utils/graphiques';
-
-type Onglet = 'apercu' | 'comptes' | 'sources' | 'systeme';
-
-const ONGLETS: Array<{ id: Onglet; icone: string; libelle: string }> = [
-  { id: 'apercu', icone: 'monitoring', libelle: 'Vue d\'ensemble' },
-  { id: 'comptes', icone: 'group', libelle: 'Comptes' },
-  { id: 'sources', icone: 'rss_feed', libelle: 'Sources' },
-  { id: 'systeme', icone: 'dns', libelle: 'Système' },
-];
+import { creerEnteteTriable, type ColonneTriable, type EtatTri } from '../utils/tableTriable';
 
 const LIBELLES_STATUT_IMAGE: Record<string, string> = { termine: 'Terminées', en_attente: 'En attente', en_cours: 'En cours', echec: 'Échecs' };
 const LIBELLES_TYPE_SOURCE: Record<string, string> = { rss: 'RSS', atom: 'Atom', html: 'Page HTML' };
@@ -30,71 +22,12 @@ let graphiques: Chart[] = [];
 let constructeursGraphiques: Array<() => Promise<void>> = [];
 let observateurTheme: MutationObserver | null = null;
 
-export async function afficherPageAdmin(container: Element): Promise<void> {
-  vider(container);
-  detruireGraphiques();
-
-  if (!estAuthentifie()) {
-    container.innerHTML = `
-      <div class="la-empty">
-        <div class="la-empty-icon">${iconeHtml('admin_panel_settings')}</div>
-        <p class="la-empty-title">Connectez-vous pour administrer Veilleur</p>
-        <a href="/connexion" class="la-btn primary" data-nav>Se connecter</a>
-      </div>`;
-    return;
-  }
-
-  moi = await auth.profil().catch(() => null);
-  if (moi?.role !== 'admin') {
-    container.innerHTML = `
-      <div class="la-empty">
-        <div class="la-empty-icon">${iconeHtml('lock')}</div>
-        <p class="la-empty-title">Réservé aux administrateurs</p>
-        <p>Cette page n'est accessible qu'aux comptes administrateurs de l'instance.</p>
-        <a href="/" class="la-btn primary" data-nav>Retour au fil</a>
-      </div>`;
-    return;
-  }
-
-  const page = creerElement('div', { classes: ['page-admin'] });
-  const entete = creerElement('div', { classes: ['page-entete', 'admin-entete'] });
-  entete.append(
-    creerElement('h1', { classes: ['page-titre'], icone: 'admin_panel_settings', texte: 'Administration' }),
-    creerElement('p', { classes: ['page-description'], texte: 'Statistiques anonymes de l\'instance, comptes, sources et état du serveur.' }),
-  );
-  const onglets = creerElement('div', { classes: ['admin-onglets'], attrs: { role: 'tablist', 'aria-label': 'Sections d\'administration' } });
-  const contenu = creerElement('div', { classes: ['admin-contenu'], attrs: { id: 'admin-contenu', role: 'tabpanel' } });
-
-  const ongletInitial = (window.location.hash.replace('#', '') || 'apercu') as Onglet;
-  const choisir = (id: Onglet): void => {
-    onglets.querySelectorAll<HTMLButtonElement>('[role="tab"]').forEach(b => {
-      const actif = b.dataset.onglet === id;
-      b.setAttribute('aria-selected', String(actif));
-      b.classList.toggle('actif', actif);
-    });
-    history.replaceState(null, '', id === 'apercu' ? window.location.pathname : `#${id}`);
-    detruireGraphiques();
-    vider(contenu);
-    contenu.append(creerChargement());
-    const rendu = { apercu: afficherApercu, comptes: afficherComptes, sources: afficherSources, systeme: afficherSysteme }[id];
-    void rendu(contenu);
-  };
-  for (const onglet of ONGLETS) {
-    onglets.append(creerElement('button', {
-      classes: ['admin-onglet'],
-      attrs: { type: 'button', role: 'tab', 'data-onglet': onglet.id, 'aria-selected': 'false' },
-      icone: onglet.icone,
-      texte: onglet.libelle,
-      onClick: () => choisir(onglet.id),
-    }));
-  }
-
-  page.append(entete, onglets, contenu);
-  container.append(page);
-  choisir(ONGLETS.some(o => o.id === ongletInitial) ? ongletInitial : 'apercu');
+/** L'administrateur connecté : ses propres lignes sont protégées dans la liste des comptes */
+export function definirAdministrateurCourant(utilisateur: Utilisateur | null): void {
+  moi = utilisateur;
 }
 
-function creerChargement(): HTMLElement {
+export function creerChargement(): HTMLElement {
   return creerElement('div', { classes: ['chargement'], html: '<div class="la-spinner lg"></div><p>Chargement…</p>' });
 }
 
@@ -112,7 +45,7 @@ function creerErreur(message: string, reessayer: () => void): HTMLElement {
 // Vue d'ensemble
 // ============================================
 
-async function afficherApercu(contenu: HTMLElement): Promise<void> {
+export async function afficherApercu(contenu: HTMLElement): Promise<void> {
   let tableau: TableauDeBord;
   try {
     tableau = await admin.tableauDeBord();
@@ -307,7 +240,7 @@ async function construireGraphiques(): Promise<void> {
   }
 }
 
-function detruireGraphiques(): void {
+export function detruireGraphiques(): void {
   for (const graphique of graphiques) graphique.destroy();
   graphiques = [];
   constructeursGraphiques = [];
@@ -360,9 +293,10 @@ function badge(texte: string, variante: string): HTMLElement {
   return creerElement('span', { classes: ['la-badge', 'sm', variante], texte });
 }
 
-async function afficherComptes(contenu: HTMLElement): Promise<void> {
+export async function afficherComptes(contenu: HTMLElement): Promise<void> {
   let page = 1;
   let recherche = '';
+  let tri: EtatTri = { tri: 'dateCreation', ordre: 'desc' };
   const LIMITE = 25;
   const { barre, compteur } = creerBarreListe('Rechercher un courriel…', valeur => { recherche = valeur; page = 1; void charger(); });
   const zone = creerElement('div', { classes: ['admin-table-zone'] });
@@ -372,10 +306,13 @@ async function afficherComptes(contenu: HTMLElement): Promise<void> {
   const charger = async (): Promise<void> => {
     zone.setAttribute('aria-busy', 'true');
     try {
-      const resultat = await admin.listerUtilisateurs(page, LIMITE, recherche || undefined);
+      const resultat = await admin.listerUtilisateurs({ page, limite: LIMITE, recherche: recherche || undefined, ...tri });
       compteur.textContent = `${formatNombre(resultat.total)} compte${resultat.total > 1 ? 's' : ''}`;
       vider(zone);
-      zone.append(creerTableComptes(resultat.donnees, charger), creerPagination(page, resultat.total, LIMITE, p => { page = p; void charger(); }));
+      zone.append(
+        creerTableComptes(resultat.donnees, charger, tri, nouveau => { tri = nouveau; page = 1; void charger(); }),
+        creerPagination(page, resultat.total, LIMITE, p => { page = p; void charger(); }),
+      );
     } catch {
       vider(zone);
       zone.append(creerErreur('Impossible de charger les comptes', () => void charger()));
@@ -386,10 +323,20 @@ async function afficherComptes(contenu: HTMLElement): Promise<void> {
   await charger();
 }
 
-function creerTableComptes(comptes: UtilisateurAdmin[], rafraichir: () => Promise<void>): HTMLElement {
+const COLONNES_COMPTES: ColonneTriable[] = [
+  { cle: 'email', libelle: 'Compte' },
+  { cle: 'role', libelle: 'Rôle' },
+  { cle: 'dateCreation', libelle: 'Inscription' },
+  { cle: 'dateDerniereConnexion', libelle: 'Dernière connexion' },
+  { cle: 'nombreSources', libelle: 'Sources', numerique: true },
+  { cle: 'nombreLectures', libelle: 'Lectures', numerique: true },
+  { libelle: 'Actions' },
+];
+
+function creerTableComptes(comptes: UtilisateurAdmin[], rafraichir: () => Promise<void>, tri: EtatTri, onTri: (tri: EtatTri) => void): HTMLElement {
   const enveloppe = creerElement('div', { classes: ['admin-table'] });
   const table = creerElement('table', { classes: ['la-table'] });
-  table.innerHTML = '<thead><tr><th>Compte</th><th>Rôle</th><th>Inscription</th><th>Dernière connexion</th><th class="num">Sources</th><th class="num">Lectures</th><th>Actions</th></tr></thead>';
+  table.append(creerEnteteTriable(COLONNES_COMPTES, tri, onTri));
   const corps = creerElement('tbody');
   for (const compte of comptes) {
     const estMoi = compte.id === moi?.id;
@@ -477,9 +424,10 @@ function messageErreur(erreur: unknown, repli: string): string {
 // Sources
 // ============================================
 
-async function afficherSources(contenu: HTMLElement): Promise<void> {
+export async function afficherSources(contenu: HTMLElement): Promise<void> {
   let page = 1;
   let recherche = '';
+  let tri: EtatTri = { tri: 'nombreEchecs', ordre: 'desc' };
   const LIMITE = 25;
   const { barre, compteur } = creerBarreListe('Rechercher une source…', valeur => { recherche = valeur; page = 1; void charger(); });
   const zone = creerElement('div', { classes: ['admin-table-zone'] });
@@ -488,10 +436,13 @@ async function afficherSources(contenu: HTMLElement): Promise<void> {
 
   const charger = async (): Promise<void> => {
     try {
-      const resultat = await admin.listerSources(page, LIMITE, recherche || undefined);
+      const resultat = await admin.listerSources({ page, limite: LIMITE, recherche: recherche || undefined, ...tri });
       compteur.textContent = `${formatNombre(resultat.total)} source${resultat.total > 1 ? 's' : ''}`;
       vider(zone);
-      zone.append(creerTableSources(resultat.donnees, charger), creerPagination(page, resultat.total, LIMITE, p => { page = p; void charger(); }));
+      zone.append(
+        creerTableSources(resultat.donnees, charger, tri, nouveau => { tri = nouveau; page = 1; void charger(); }),
+        creerPagination(page, resultat.total, LIMITE, p => { page = p; void charger(); }),
+      );
     } catch {
       vider(zone);
       zone.append(creerErreur('Impossible de charger les sources', () => void charger()));
@@ -503,10 +454,21 @@ async function afficherSources(contenu: HTMLElement): Promise<void> {
 const VARIANTE_STATUT: Record<string, string> = { active: 'success', erreur: 'danger', inactive: 'secondary' };
 const LIBELLE_STATUT: Record<string, string> = { active: 'active', erreur: 'en erreur', inactive: 'inactive' };
 
-function creerTableSources(sources: SourceAdmin[], rafraichir: () => Promise<void>): HTMLElement {
+const COLONNES_SOURCES: ColonneTriable[] = [
+  { cle: 'nom', libelle: 'Source' },
+  { cle: 'typeSource', libelle: 'Type' },
+  { cle: 'statut', libelle: 'Statut' },
+  { cle: 'nombreEchecs', libelle: 'Échecs', numerique: true },
+  { cle: 'abonnes', libelle: 'Abonnés', numerique: true },
+  { cle: 'articles', libelle: 'Articles', numerique: true },
+  { cle: 'dateDerniereSynchro', libelle: 'Dernière synchro' },
+  { libelle: 'Actions' },
+];
+
+function creerTableSources(sources: SourceAdmin[], rafraichir: () => Promise<void>, tri: EtatTri, onTri: (tri: EtatTri) => void): HTMLElement {
   const enveloppe = creerElement('div', { classes: ['admin-table'] });
   const table = creerElement('table', { classes: ['la-table'] });
-  table.innerHTML = '<thead><tr><th>Source</th><th>Type</th><th>Statut</th><th class="num">Échecs</th><th class="num">Abonnés</th><th class="num">Articles</th><th>Dernière synchro</th><th>Actions</th></tr></thead>';
+  table.append(creerEnteteTriable(COLONNES_SOURCES, tri, onTri));
   const corps = creerElement('tbody');
   for (const source of sources) {
     const tr = creerElement('tr', { classes: [source.statut === 'erreur' ? 'en-erreur' : ''] });
@@ -569,7 +531,7 @@ function creerTableSources(sources: SourceAdmin[], rafraichir: () => Promise<voi
 // Système
 // ============================================
 
-async function afficherSysteme(contenu: HTMLElement): Promise<void> {
+export async function afficherSysteme(contenu: HTMLElement): Promise<void> {
   let etat: EtatSysteme;
   try {
     etat = await admin.systeme();
@@ -607,9 +569,4 @@ async function afficherSysteme(contenu: HTMLElement): Promise<void> {
   table.append(corps);
   carte.append(creerElement('div', { classes: ['admin-table'], enfants: [table] }));
   contenu.append(barre, grille, carte);
-}
-
-export { ONGLETS as ONGLETS_ADMIN };
-export function ongletCourant(): Onglet | null {
-  return ($('.admin-onglet.actif') as HTMLElement | null)?.dataset.onglet as Onglet | null;
 }
