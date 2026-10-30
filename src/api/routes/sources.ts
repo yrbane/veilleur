@@ -13,6 +13,7 @@ import { loggerHttp } from '@/infrastructure/logging/logger';
 import { genererOPML, parserOPML, type SourceOPML } from '@/domaine/services/ServiceOPML';
 import { obtenirServiceCache } from '@/infrastructure/cache/ServiceCacheRedis';
 import { obtenirServiceScraping, type ServiceScraping } from '@/infrastructure/scraping/ServiceScraping';
+import { schemaReponseTag } from '../schemas/tag';
 
 /**
  * Schémas de validation
@@ -145,7 +146,7 @@ export async function routesSources(fastify: FastifyInstance): Promise<void> {
                   dateAjout: { type: 'string' },
                   note: { type: 'number', nullable: true },
                   estEnPause: { type: 'boolean' },
-                  tags: { type: 'array', items: { type: 'object' } },
+                  tags: { type: 'array', items: schemaReponseTag },
                 },
               },
             },
@@ -274,7 +275,7 @@ export async function routesSources(fastify: FastifyInstance): Promise<void> {
             dateAjout: { type: 'string' },
             note: { type: 'number', nullable: true },
             estEnPause: { type: 'boolean' },
-            tags: { type: 'array', items: { type: 'object' } },
+            tags: { type: 'array', items: schemaReponseTag },
           },
         },
       },
