@@ -6,7 +6,7 @@
 import { creerElement } from '../utils/dom';
 import { icone, iconeHtml } from '../utils/icones';
 import { urlFaviconLocale } from '../utils/favicons';
-import { formatDateRelative, echapperHtml } from '../utils/format';
+import { formatDateRelative } from '../utils/format';
 import { surligner } from '../utils/surlignage';
 import { articles as apiArticles } from '../services/api';
 import { toast } from '../utils/toast';
@@ -320,7 +320,8 @@ export function creerCarteArticle(article: Article, options: OptionsCarteArticle
   const resume = article.resume
     ? creerElement('p', {
         classes: ['carte-article-resume'],
-        enfants: [surligner(echapperHtml(article.resume), options.surligner ?? [])],
+        // Nœuds texte : rien à échapper, sinon les entités (&nbsp;, &amp;) s'affichent en clair
+        enfants: [surligner(article.resume, options.surligner ?? [])],
       })
     : null;
 

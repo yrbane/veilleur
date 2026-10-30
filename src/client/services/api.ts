@@ -225,11 +225,15 @@ export interface Preferences {
   resumeCourriel?: 'aucun' | 'quotidien' | 'hebdomadaire';
 }
 
+export type RoleUtilisateur = 'membre' | 'admin';
+
 export interface Utilisateur {
   id: string;
   email: string;
   dateCreation: string;
   preferences: Preferences;
+  totpActif?: boolean;
+  role?: RoleUtilisateur;
 }
 
 export interface ResultatAuth {
@@ -861,5 +865,109 @@ export const notifications = {
 
   async testerResume(frequence: 'quotidien' | 'hebdomadaire'): Promise<{ envoye: boolean; email: string }> {
     return requete('/notifications/resume/test', { method: 'POST', body: JSON.stringify({ frequence }) });
+  },
+};
+
+// ============================================
+// Administration (réservé au rôle admin)
+// ============================================
+
+export interface PointSerie {
+  jour: string;
+  valeur: number;
+}
+
+export interface SourceAdmin {
+  id: string;
+  nom: string;
+  url: string;
+  typeSource: string;
+  statut: 'active' | 'inactive' | 'erreur';
+  urlFavicon: string | null;
+  nombreEchecs: number;
+  dateDerniereSynchro: string | null;
+  abonnes: number;
+  articles: number;
+}
+
+export interface UtilisateurAdmin {
+  id: string;
+  email: string;
+  role: RoleUtilisateur;
+  estActif: boolean;
+  totpActif: boolean;
+  dateCreation: string;
+  dateDerniereConnexion: string | null;
+  nombreSources: number;
+  nombreLectures: number;
+}
+
+export interface TableauDeBord {
+  utilisateurs: { total: number; actifs: number; admins: number; avec2fa: number; nouveaux7j: number; connectes7j: number; abonnesPush: number };
+  sources: { total: number; parType: Record<string, number>; parStatut: Record<string, number>; enEchec: number; abonnements: number; enPause: number };
+  articles: { total: number; dernieres24h: number; derniers7j: number; avecImage: number; imagesCachees: number };
+  annotations: { lus: number; notes: number; favoris: number; aLire: number; noteMoyenne: number | null; repartitionNotes: number[] };
+  images: { parStatut: Record<string, number>; octets: number };
+  series: { jours: number; inscriptions: PointSerie[]; articles: PointSerie[]; lectures: PointSerie[] };
+  articlesParHeure: number[];
+  topSources: SourceAdmin[];
+  tagsPopulaires: Array<{ nom: string; slug: string; nombreSources: number }>;
+  motsClesFrequents: Array<{ mot: string; nombre: number }>;
+}
+
+export interface EtatSysteme {
+  version: string;
+  node: string;
+  uptimeSecondes: number;
+  memoire: { rss: number; heapUtilise: number };
+  redis: { ok: boolean; memoireOctets: number | null };
+  baseDonnees: { octets: number };
+  files: Record<string, { attente: number; actifs: number; termines: number; echoues: number; differes: number }>;
+}
+
+export interface ListeAdmin<T> {
+  donnees: T[];
+  total: number;
+  page: number;
+  limite: number;
+}
+
+const requeteListe = (chemin: string, page: number, limite: number, recherche?: string): string => {
+  const params = new URLSearchParams({ page: String(page), limite: String(limite) });
+  if (recherche) params.set('recherche', recherche);
+  return `${chemin}?${params}`;
+};
+
+export const admin = {
+  async tableauDeBord(): Promise<TableauDeBord> {
+    return requete<TableauDeBord>('/admin/tableau-de-bord');
+  },
+
+  async systeme(): Promise<EtatSysteme> {
+    return requete<EtatSysteme>('/admin/systeme');
+  },
+
+  async listerUtilisateurs(page = 1, limite = 25, recherche?: string): Promise<ListeAdmin<UtilisateurAdmin>> {
+    return requete<ListeAdmin<UtilisateurAdmin>>(requeteListe('/admin/utilisateurs', page, limite, recherche));
+  },
+
+  async modifierUtilisateur(id: string, changements: { role?: RoleUtilisateur; estActif?: boolean }): Promise<UtilisateurAdmin> {
+    return requete<UtilisateurAdmin>(`/admin/utilisateurs/${id}`, { method: 'PATCH', body: JSON.stringify(changements) });
+  },
+
+  async supprimerUtilisateur(id: string): Promise<void> {
+    await requete(`/admin/utilisateurs/${id}`, { method: 'DELETE' });
+  },
+
+  async listerSources(page = 1, limite = 25, recherche?: string): Promise<ListeAdmin<SourceAdmin>> {
+    return requete<ListeAdmin<SourceAdmin>>(requeteListe('/admin/sources', page, limite, recherche));
+  },
+
+  async modifierSource(id: string, statut: 'active' | 'inactive'): Promise<void> {
+    await requete(`/admin/sources/${id}`, { method: 'PATCH', body: JSON.stringify({ statut }) });
+  },
+
+  async synchroniserSource(id: string): Promise<void> {
+    await requete(`/admin/sources/${id}/synchroniser`, { method: 'POST' });
   },
 };

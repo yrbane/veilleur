@@ -21,6 +21,7 @@ import { afficherPageConnexion, afficherPageInscription } from './pages/PageAuth
 import { afficherPageParametres } from './pages/PageParametres';
 import { afficherPageDecouverte } from './pages/PageDecouverte';
 import { afficherPageProgression } from './pages/PageProgression';
+import { afficherPageAdmin } from './pages/PageAdmin';
 import { enregistrerServiceWorker } from './utils/notificationsPush';
 import { ecouterInstallation } from './utils/pwa';
 import { toast } from './utils/toast';
@@ -66,6 +67,11 @@ const routes: Route[] = [
   {
     pattern: /^\/progression$/,
     handler: afficherPageProgression,
+    auth: true,
+  },
+  {
+    pattern: /^\/admin$/,
+    handler: afficherPageAdmin,
     auth: true,
   },
 ];
@@ -190,13 +196,36 @@ function mettreAJourAuth(): void {
     });
 
     navSources?.classList.remove('masque');
+    void afficherLienAdmin();
   } else {
+    $('#nav-admin')?.remove();
     navAuth.innerHTML = `
       <a href="/connexion" class="la-btn ghost" data-nav title="Connexion">${iconeHtml('login')}<span class="nav-libelle">Connexion</span></a>
       <a href="/inscription" class="la-btn primary" data-nav title="Inscription">${iconeHtml('person_add')}<span class="nav-libelle">Inscription</span></a>
     `;
 
     navSources?.classList.add('masque');
+  }
+}
+
+/**
+ * Ajoute le lien « Administration » à la navigation quand le compte est administrateur
+ */
+async function afficherLienAdmin(): Promise<void> {
+  try {
+    const profil = await auth.profil();
+    const liens = $('#nav-liens');
+    if (!liens || profil.role !== 'admin' || $('#nav-admin')) return;
+    const lien = creerElement('a', {
+      classes: ['nav-lien'],
+      attrs: { href: '/admin', id: 'nav-admin', 'data-nav': '', title: 'Administration' },
+      icone: 'admin_panel_settings',
+    });
+    lien.append(creerElement('span', { classes: ['nav-libelle'], texte: 'Admin' }));
+    liens.append(lien);
+    mettreAJourNavigation(window.location.pathname);
+  } catch {
+    // Pas de profil : pas de lien
   }
 }
 

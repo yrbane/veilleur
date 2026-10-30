@@ -1,6 +1,6 @@
 {
   "name": "veilleur",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "description": "Agrégateur d'actualités libre - Votre sentinelle de l'information",
   "type": "module",
   "scripts": {
@@ -22,6 +22,7 @@
     "images:rattraper:prod": "node dist/rattraper-images.js",
     "mots-cles:rattraper:prod": "node dist/rattraper-mots-cles.js",
     "sources:rattraper:prod": "node dist/rattraper-sources.js",
+    "admin:promouvoir:prod": "node dist/promouvoir-admin.js",
     "deploy:nethttp": "bash scripts/deploy-nethttp.sh",
     "db:studio": "drizzle-kit studio",
     "test": "vitest",
@@ -62,6 +63,7 @@
     "@mozilla/readability": "^0.6.0",
     "@paralleldrive/cuid2": "^2.2.2",
     "bullmq": "^5.34.8",
+    "chart.js": "^4.6.1",
     "cheerio": "^1.0.0",
     "drizzle-orm": "^0.38.2",
     "fastify": "^5.2.0",

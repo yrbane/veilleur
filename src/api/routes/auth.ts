@@ -409,6 +409,8 @@ export async function routesAuth(fastify: FastifyInstance): Promise<void> {
             email: { type: 'string' },
             dateCreation: { type: 'string' },
             preferences: { type: 'object' },
+            totpActif: { type: 'boolean' },
+            role: { type: 'string', enum: ['membre', 'admin'] },
           },
         },
       },

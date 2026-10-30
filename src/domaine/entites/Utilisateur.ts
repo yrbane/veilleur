@@ -24,6 +24,12 @@ export type Preferences = z.infer<typeof schemaPreferences>;
 /**
  * Schéma de validation d'un utilisateur
  */
+/**
+ * Rôles possibles d'un compte
+ */
+export const ROLES_UTILISATEUR = ['membre', 'admin'] as const;
+export type RoleUtilisateur = (typeof ROLES_UTILISATEUR)[number];
+
 export const schemaUtilisateur = z.object({
   id: z.string().min(1),
   email: z.string().email(),
@@ -32,6 +38,7 @@ export const schemaUtilisateur = z.object({
   dateDerniereConnexion: z.date().nullable(),
   preferences: schemaPreferences.default({}),
   estActif: z.boolean().default(true),
+  role: z.enum(ROLES_UTILISATEUR).default('membre'),
   // Champs 2FA TOTP
   totpSecret: z.string().nullable().optional(),
   totpActif: z.boolean().default(false),
@@ -89,6 +96,7 @@ export interface UtilisateurPublic {
   dateCreation: Date;
   preferences: Preferences;
   totpActif: boolean;
+  role: RoleUtilisateur;
 }
 
 /**
@@ -101,5 +109,6 @@ export function versUtilisateurPublic(utilisateur: Utilisateur): UtilisateurPubl
     dateCreation: utilisateur.dateCreation,
     preferences: utilisateur.preferences,
     totpActif: utilisateur.totpActif ?? false,
+    role: utilisateur.role ?? 'membre',
   };
 }

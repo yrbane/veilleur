@@ -7,6 +7,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import fp from 'fastify-plugin';
 import { ServiceAuthentification, PayloadAccessToken, ErreurAuthentification } from '@/domaine/services/ServiceAuthentification';
 import { DepotUtilisateursMariaDB, DepotRefreshTokensMariaDB } from '@/infrastructure/persistence/DepotUtilisateursMariaDB';
+import type { RoleUtilisateur } from '@/domaine/entites/Utilisateur';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -83,6 +84,34 @@ export async function verifierAuthentification(
     });
   }
 }
+
+/**
+ * Fabrique le garde des routes d'administration : authentification, puis rôle « admin »
+ * relu en base à chaque requête (une rétrogradation prend effet immédiatement)
+ */
+export function creerVerifierAdmin(
+  chargerRole: (utilisateurId: string) => Promise<RoleUtilisateur | null>,
+): (request: FastifyRequest, reply: FastifyReply) => Promise<void> {
+  return async (request, reply) => {
+    await verifierAuthentification(request, reply);
+    if (reply.sent || !request.utilisateur) return;
+    const role = await chargerRole(request.utilisateur.sub);
+    if (role !== 'admin') {
+      return reply.status(403).send({
+        erreur: 'ACCES_REFUSE',
+        message: 'Réservé aux administrateurs',
+      });
+    }
+  };
+}
+
+/**
+ * Garde des routes d'administration branché sur la base
+ */
+export const verifierAdmin = creerVerifierAdmin(async utilisateurId => {
+  const utilisateur = await new DepotUtilisateursMariaDB().trouverParId(utilisateurId);
+  return utilisateur && utilisateur.estActif ? utilisateur.role : null;
+});
 
 /**
  * Middleware optionnel qui charge l'utilisateur si présent
