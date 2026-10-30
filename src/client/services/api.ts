@@ -932,9 +932,19 @@ export interface ListeAdmin<T> {
   limite: number;
 }
 
-const requeteListe = (chemin: string, page: number, limite: number, recherche?: string): string => {
-  const params = new URLSearchParams({ page: String(page), limite: String(limite) });
-  if (recherche) params.set('recherche', recherche);
+export interface OptionsListeAdmin {
+  page?: number;
+  limite?: number;
+  recherche?: string;
+  tri?: string;
+  ordre?: 'asc' | 'desc';
+}
+
+const requeteListe = (chemin: string, options: OptionsListeAdmin): string => {
+  const params = new URLSearchParams({ page: String(options.page ?? 1), limite: String(options.limite ?? 25) });
+  if (options.recherche) params.set('recherche', options.recherche);
+  if (options.tri) params.set('tri', options.tri);
+  if (options.ordre) params.set('ordre', options.ordre);
   return `${chemin}?${params}`;
 };
 
@@ -947,8 +957,8 @@ export const admin = {
     return requete<EtatSysteme>('/admin/systeme');
   },
 
-  async listerUtilisateurs(page = 1, limite = 25, recherche?: string): Promise<ListeAdmin<UtilisateurAdmin>> {
-    return requete<ListeAdmin<UtilisateurAdmin>>(requeteListe('/admin/utilisateurs', page, limite, recherche));
+  async listerUtilisateurs(options: OptionsListeAdmin = {}): Promise<ListeAdmin<UtilisateurAdmin>> {
+    return requete<ListeAdmin<UtilisateurAdmin>>(requeteListe('/admin/utilisateurs', options));
   },
 
   async modifierUtilisateur(id: string, changements: { role?: RoleUtilisateur; estActif?: boolean }): Promise<UtilisateurAdmin> {
@@ -959,8 +969,8 @@ export const admin = {
     await requete(`/admin/utilisateurs/${id}`, { method: 'DELETE' });
   },
 
-  async listerSources(page = 1, limite = 25, recherche?: string): Promise<ListeAdmin<SourceAdmin>> {
-    return requete<ListeAdmin<SourceAdmin>>(requeteListe('/admin/sources', page, limite, recherche));
+  async listerSources(options: OptionsListeAdmin = {}): Promise<ListeAdmin<SourceAdmin>> {
+    return requete<ListeAdmin<SourceAdmin>>(requeteListe('/admin/sources', options));
   },
 
   async modifierSource(id: string, statut: 'active' | 'inactive'): Promise<void> {

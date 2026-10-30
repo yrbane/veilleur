@@ -79,6 +79,7 @@
 - Lecture en place : le contenu de l'article, extrait et nettoyé côté serveur, s'ouvre dans une fenêtre sans quitter le fil
 - Liste de lecture « à lire plus tard » et export de toutes les annotations en JSON ou CSV
 - Paramètres avancés par source
+- Paramètres en pleine largeur avec navigation latérale : compte, sécurité (mot de passe, 2FA), notifications, application et données
 - Thème clair, sombre ou automatique en un clic dans l'en-tête, mémorisé dans le navigateur
 - Raccourci `/` vers la recherche, retour en haut du fil, navigation compacte sur mobile
 
@@ -104,7 +105,7 @@
 - Classement public sur la base du volontariat, sous pseudo
 
 ### 🛡️ Administration
-- Tableau de bord réservé aux administrateurs (`/admin`) : statistiques anonymes et graphiques sur 30 jours, gestion des comptes (rôle, désactivation, suppression) et des sources (synchronisation, statut), état du système (Redis, base, files)
+- Dans les Paramètres, un groupe « Administration » réservé aux administrateurs : statistiques anonymes et graphiques sur 30 jours, gestion des comptes (rôle, désactivation, suppression) et des sources (synchronisation, statut) dans des tables triables, état du système (Redis, base, files)
 - Le premier compte de l'instance est administrateur ; `npm run admin:promouvoir:prod -- <email>` en promeut un autre
 
 ### ⚡ Performance

@@ -1,6 +1,6 @@
 /**
- * Veilleur - Page Parametres
- * Gestion du profil et des préférences utilisateur
+ * Veilleur - Page Paramètres : compte, sécurité, notifications, application et données,
+ * et, pour les administrateurs, les panneaux d'administration. Navigation latérale, pleine largeur.
  */
 
 import { appliquerTheme, themeEnregistre, type Theme } from '../utils/theme';
@@ -12,16 +12,33 @@ import { pushSupporte, abonnementCourant, abonnerPush, desabonnerPush } from '..
 import { estInstallee, installationPossible, proposerInstallation, surChangementInstallation } from '../utils/pwa';
 import { telechargerFichier, suffixeDate } from '../utils/telechargement';
 import { toast } from '../utils/toast';
+import { sectionsPour, sectionDepuisHash, type SectionParametres } from '../utils/sectionsParametres';
+import { afficherApercu, afficherComptes, afficherSources, afficherSysteme, detruireGraphiques, definirAdministrateurCourant, creerChargement } from './PageAdmin';
 import type { Utilisateur, Preferences, Statut2FA } from '../services/api';
 
 let utilisateurCourant: Utilisateur | null = null;
 let statut2FA: Statut2FA | null = null;
+let gestionnaireHash: (() => void) | null = null;
+let gestionnaireTheme: ((e: Event) => void) | null = null;
+
+const RENDUS: Record<string, (panneau: HTMLElement) => void | Promise<void>> = {
+  compte: afficherCompte,
+  securite: afficherSecurite,
+  notifications: afficherNotifications,
+  application: afficherApplication,
+  apercu: afficherApercu,
+  comptes: afficherComptes,
+  sources: afficherSources,
+  systeme: afficherSysteme,
+};
 
 /**
  * Affiche la page des paramètres
  */
 export async function afficherPageParametres(container: Element): Promise<void> {
   vider(container);
+  detruireGraphiques();
+  if (gestionnaireHash) window.removeEventListener('hashchange', gestionnaireHash);
 
   if (!estAuthentifie()) {
     container.innerHTML = `
@@ -35,177 +52,530 @@ export async function afficherPageParametres(container: Element): Promise<void> 
     return;
   }
 
-  const page = creerElement('div', {
-    classes: ['page-parametres'],
-  });
-
-  // En-tête
-  const entete = creerElement('div', {
-    classes: ['page-parametres-entete'],
-  });
-
-  const titre = creerElement('h1', {
-    classes: ['page-parametres-titre'],
-    texte: 'Paramètres',
-  });
-
-  const description = creerElement('p', {
-    classes: ['page-parametres-description'],
-    texte: 'Gérez votre profil et vos préférences.',
-  });
-
-  entete.append(titre, description);
-
-  // Conteneur principal
-  const contenu = creerElement('div', {
-    classes: ['parametres-contenu'],
-    attrs: { id: 'parametres-contenu' },
-  });
-
-  page.append(entete, contenu);
+  const page = creerElement('div', { classes: ['page-parametres'] });
+  page.append(creerChargement());
   container.append(page);
 
-  // Charger le profil
-  await chargerProfil();
-}
-
-/**
- * Charge le profil utilisateur
- */
-async function chargerProfil(): Promise<void> {
-  const contenu = $('#parametres-contenu');
-  if (!contenu) return;
-
-  contenu.innerHTML = `
-    <div class="chargement">
-      <div class="la-spinner lg"></div>
-      <p>Chargement du profil...</p>
-    </div>
-  `;
-
   try {
-    [utilisateurCourant, statut2FA] = await Promise.all([
-      auth.profil(),
-      auth.statut2FA(),
-    ]);
-    afficherFormulaires();
+    [utilisateurCourant, statut2FA] = await Promise.all([auth.profil(), auth.statut2FA()]);
   } catch {
     toast.erreur('Erreur lors du chargement du profil');
-    contenu.innerHTML = `
+    page.innerHTML = `
       <div class="la-empty">
         <div class="la-empty-icon">${iconeHtml('error')}</div>
         <div class="la-empty-title">Erreur de chargement</div>
         <p>Impossible de charger le profil.</p>
       </div>
     `;
+    return;
+  }
+  definirAdministrateurCourant(utilisateurCourant);
+  vider(page);
+
+  const sections = sectionsPour(utilisateurCourant.role);
+  const estAdmin = utilisateurCourant.role === 'admin';
+
+  const entete = creerElement('header', { classes: ['page-entete', 'parametres-entete'] });
+  entete.append(
+    creerElement('h1', { classes: ['page-titre'], icone: 'settings', texte: 'Paramètres' }),
+    creerElement('p', { classes: ['page-description'], texte: estAdmin ? 'Votre compte, et l\'instance que vous administrez.' : 'Votre compte, votre sécurité, vos notifications et votre application.' }),
+  );
+
+  const panneau = creerElement('section', { classes: ['parametres-panneau'], attrs: { id: 'parametres-panneau' } });
+  const nav = creerNavigation(sections, section => choisir(section));
+
+  const choisir = (section: SectionParametres, pousser = true): void => {
+    nav.querySelectorAll<HTMLAnchorElement>('.parametres-nav-lien').forEach(lien => {
+      const actif = lien.dataset.section === section.id;
+      lien.classList.toggle('actif', actif);
+      if (actif) lien.setAttribute('aria-current', 'page');
+      else lien.removeAttribute('aria-current');
+    });
+    if (pousser && window.location.hash !== `#${section.id}`) {
+      history.replaceState(null, '', `${window.location.pathname}#${section.id}`);
+    }
+    detruireGraphiques();
+    vider(panneau);
+    const enteteSection = creerElement('header', { classes: ['parametres-panneau-entete'] });
+    enteteSection.append(
+      creerElement('h2', { classes: ['parametres-panneau-titre'], icone: section.icone, texte: section.libelle }),
+      creerElement('p', { classes: ['parametres-panneau-description'], texte: section.description }),
+    );
+    const contenu = creerElement('div', { classes: ['parametres-panneau-contenu', `section-${section.id}`] });
+    contenu.append(creerChargement());
+    panneau.append(enteteSection, contenu);
+    void RENDUS[section.id]?.(contenu);
+  };
+
+  gestionnaireHash = () => choisir(sectionDepuisHash(window.location.hash, sections), false);
+  window.addEventListener('hashchange', gestionnaireHash);
+
+  page.append(entete, nav, panneau);
+  choisir(sectionDepuisHash(window.location.hash, sections));
+}
+
+function creerNavigation(sections: SectionParametres[], onChoix: (section: SectionParametres) => void): HTMLElement {
+  const nav = creerElement('nav', { classes: ['parametres-nav'], attrs: { 'aria-label': 'Sections des paramètres' } });
+  const groupes: Array<{ cle: SectionParametres['groupe']; titre: string }> = [
+    { cle: 'compte', titre: 'Mon compte' },
+    { cle: 'admin', titre: 'Administration' },
+  ];
+  for (const groupe of groupes) {
+    const membres = sections.filter(s => s.groupe === groupe.cle);
+    if (membres.length === 0) continue;
+    const bloc = creerElement('div', { classes: ['parametres-nav-groupe', groupe.cle] });
+    bloc.append(creerElement('p', { classes: ['parametres-nav-titre'], texte: groupe.titre }));
+    for (const section of membres) {
+      const lien = creerElement('a', {
+        classes: ['parametres-nav-lien'],
+        attrs: { href: `#${section.id}`, 'data-section': section.id },
+        icone: section.icone,
+        onClick: e => {
+          e.preventDefault();
+          onChoix(section);
+        },
+      });
+      lien.append(creerElement('span', { classes: ['parametres-nav-libelle'], texte: section.libelle }));
+      bloc.append(lien);
+    }
+    nav.append(bloc);
+  }
+  return nav;
+}
+
+interface OptionsCarte {
+  id?: string;
+  icone: string;
+  titre: string;
+  description?: string;
+  large?: boolean;
+}
+
+/** Carte de réglages : en-tête (icône, titre, description) puis corps */
+function creerCarte(options: OptionsCarte): { carte: HTMLElement; corps: HTMLElement } {
+  const carte = creerElement('section', { classes: ['parametres-carte', 'la-card', options.large ? 'large' : ''], attrs: options.id ? { id: options.id } : {} });
+  const entete = creerElement('header', { classes: ['parametres-carte-entete'] });
+  const textes = creerElement('div');
+  textes.append(creerElement('h3', { classes: ['parametres-carte-titre'], texte: options.titre }));
+  if (options.description) textes.append(creerElement('p', { classes: ['parametres-carte-description'], texte: options.description }));
+  entete.append(creerElement('span', { classes: ['parametres-carte-icone'], html: iconeHtml(options.icone) }), textes);
+  const corps = creerElement('div', { classes: ['parametres-carte-corps'] });
+  carte.append(entete, corps);
+  return { carte, corps };
+}
+
+function creerGrille(...cartes: HTMLElement[]): HTMLElement {
+  return creerElement('div', { classes: ['parametres-grille'], enfants: cartes });
+}
+
+// ============================================
+// Compte : identité et préférences
+// ============================================
+
+function afficherCompte(panneau: HTMLElement): void {
+  vider(panneau);
+  panneau.append(creerIdentite(), creerGrille(creerCartePreferences()));
+}
+
+function creerIdentite(): HTMLElement {
+  const u = utilisateurCourant!;
+  const identite = creerElement('div', { classes: ['compte-identite', 'la-card'] });
+  const initiale = (u.email[0] ?? '?').toUpperCase();
+  identite.append(creerElement('div', { classes: ['compte-avatar'], attrs: { 'aria-hidden': 'true' }, texte: initiale }));
+  const infos = creerElement('div', { classes: ['compte-infos'] });
+  infos.append(creerElement('p', { classes: ['compte-email'], texte: u.email }));
+  const depuis = u.dateCreation ? new Date(u.dateCreation).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' }) : null;
+  if (depuis) infos.append(creerElement('p', { classes: ['compte-depuis'], texte: `Membre depuis le ${depuis}` }));
+  const badges = creerElement('div', { classes: ['compte-badges'] });
+  badges.append(creerElement('span', { classes: ['la-badge', 'sm', u.role === 'admin' ? 'primary' : 'secondary'], texte: u.role === 'admin' ? 'Administrateur' : 'Membre' }));
+  badges.append(creerElement('a', {
+    classes: ['la-badge', 'sm', statut2FA?.actif ? 'success' : 'warning', 'compte-badge-lien'],
+    attrs: { href: '#securite', title: statut2FA?.actif ? 'Authentification à deux facteurs active' : 'Activer la double authentification' },
+    texte: statut2FA?.actif ? '2FA activée' : '2FA désactivée',
+  }));
+  infos.append(badges);
+  identite.append(infos);
+  return identite;
+}
+
+function creerCartePreferences(): HTMLElement {
+  const { carte, corps } = creerCarte({ id: 'section-preferences', icone: 'tune', titre: 'Préférences', description: 'Le thème s\'applique à cet appareil ; la langue et la fréquence suivent votre compte.', large: true });
+  const form = creerElement('form', { classes: ['parametres-form'], attrs: { id: 'form-preferences' } });
+
+  // Le thème affiché est celui réellement appliqué sur cet appareil (bouton de l'en-tête compris)
+  const preferences = { ...(utilisateurCourant?.preferences ?? {}), theme: themeEnregistre() };
+
+  // Le bouton de thème de l'en-tête et ce sélecteur restent d'accord
+  if (gestionnaireTheme) document.removeEventListener('veilleur:theme', gestionnaireTheme);
+  gestionnaireTheme = (e: Event) => {
+    const select = form.querySelector<HTMLSelectElement>('#pref-theme');
+    if (select) select.value = (e as CustomEvent<Theme>).detail;
+  };
+  document.addEventListener('veilleur:theme', gestionnaireTheme);
+
+  form.innerHTML = `
+    <div class="parametres-champs">
+      <div class="la-form-group">
+        <label for="pref-theme">Thème</label>
+        <select id="pref-theme" name="theme" class="la-select">
+          <option value="auto" ${preferences.theme === 'auto' ? 'selected' : ''}>Automatique (système)</option>
+          <option value="clair" ${preferences.theme === 'clair' ? 'selected' : ''}>Clair</option>
+          <option value="sombre" ${preferences.theme === 'sombre' ? 'selected' : ''}>Sombre</option>
+        </select>
+        <small class="la-help">Le thème automatique suit les préférences de votre système.</small>
+      </div>
+
+      <div class="la-form-group">
+        <label for="pref-langue">Langue</label>
+        <select id="pref-langue" name="langue" class="la-select">
+          <option value="fr" ${preferences.langue === 'fr' || !preferences.langue ? 'selected' : ''}>Français</option>
+          <option value="en" ${preferences.langue === 'en' ? 'selected' : ''}>English</option>
+        </select>
+      </div>
+
+      <div class="la-form-group">
+        <label for="pref-frequence">Fréquence de rafraîchissement</label>
+        <select id="pref-frequence" name="frequenceRafraichissement" class="la-select">
+          <option value="5" ${preferences.frequenceRafraichissement === 5 ? 'selected' : ''}>5 minutes</option>
+          <option value="15" ${preferences.frequenceRafraichissement === 15 ? 'selected' : ''}>15 minutes</option>
+          <option value="30" ${preferences.frequenceRafraichissement === 30 || !preferences.frequenceRafraichissement ? 'selected' : ''}>30 minutes</option>
+          <option value="60" ${preferences.frequenceRafraichissement === 60 ? 'selected' : ''}>1 heure</option>
+          <option value="120" ${preferences.frequenceRafraichissement === 120 ? 'selected' : ''}>2 heures</option>
+        </select>
+        <small class="la-help">Intervalle entre les synchronisations automatiques de vos sources.</small>
+      </div>
+    </div>
+
+    <div class="parametres-actions">
+      <button type="submit" class="la-btn primary">Enregistrer les préférences</button>
+    </div>
+  `;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await sauvegarderPreferences(form);
+  });
+
+  corps.append(form);
+  return carte;
+}
+
+async function sauvegarderPreferences(form: HTMLFormElement): Promise<void> {
+  const formData = new FormData(form);
+  const bouton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+  const preferences: Partial<Preferences> = {
+    theme: formData.get('theme') as Preferences['theme'],
+    langue: formData.get('langue') as Preferences['langue'],
+    frequenceRafraichissement: parseInt(formData.get('frequenceRafraichissement') as string, 10),
+  };
+
+  bouton.disabled = true;
+  bouton.textContent = 'Enregistrement...';
+
+  try {
+    utilisateurCourant = await auth.mettreAJourProfil(preferences);
+    toast.succes('Préférences enregistrées');
+    if (preferences.theme) appliquerTheme(preferences.theme);
+  } catch {
+    toast.erreur('Erreur lors de la sauvegarde');
+  } finally {
+    bouton.disabled = false;
+    bouton.textContent = 'Enregistrer les préférences';
   }
 }
 
-/**
- * Affiche les formulaires de paramètres
- */
-function afficherFormulaires(): void {
-  const contenu = $('#parametres-contenu');
-  if (!contenu || !utilisateurCourant) return;
+// ============================================
+// Sécurité : mot de passe et 2FA
+// ============================================
 
-  vider(contenu);
-
-  // Section Profil
-  const sectionProfil = creerSectionProfil();
-
-  // Section Préférences
-  const sectionPreferences = creerSectionPreferences();
-
-  // Section Mot de passe
-  const sectionMotDePasse = creerSectionMotDePasse();
-
-  // Section 2FA
-  const section2FA = creerSection2FA();
-
-  const sectionNotifications = creerSectionNotifications();
-  const sectionApplication = creerSectionApplication();
-  const sectionDonnees = creerSectionDonnees();
-
-  contenu.append(sectionProfil, sectionPreferences, sectionNotifications, sectionApplication, sectionMotDePasse, section2FA, sectionDonnees);
+function afficherSecurite(panneau: HTMLElement): void {
+  vider(panneau);
+  panneau.append(creerGrille(creerCarteMotDePasse(), creerCarte2FA()));
 }
 
-/**
- * Crée la section profil
- */
-function creerSectionProfil(): HTMLElement {
-  const section = creerElement('section', {
-    classes: ['parametres-section'],
-  });
-
-  const titre = creerElement('h2', {
-    classes: ['parametres-section-titre'],
-    texte: 'Profil',
-  });
-
-  const info = creerElement('div', {
-    classes: ['parametres-info'],
-  });
-
-  info.innerHTML = `
-    <div class="parametres-info-ligne">
-      <span class="parametres-info-label">Email</span>
-      <span class="parametres-info-valeur">${utilisateurCourant?.email ?? '-'}</span>
+function creerCarteMotDePasse(): HTMLElement {
+  const { carte, corps } = creerCarte({ id: 'section-mot-de-passe', icone: 'password', titre: 'Mot de passe', description: 'Dix caractères au moins, avec une majuscule et un chiffre.' });
+  const form = creerElement('form', { classes: ['parametres-form'], attrs: { id: 'form-mot-de-passe' } });
+  form.innerHTML = `
+    <div class="la-form-group">
+      <label for="mdp-actuel">Mot de passe actuel</label>
+      <input type="password" id="mdp-actuel" name="motDePasseActuel" class="la-input" required autocomplete="current-password">
     </div>
-    <div class="parametres-info-ligne">
-      <span class="parametres-info-label">Membre depuis</span>
-      <span class="parametres-info-valeur">${
-        utilisateurCourant?.dateCreation
-          ? new Date(utilisateurCourant.dateCreation).toLocaleDateString('fr-FR', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })
-          : '-'
-      }</span>
-    </div>
-  `;
-
-  section.append(titre, info);
-  return section;
-}
-
-/**
- * Section Notifications : Web Push de ce navigateur et résumé courriel
- */
-function creerSectionNotifications(): HTMLElement {
-  const section = creerElement('section', { classes: ['la-card', 'section-parametres'], attrs: { id: 'section-notifications' } });
-  const preferences = utilisateurCourant?.preferences ?? {};
-  section.innerHTML = `
-    <h2 class="la-card-title">${iconeHtml('notifications')} Notifications</h2>
 
     <div class="la-form-group">
-      <p class="la-label">Nouveaux articles sur cet appareil</p>
-      <p class="la-help" id="push-etat">Vérification…</p>
-      <div class="parametres-actions">
-        <button type="button" class="la-btn secondary" id="btn-push" disabled>Activer les notifications</button>
-        <button type="button" class="la-btn ghost sm" id="btn-push-test" hidden>Envoyer un test</button>
-      </div>
-      <small class="la-help">Au plus une notification par demi-heure, regroupant les nouveautés de vos sources. Réglable source par source (« Notifications » dans les paramètres d'une source).</small>
+      <label for="mdp-nouveau">Nouveau mot de passe</label>
+      <input type="password" id="mdp-nouveau" name="nouveauMotDePasse" class="la-input" required minlength="10" autocomplete="new-password">
     </div>
 
-    <form id="form-resume" class="la-form-group">
-      <label for="pref-resume">Résumé par courriel des articles non lus</label>
-      <select id="pref-resume" name="resumeCourriel" class="la-select">
-        <option value="aucun" ${!preferences.resumeCourriel || preferences.resumeCourriel === 'aucun' ? 'selected' : ''}>Jamais</option>
-        <option value="quotidien" ${preferences.resumeCourriel === 'quotidien' ? 'selected' : ''}>Chaque matin (7 h)</option>
-        <option value="hebdomadaire" ${preferences.resumeCourriel === 'hebdomadaire' ? 'selected' : ''}>Le lundi matin</option>
-      </select>
-      <div class="parametres-actions">
-        <button type="submit" class="la-btn primary">Enregistrer</button>
-        <button type="button" class="la-btn ghost sm" id="btn-resume-test">M'envoyer un aperçu</button>
+    <div class="la-form-group">
+      <label for="mdp-confirmation">Confirmer le mot de passe</label>
+      <input type="password" id="mdp-confirmation" name="confirmation" class="la-input" required autocomplete="new-password">
+    </div>
+
+    <div class="parametres-actions">
+      <button type="submit" class="la-btn secondary">Changer le mot de passe</button>
+    </div>
+  `;
+  ajouterBasculeMotDePasse(form);
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await changerMotDePasse(form);
+  });
+  corps.append(form);
+  return carte;
+}
+
+async function changerMotDePasse(form: HTMLFormElement): Promise<void> {
+  const formData = new FormData(form);
+  const bouton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+  const motDePasseActuel = formData.get('motDePasseActuel') as string;
+  const nouveauMotDePasse = formData.get('nouveauMotDePasse') as string;
+  const confirmation = formData.get('confirmation') as string;
+
+  if (nouveauMotDePasse !== confirmation) {
+    toast.erreur('Les mots de passe ne correspondent pas');
+    return;
+  }
+  if (nouveauMotDePasse.length < 10) {
+    toast.erreur('Le mot de passe doit contenir au moins 10 caractères');
+    return;
+  }
+  if (!/[A-Z]/.test(nouveauMotDePasse)) {
+    toast.erreur('Le mot de passe doit contenir au moins une majuscule');
+    return;
+  }
+  if (!/[0-9]/.test(nouveauMotDePasse)) {
+    toast.erreur('Le mot de passe doit contenir au moins un chiffre');
+    return;
+  }
+
+  bouton.disabled = true;
+  bouton.textContent = 'Changement...';
+
+  try {
+    await auth.changerMotDePasse(motDePasseActuel, nouveauMotDePasse);
+    toast.succes('Mot de passe modifié avec succès');
+    form.reset();
+  } catch {
+    toast.erreur('Erreur lors du changement de mot de passe');
+  } finally {
+    bouton.disabled = false;
+    bouton.textContent = 'Changer le mot de passe';
+  }
+}
+
+function creerCarte2FA(): HTMLElement {
+  const { carte, corps } = creerCarte({ id: 'section-2fa', icone: 'phonelink_lock', titre: 'Authentification à deux facteurs', description: 'Un code de votre application d\'authentification à chaque connexion.' });
+  corps.append(creerElement('div', { classes: ['section-2fa-contenu'], attrs: { id: 'contenu-2fa' } }));
+  afficherContenu2FA();
+  return carte;
+}
+
+function afficherContenu2FA(): void {
+  const contenu = $('#contenu-2fa');
+  if (!contenu) return;
+  vider(contenu);
+  if (statut2FA?.actif) {
+    afficher2FAActive(contenu);
+  } else {
+    afficher2FAInactive(contenu);
+  }
+}
+
+function afficher2FAInactive(contenu: Element): void {
+  const wrapper = creerElement('div', { classes: ['deux-fa-inactive'] });
+  wrapper.innerHTML = `
+    <div class="deux-fa-description">
+      <div class="deux-fa-icone">${iconeHtml('lock_open')}</div>
+      <div>
+        <p class="deux-fa-titre">Renforcez la sécurité de votre compte</p>
+        <p class="deux-fa-texte">L'authentification à deux facteurs ajoute une couche de protection supplémentaire.
+        À chaque connexion, vous devrez entrer un code généré par votre application d'authentification.</p>
       </div>
-      <small class="la-help">Envoyé à ${utilisateurCourant?.email ?? 'votre adresse'}, seulement s'il y a quelque chose à lire.</small>
-    </form>
+    </div>
+    <div class="parametres-actions">
+      <button type="button" class="la-btn primary" id="btn-activer-2fa">Activer la 2FA</button>
+    </div>
+  `;
+  contenu.append(wrapper);
+  $('#btn-activer-2fa')?.addEventListener('click', () => demarrerActivation2FA());
+}
+
+function afficher2FAActive(contenu: Element): void {
+  const wrapper = creerElement('div', { classes: ['deux-fa-active'] });
+  wrapper.innerHTML = `
+    <div class="deux-fa-description">
+      <div class="deux-fa-icone deux-fa-icone-actif">${iconeHtml('lock', { plein: true })}</div>
+      <div>
+        <p class="deux-fa-titre deux-fa-titre-actif">Authentification à deux facteurs activée</p>
+        <p class="deux-fa-texte">Votre compte est protégé par l'authentification à deux facteurs.</p>
+      </div>
+    </div>
+    <div class="deux-fa-desactiver">
+      <p class="deux-fa-avertissement">Pour désactiver la 2FA, entrez un code de votre application d'authentification.</p>
+      <form id="form-desactiver-2fa" class="deux-fa-form-desactiver">
+        <div class="la-form-group">
+          <label for="code-desactiver-2fa">Code d'authentification</label>
+          <input type="text" id="code-desactiver-2fa" name="code" class="la-input code-input"
+                 placeholder="000000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" required>
+        </div>
+        <button type="submit" class="la-btn error">Désactiver la 2FA</button>
+      </form>
+    </div>
+  `;
+  contenu.append(wrapper);
+  const formDesactiver = $('#form-desactiver-2fa') as HTMLFormElement | null;
+  formDesactiver?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await desactiver2FA(formDesactiver);
+  });
+}
+
+async function demarrerActivation2FA(): Promise<void> {
+  const contenu = $('#contenu-2fa');
+  if (!contenu) return;
+  const btnActiver = $('#btn-activer-2fa') as HTMLButtonElement | null;
+  if (btnActiver) {
+    btnActiver.disabled = true;
+    btnActiver.textContent = 'Chargement...';
+  }
+  try {
+    const resultat = await auth.activer2FA();
+    afficherConfiguration2FA(contenu, resultat.qrCode, resultat.secret);
+  } catch {
+    toast.erreur('Erreur lors de l\'activation de la 2FA');
+    if (btnActiver) {
+      btnActiver.disabled = false;
+      btnActiver.textContent = 'Activer la 2FA';
+    }
+  }
+}
+
+function afficherConfiguration2FA(contenu: Element, qrCode: string, secret: string): void {
+  vider(contenu);
+  const wrapper = creerElement('div', { classes: ['deux-fa-configuration'] });
+  wrapper.innerHTML = `
+    <div class="deux-fa-etapes">
+      <div class="deux-fa-etape">
+        <span class="etape-numero">1</span>
+        <div class="etape-contenu">
+          <p class="etape-titre">Scannez ce QR code</p>
+          <p class="etape-texte">Utilisez une application d'authentification comme Google Authenticator, Authy ou 1Password.</p>
+          <div class="qr-code-container">
+            <img src="${qrCode}" alt="QR Code 2FA" class="qr-code-image">
+          </div>
+          <details class="secret-manuel">
+            <summary>Impossible de scanner ? Entrez le code manuellement</summary>
+            <div class="secret-code">
+              <code>${secret}</code>
+              <button type="button" class="la-btn sm" id="btn-copier-secret">Copier</button>
+            </div>
+          </details>
+        </div>
+      </div>
+      <div class="deux-fa-etape">
+        <span class="etape-numero">2</span>
+        <div class="etape-contenu">
+          <p class="etape-titre">Confirmez l'activation</p>
+          <p class="etape-texte">Entrez le code à 6 chiffres affiché dans votre application.</p>
+          <form id="form-confirmer-2fa" class="form-confirmer-2fa">
+            <div class="la-form-group">
+              <input type="text" id="code-confirmer-2fa" name="code" class="la-input code-input code-input-grand"
+                     placeholder="000000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" required>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="la-btn secondary" id="btn-annuler-2fa">Annuler</button>
+              <button type="submit" class="la-btn primary">Confirmer et activer</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  `;
+  contenu.append(wrapper);
+
+  $('#btn-copier-secret')?.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(secret);
+      toast.succes('Code copié dans le presse-papier');
+    } catch {
+      toast.erreur('Impossible de copier le code');
+    }
+  });
+  $('#btn-annuler-2fa')?.addEventListener('click', () => afficherContenu2FA());
+  const formConfirmer = $('#form-confirmer-2fa') as HTMLFormElement | null;
+  formConfirmer?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await confirmer2FA(formConfirmer);
+  });
+}
+
+async function confirmer2FA(form: HTMLFormElement): Promise<void> {
+  const code = new FormData(form).get('code') as string;
+  const bouton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+  if (!/^\d{6}$/.test(code)) {
+    toast.erreur('Le code doit contenir 6 chiffres');
+    return;
+  }
+  bouton.disabled = true;
+  bouton.textContent = 'Vérification...';
+  try {
+    await auth.confirmer2FA(code);
+    statut2FA = { actif: true, configure: true };
+    toast.succes('Authentification à deux facteurs activée');
+    afficherContenu2FA();
+  } catch {
+    toast.erreur('Code invalide. Veuillez réessayer.');
+    bouton.disabled = false;
+    bouton.textContent = 'Confirmer et activer';
+  }
+}
+
+async function desactiver2FA(form: HTMLFormElement): Promise<void> {
+  const code = new FormData(form).get('code') as string;
+  const bouton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+  if (!/^\d{6}$/.test(code)) {
+    toast.erreur('Le code doit contenir 6 chiffres');
+    return;
+  }
+  bouton.disabled = true;
+  bouton.textContent = 'Désactivation...';
+  try {
+    await auth.desactiver2FA(code);
+    statut2FA = { actif: false, configure: false };
+    toast.succes('Authentification à deux facteurs désactivée');
+    afficherContenu2FA();
+  } catch {
+    toast.erreur('Code invalide. Veuillez réessayer.');
+    bouton.disabled = false;
+    bouton.textContent = 'Désactiver la 2FA';
+  }
+}
+
+// ============================================
+// Notifications : Web Push et résumé courriel
+// ============================================
+
+function afficherNotifications(panneau: HTMLElement): void {
+  vider(panneau);
+  panneau.append(creerGrille(creerCartePush(), creerCarteResume()));
+}
+
+function creerCartePush(): HTMLElement {
+  const { carte, corps } = creerCarte({ id: 'section-push', icone: 'notifications_active', titre: 'Nouveaux articles sur cet appareil', description: 'Au plus une notification par demi-heure, regroupant les nouveautés de vos sources. Réglable source par source.' });
+  corps.innerHTML = `
+    <p class="la-help" id="push-etat">Vérification…</p>
+    <div class="parametres-actions">
+      <button type="button" class="la-btn secondary" id="btn-push" disabled>Activer les notifications</button>
+      <button type="button" class="la-btn ghost sm" id="btn-push-test" hidden>Envoyer un test</button>
+    </div>
   `;
 
-  const etatPush = $('#push-etat', section) as HTMLElement;
-  const btnPush = $('#btn-push', section) as HTMLButtonElement;
-  const btnPushTest = $('#btn-push-test', section) as HTMLButtonElement;
+  const etatPush = $('#push-etat', corps) as HTMLElement;
+  const btnPush = $('#btn-push', corps) as HTMLButtonElement;
+  const btnPushTest = $('#btn-push-test', corps) as HTMLButtonElement;
   let abonne = false;
 
   const rafraichirPush = async () => {
@@ -269,11 +639,30 @@ function creerSectionNotifications(): HTMLElement {
   });
 
   void rafraichirPush();
+  return carte;
+}
 
-  const formResume = $('#form-resume', section) as HTMLFormElement;
-  formResume.addEventListener('submit', async (e) => {
+function creerCarteResume(): HTMLElement {
+  const preferences = utilisateurCourant?.preferences ?? {};
+  const { carte, corps } = creerCarte({ id: 'section-resume', icone: 'mail', titre: 'Résumé par courriel', description: `Envoyé à ${utilisateurCourant?.email ?? 'votre adresse'}, seulement s'il y a quelque chose à lire.` });
+  const form = creerElement('form', { classes: ['parametres-form'], attrs: { id: 'form-resume' } });
+  form.innerHTML = `
+    <div class="la-form-group">
+      <label for="pref-resume">Articles non lus, groupés par source</label>
+      <select id="pref-resume" name="resumeCourriel" class="la-select">
+        <option value="aucun" ${!preferences.resumeCourriel || preferences.resumeCourriel === 'aucun' ? 'selected' : ''}>Jamais</option>
+        <option value="quotidien" ${preferences.resumeCourriel === 'quotidien' ? 'selected' : ''}>Chaque matin (7 h)</option>
+        <option value="hebdomadaire" ${preferences.resumeCourriel === 'hebdomadaire' ? 'selected' : ''}>Le lundi matin</option>
+      </select>
+    </div>
+    <div class="parametres-actions">
+      <button type="submit" class="la-btn primary">Enregistrer</button>
+      <button type="button" class="la-btn ghost sm" id="btn-resume-test">M'envoyer un aperçu</button>
+    </div>
+  `;
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const resumeCourriel = (new FormData(formResume).get('resumeCourriel') as Preferences['resumeCourriel']) ?? 'aucun';
+    const resumeCourriel = (new FormData(form).get('resumeCourriel') as Preferences['resumeCourriel']) ?? 'aucun';
     try {
       utilisateurCourant = await auth.mettreAJourProfil({ resumeCourriel });
       toast.succes(resumeCourriel === 'aucun' ? 'Vous ne recevrez plus de résumé' : 'Résumé courriel enregistré');
@@ -281,8 +670,8 @@ function creerSectionNotifications(): HTMLElement {
       toast.erreur('Impossible d\'enregistrer ce choix');
     }
   });
-  ($('#btn-resume-test', section) as HTMLButtonElement).addEventListener('click', async () => {
-    const frequence = (new FormData(formResume).get('resumeCourriel') as string) === 'hebdomadaire' ? 'hebdomadaire' : 'quotidien';
+  ($('#btn-resume-test', form) as HTMLButtonElement).addEventListener('click', async () => {
+    const frequence = (new FormData(form).get('resumeCourriel') as string) === 'hebdomadaire' ? 'hebdomadaire' : 'quotidien';
     try {
       const { envoye, email } = await notifications.testerResume(frequence);
       toast.info(envoye ? `Aperçu envoyé à ${email}` : 'Rien de nouveau à lire sur la période : aucun courriel envoyé');
@@ -290,22 +679,29 @@ function creerSectionNotifications(): HTMLElement {
       toast.erreur('Le serveur ne peut pas envoyer de courriel pour le moment');
     }
   });
-
-  return section;
+  corps.append(form);
+  return carte;
 }
 
-/**
- * Section Application : installation sur l'appareil (PWA)
- */
-function creerSectionApplication(): HTMLElement {
-  const section = creerElement('section', { classes: ['la-card', 'section-parametres'], attrs: { id: 'section-application' } });
-  section.innerHTML = `
-    <h2 class="la-card-title">${iconeHtml('install_mobile')} Application</h2>
+// ============================================
+// Application et données : PWA et export
+// ============================================
+
+function afficherApplication(panneau: HTMLElement): void {
+  vider(panneau);
+  panneau.append(creerGrille(creerCarteInstallation(), creerCarteDonnees()));
+}
+
+function creerCarteInstallation(): HTMLElement {
+  const { carte, corps } = creerCarte({ id: 'section-application', icone: 'install_mobile', titre: 'Installer Veilleur', description: 'Dans sa propre fenêtre, avec le fil consultable hors ligne.' });
+  corps.innerHTML = `
     <p class="la-help" id="application-etat"></p>
-    <button type="button" class="la-btn secondary" id="btn-installer" hidden>Installer Veilleur</button>
+    <div class="parametres-actions">
+      <button type="button" class="la-btn secondary" id="btn-installer" hidden>Installer Veilleur</button>
+    </div>
   `;
-  const etat = $('#application-etat', section) as HTMLElement;
-  const bouton = $('#btn-installer', section) as HTMLButtonElement;
+  const etat = $('#application-etat', corps) as HTMLElement;
+  const bouton = $('#btn-installer', corps) as HTMLButtonElement;
   const rafraichir = () => {
     if (estInstallee()) {
       etat.textContent = 'Veilleur est installé sur cet appareil.';
@@ -325,21 +721,12 @@ function creerSectionApplication(): HTMLElement {
   });
   surChangementInstallation(rafraichir);
   rafraichir();
-  return section;
+  return carte;
 }
 
-/**
- * Section « Mes données » : export des annotations (notes, favoris, liste de lecture, lus)
- */
-function creerSectionDonnees(): HTMLElement {
-  const section = creerElement('section', { classes: ['parametres-section'], attrs: { id: 'section-donnees' } });
-  const titre = creerElement('h2', { classes: ['parametres-section-titre'], texte: 'Mes données' });
-  const aide = creerElement('p', {
-    classes: ['la-help'],
-    texte: 'Téléchargez vos notes, favoris, liste de lecture et articles lus. Les sources s\'exportent en OPML depuis la page Mes sources.',
-  });
+function creerCarteDonnees(): HTMLElement {
+  const { carte, corps } = creerCarte({ id: 'section-donnees', icone: 'download', titre: 'Mes données', description: 'Vos notes, favoris, liste de lecture et articles lus. Les sources s\'exportent en OPML depuis la page Mes sources.' });
   const boutons = creerElement('div', { classes: ['parametres-actions'] });
-
   const creerBoutonExport = (format: 'json' | 'csv'): HTMLElement =>
     creerElement('button', {
       classes: ['la-btn', 'secondary'],
@@ -349,490 +736,14 @@ function creerSectionDonnees(): HTMLElement {
       onClick: async () => {
         try {
           const contenu = await articles.exporterAnnotations(format);
-          telechargerFichier(
-            contenu,
-            `veilleur-annotations-${suffixeDate()}.${format}`,
-            format === 'csv' ? 'text/csv;charset=utf-8' : 'application/json',
-          );
+          telechargerFichier(contenu, `veilleur-annotations-${suffixeDate()}.${format}`, format === 'csv' ? 'text/csv;charset=utf-8' : 'application/json');
           toast.succes('Annotations exportées');
         } catch {
           toast.erreur('Impossible d\'exporter les annotations');
         }
       },
     });
-
   boutons.append(creerBoutonExport('json'), creerBoutonExport('csv'));
-  section.append(titre, aide, boutons);
-  return section;
-}
-
-/**
- * Crée la section préférences
- */
-function creerSectionPreferences(): HTMLElement {
-  const section = creerElement('section', {
-    classes: ['parametres-section'],
-  });
-
-  const titre = creerElement('h2', {
-    classes: ['parametres-section-titre'],
-    texte: 'Préférences',
-  });
-
-  const form = creerElement('form', {
-    classes: ['parametres-form'],
-    attrs: { id: 'form-preferences' },
-  }) as HTMLFormElement;
-
-  // Le thème affiché est celui réellement appliqué sur cet appareil (bouton de l'en-tête compris)
-  const preferences = { ...(utilisateurCourant?.preferences ?? {}), theme: themeEnregistre() };
-
-  // Le bouton de thème de l'en-tête et ce sélecteur restent d'accord
-  document.addEventListener('veilleur:theme', (e) => {
-    const select = form.querySelector<HTMLSelectElement>('#pref-theme');
-    if (select) select.value = (e as CustomEvent<Theme>).detail;
-  });
-
-  form.innerHTML = `
-    <div class="la-form-group">
-      <label for="pref-theme">Thème</label>
-      <select id="pref-theme" name="theme" class="la-select">
-        <option value="auto" ${preferences.theme === 'auto' ? 'selected' : ''}>Automatique (système)</option>
-        <option value="clair" ${preferences.theme === 'clair' ? 'selected' : ''}>Clair</option>
-        <option value="sombre" ${preferences.theme === 'sombre' ? 'selected' : ''}>Sombre</option>
-      </select>
-      <small class="la-help">Le thème automatique suit les préférences de votre système.</small>
-    </div>
-
-    <div class="la-form-group">
-      <label for="pref-langue">Langue</label>
-      <select id="pref-langue" name="langue" class="la-select">
-        <option value="fr" ${preferences.langue === 'fr' || !preferences.langue ? 'selected' : ''}>Français</option>
-        <option value="en" ${preferences.langue === 'en' ? 'selected' : ''}>English</option>
-      </select>
-    </div>
-
-    <div class="la-form-group">
-      <label for="pref-frequence">Fréquence de rafraîchissement</label>
-      <select id="pref-frequence" name="frequenceRafraichissement" class="la-select">
-        <option value="5" ${preferences.frequenceRafraichissement === 5 ? 'selected' : ''}>5 minutes</option>
-        <option value="15" ${preferences.frequenceRafraichissement === 15 ? 'selected' : ''}>15 minutes</option>
-        <option value="30" ${preferences.frequenceRafraichissement === 30 || !preferences.frequenceRafraichissement ? 'selected' : ''}>30 minutes</option>
-        <option value="60" ${preferences.frequenceRafraichissement === 60 ? 'selected' : ''}>1 heure</option>
-        <option value="120" ${preferences.frequenceRafraichissement === 120 ? 'selected' : ''}>2 heures</option>
-      </select>
-      <small class="la-help">Intervalle entre les synchronisations automatiques des sources.</small>
-    </div>
-
-    <button type="submit" class="la-btn primary">Enregistrer les préférences</button>
-  `;
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await sauvegarderPreferences(form);
-  });
-
-  section.append(titre, form);
-  return section;
-}
-
-/**
- * Sauvegarde les préférences
- */
-async function sauvegarderPreferences(form: HTMLFormElement): Promise<void> {
-  const formData = new FormData(form);
-  const bouton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
-
-  const preferences: Partial<Preferences> = {
-    theme: formData.get('theme') as Preferences['theme'],
-    langue: formData.get('langue') as Preferences['langue'],
-    frequenceRafraichissement: parseInt(formData.get('frequenceRafraichissement') as string, 10),
-  };
-
-  bouton.disabled = true;
-  bouton.textContent = 'Enregistrement...';
-
-  try {
-    utilisateurCourant = await auth.mettreAJourProfil(preferences);
-    toast.succes('Préférences enregistrées');
-
-    // Appliquer le thème immédiatement
-    if (preferences.theme) {
-      appliquerTheme(preferences.theme);
-    }
-  } catch {
-    toast.erreur('Erreur lors de la sauvegarde');
-  } finally {
-    bouton.disabled = false;
-    bouton.textContent = 'Enregistrer les préférences';
-  }
-}
-
-/**
- * Crée la section changement de mot de passe
- */
-function creerSectionMotDePasse(): HTMLElement {
-  const section = creerElement('section', {
-    classes: ['parametres-section'],
-  });
-
-  const titre = creerElement('h2', {
-    classes: ['parametres-section-titre'],
-    texte: 'Sécurité',
-  });
-
-  const form = creerElement('form', {
-    classes: ['parametres-form'],
-    attrs: { id: 'form-mot-de-passe' },
-  }) as HTMLFormElement;
-
-  form.innerHTML = `
-    <div class="la-form-group">
-      <label for="mdp-actuel">Mot de passe actuel</label>
-      <input type="password" id="mdp-actuel" name="motDePasseActuel" class="la-input" required autocomplete="current-password">
-    </div>
-
-    <div class="la-form-group">
-      <label for="mdp-nouveau">Nouveau mot de passe</label>
-      <input type="password" id="mdp-nouveau" name="nouveauMotDePasse" class="la-input" required minlength="10" autocomplete="new-password">
-      <small class="la-help">Minimum 10 caractères, avec au moins une majuscule et un chiffre.</small>
-    </div>
-
-    <div class="la-form-group">
-      <label for="mdp-confirmation">Confirmer le mot de passe</label>
-      <input type="password" id="mdp-confirmation" name="confirmation" class="la-input" required autocomplete="new-password">
-    </div>
-
-    <button type="submit" class="la-btn secondary">Changer le mot de passe</button>
-  `;
-  ajouterBasculeMotDePasse(form);
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await changerMotDePasse(form);
-  });
-
-  section.append(titre, form);
-  return section;
-}
-
-/**
- * Change le mot de passe
- */
-async function changerMotDePasse(form: HTMLFormElement): Promise<void> {
-  const formData = new FormData(form);
-  const bouton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
-
-  const motDePasseActuel = formData.get('motDePasseActuel') as string;
-  const nouveauMotDePasse = formData.get('nouveauMotDePasse') as string;
-  const confirmation = formData.get('confirmation') as string;
-
-  // Validation
-  if (nouveauMotDePasse !== confirmation) {
-    toast.erreur('Les mots de passe ne correspondent pas');
-    return;
-  }
-
-  if (nouveauMotDePasse.length < 10) {
-    toast.erreur('Le mot de passe doit contenir au moins 10 caractères');
-    return;
-  }
-
-  if (!/[A-Z]/.test(nouveauMotDePasse)) {
-    toast.erreur('Le mot de passe doit contenir au moins une majuscule');
-    return;
-  }
-
-  if (!/[0-9]/.test(nouveauMotDePasse)) {
-    toast.erreur('Le mot de passe doit contenir au moins un chiffre');
-    return;
-  }
-
-  bouton.disabled = true;
-  bouton.textContent = 'Changement...';
-
-  try {
-    await auth.changerMotDePasse(motDePasseActuel, nouveauMotDePasse);
-    toast.succes('Mot de passe modifié avec succès');
-    form.reset();
-  } catch {
-    toast.erreur('Erreur lors du changement de mot de passe');
-  } finally {
-    bouton.disabled = false;
-    bouton.textContent = 'Changer le mot de passe';
-  }
-}
-
-/**
- * Crée la section authentification à deux facteurs
- */
-function creerSection2FA(): HTMLElement {
-  const section = creerElement('section', {
-    classes: ['parametres-section'],
-    attrs: { id: 'section-2fa' },
-  });
-
-  const titre = creerElement('h2', {
-    classes: ['parametres-section-titre'],
-    texte: 'Authentification à deux facteurs (2FA)',
-  });
-
-  const contenu = creerElement('div', {
-    classes: ['section-2fa-contenu'],
-    attrs: { id: 'contenu-2fa' },
-  });
-
-  section.append(titre, contenu);
-
-  // Afficher le contenu approprié selon le statut
-  afficherContenu2FA();
-
-  return section;
-}
-
-/**
- * Affiche le contenu 2FA selon le statut
- */
-function afficherContenu2FA(): void {
-  const contenu = $('#contenu-2fa');
-  if (!contenu) return;
-
-  vider(contenu);
-
-  if (statut2FA?.actif) {
-    afficher2FAActive(contenu);
-  } else {
-    afficher2FAInactive(contenu);
-  }
-}
-
-/**
- * Affiche l'interface quand 2FA est désactivé
- */
-function afficher2FAInactive(contenu: Element): void {
-  const wrapper = creerElement('div', {
-    classes: ['deux-fa-inactive'],
-  });
-
-  wrapper.innerHTML = `
-    <div class="deux-fa-description">
-      <div class="deux-fa-icone">${iconeHtml('lock_open')}</div>
-      <div>
-        <p class="deux-fa-titre">Renforcez la sécurité de votre compte</p>
-        <p class="deux-fa-texte">L'authentification à deux facteurs ajoute une couche de protection supplémentaire.
-        À chaque connexion, vous devrez entrer un code généré par votre application d'authentification.</p>
-      </div>
-    </div>
-    <button type="button" class="la-btn primary" id="btn-activer-2fa">Activer la 2FA</button>
-  `;
-
-  contenu.append(wrapper);
-
-  const btnActiver = $('#btn-activer-2fa');
-  if (btnActiver) {
-    btnActiver.addEventListener('click', () => demarrerActivation2FA());
-  }
-}
-
-/**
- * Affiche l'interface quand 2FA est activé
- */
-function afficher2FAActive(contenu: Element): void {
-  const wrapper = creerElement('div', {
-    classes: ['deux-fa-active'],
-  });
-
-  wrapper.innerHTML = `
-    <div class="deux-fa-description">
-      <div class="deux-fa-icone deux-fa-icone-actif">${iconeHtml('lock', { plein: true })}</div>
-      <div>
-        <p class="deux-fa-titre deux-fa-titre-actif">Authentification à deux facteurs activée</p>
-        <p class="deux-fa-texte">Votre compte est protégé par l'authentification à deux facteurs.</p>
-      </div>
-    </div>
-    <div class="deux-fa-desactiver">
-      <p class="deux-fa-avertissement">Pour désactiver la 2FA, entrez un code de votre application d'authentification.</p>
-      <form id="form-desactiver-2fa" class="deux-fa-form-desactiver">
-        <div class="la-form-group">
-          <label for="code-desactiver-2fa">Code d'authentification</label>
-          <input type="text" id="code-desactiver-2fa" name="code" class="la-input code-input"
-                 placeholder="000000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" required>
-        </div>
-        <button type="submit" class="la-btn error">Désactiver la 2FA</button>
-      </form>
-    </div>
-  `;
-
-  contenu.append(wrapper);
-
-  const formDesactiver = $('#form-desactiver-2fa') as HTMLFormElement | null;
-  if (formDesactiver) {
-    formDesactiver.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      await desactiver2FA(formDesactiver);
-    });
-  }
-}
-
-/**
- * Démarre le processus d'activation de la 2FA
- */
-async function demarrerActivation2FA(): Promise<void> {
-  const contenu = $('#contenu-2fa');
-  if (!contenu) return;
-
-  const btnActiver = $('#btn-activer-2fa') as HTMLButtonElement | null;
-  if (btnActiver) {
-    btnActiver.disabled = true;
-    btnActiver.textContent = 'Chargement...';
-  }
-
-  try {
-    const resultat = await auth.activer2FA();
-    afficherConfiguration2FA(contenu, resultat.qrCode, resultat.secret);
-  } catch {
-    toast.erreur('Erreur lors de l\'activation de la 2FA');
-    if (btnActiver) {
-      btnActiver.disabled = false;
-      btnActiver.textContent = 'Activer la 2FA';
-    }
-  }
-}
-
-/**
- * Affiche l'écran de configuration 2FA avec QR code
- */
-function afficherConfiguration2FA(contenu: Element, qrCode: string, secret: string): void {
-  vider(contenu);
-
-  const wrapper = creerElement('div', {
-    classes: ['deux-fa-configuration'],
-  });
-
-  wrapper.innerHTML = `
-    <div class="deux-fa-etapes">
-      <div class="deux-fa-etape">
-        <span class="etape-numero">1</span>
-        <div class="etape-contenu">
-          <p class="etape-titre">Scannez ce QR code</p>
-          <p class="etape-texte">Utilisez une application d'authentification comme Google Authenticator, Authy ou 1Password.</p>
-          <div class="qr-code-container">
-            <img src="${qrCode}" alt="QR Code 2FA" class="qr-code-image">
-          </div>
-          <details class="secret-manuel">
-            <summary>Impossible de scanner ? Entrez le code manuellement</summary>
-            <div class="secret-code">
-              <code>${secret}</code>
-              <button type="button" class="la-btn sm" id="btn-copier-secret">Copier</button>
-            </div>
-          </details>
-        </div>
-      </div>
-      <div class="deux-fa-etape">
-        <span class="etape-numero">2</span>
-        <div class="etape-contenu">
-          <p class="etape-titre">Confirmez l'activation</p>
-          <p class="etape-texte">Entrez le code à 6 chiffres affiché dans votre application.</p>
-          <form id="form-confirmer-2fa" class="form-confirmer-2fa">
-            <div class="la-form-group">
-              <input type="text" id="code-confirmer-2fa" name="code" class="la-input code-input code-input-grand"
-                     placeholder="000000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" required>
-            </div>
-            <div class="form-actions">
-              <button type="button" class="la-btn secondary" id="btn-annuler-2fa">Annuler</button>
-              <button type="submit" class="la-btn primary">Confirmer et activer</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  `;
-
-  contenu.append(wrapper);
-
-  // Copier le secret
-  const btnCopier = $('#btn-copier-secret');
-  if (btnCopier) {
-    btnCopier.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(secret);
-        toast.succes('Code copié dans le presse-papier');
-      } catch {
-        toast.erreur('Impossible de copier le code');
-      }
-    });
-  }
-
-  // Annuler
-  const btnAnnuler = $('#btn-annuler-2fa');
-  if (btnAnnuler) {
-    btnAnnuler.addEventListener('click', () => {
-      afficherContenu2FA();
-    });
-  }
-
-  // Confirmer
-  const formConfirmer = $('#form-confirmer-2fa') as HTMLFormElement | null;
-  if (formConfirmer) {
-    formConfirmer.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      await confirmer2FA(formConfirmer);
-    });
-  }
-}
-
-/**
- * Confirme l'activation de la 2FA
- */
-async function confirmer2FA(form: HTMLFormElement): Promise<void> {
-  const formData = new FormData(form);
-  const code = formData.get('code') as string;
-  const bouton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
-
-  if (!/^\d{6}$/.test(code)) {
-    toast.erreur('Le code doit contenir 6 chiffres');
-    return;
-  }
-
-  bouton.disabled = true;
-  bouton.textContent = 'Vérification...';
-
-  try {
-    await auth.confirmer2FA(code);
-    statut2FA = { actif: true, configure: true };
-    toast.succes('Authentification à deux facteurs activée');
-    afficherContenu2FA();
-  } catch {
-    toast.erreur('Code invalide. Veuillez réessayer.');
-    bouton.disabled = false;
-    bouton.textContent = 'Confirmer et activer';
-  }
-}
-
-/**
- * Désactive la 2FA
- */
-async function desactiver2FA(form: HTMLFormElement): Promise<void> {
-  const formData = new FormData(form);
-  const code = formData.get('code') as string;
-  const bouton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
-
-  if (!/^\d{6}$/.test(code)) {
-    toast.erreur('Le code doit contenir 6 chiffres');
-    return;
-  }
-
-  bouton.disabled = true;
-  bouton.textContent = 'Désactivation...';
-
-  try {
-    await auth.desactiver2FA(code);
-    statut2FA = { actif: false, configure: false };
-    toast.succes('Authentification à deux facteurs désactivée');
-    afficherContenu2FA();
-  } catch {
-    toast.erreur('Code invalide. Veuillez réessayer.');
-    bouton.disabled = false;
-    bouton.textContent = 'Désactiver la 2FA';
-  }
+  corps.append(boutons);
+  return carte;
 }
