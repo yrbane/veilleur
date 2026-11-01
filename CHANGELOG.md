@@ -4,6 +4,18 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.24.0 — 2026-11-01 · « Session durable »
+
+### Ajouté
+- Module `services/session` côté client : un seul rafraîchissement de jeton à la fois (les requêtes parallèles partagent la même promesse), expiration lue dans le jeton d'accès pour rafraîchir d'avance, jetons suivis entre onglets (événement `storage`), stockage tolérant à la navigation privée.
+
+### Modifié
+- Durée par défaut du jeton de rafraîchissement portée de 7 à 90 jours (`JWT_REFRESH_EXPIRES_IN`), renouvelée à chaque visite par rotation.
+
+### Corrigé
+- Déconnexions intempestives : au retour sur le site après 15 minutes, le fil, les statistiques et le profil partaient en parallèle, chaque 401 relançait un rafraîchissement avec le même jeton déjà tourné, et le refus du serveur déconnectait l'utilisateur.
+- Une panne réseau ou une erreur serveur pendant le rafraîchissement ne déconnecte plus ; seul un refus explicite (jeton expiré ou révoqué) le fait, et encore après avoir adopté les jetons posés entre-temps par un autre onglet.
+
 ## 0.23.1 — 2026-10-30 · « Pages mieux lues »
 
 ### Corrigé

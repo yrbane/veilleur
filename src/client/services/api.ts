@@ -31,48 +31,20 @@ export class ErreurAPI extends Error {
 }
 
 /**
- * Stockage du token d'accès
+ * Jetons : stockage, rafraîchissement et partage entre onglets dans services/session
  */
-let accessToken: string | null = localStorage.getItem('accessToken');
-let refreshToken: string | null = localStorage.getItem('refreshToken');
-let onDeconnexionCallback: (() => void) | null = null;
+import {
+  clearTokens,
+  estAuthentifie,
+  jetonExpire,
+  obtenirAccessToken,
+  obtenirRefreshToken,
+  rafraichirSession,
+  setOnDeconnexion,
+  setTokens,
+} from './session';
 
-/**
- * Définit le callback appelé lors d'une déconnexion automatique
- */
-export function setOnDeconnexion(callback: () => void): void {
-  onDeconnexionCallback = callback;
-}
-
-/**
- * Définit les tokens d'authentification
- */
-export function setTokens(access: string, refresh: string): void {
-  accessToken = access;
-  refreshToken = refresh;
-  localStorage.setItem('accessToken', access);
-  localStorage.setItem('refreshToken', refresh);
-}
-
-/**
- * Efface les tokens d'authentification
- */
-export function clearTokens(notifier = false): void {
-  accessToken = null;
-  refreshToken = null;
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
-  if (notifier && onDeconnexionCallback) {
-    onDeconnexionCallback();
-  }
-}
-
-/**
- * Vérifie si l'utilisateur est authentifié
- */
-export function estAuthentifie(): boolean {
-  return accessToken !== null;
-}
+export { clearTokens, estAuthentifie, setOnDeconnexion, setTokens };
 
 /**
  * Options de requête avec déduplication
@@ -104,12 +76,20 @@ async function requete<T>(
     headers['Content-Type'] = 'application/json';
   }
 
-  if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`;
-  }
+  const poserAutorisation = () => {
+    const accessToken = obtenirAccessToken();
+    if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+    else delete headers['Authorization'];
+  };
 
   // Fonction qui exécute réellement la requête
   const executerRequete = async (signal?: AbortSignal): Promise<T> => {
+    // Jeton d'accès périmé : un seul rafraîchissement partagé avant de partir,
+    // sinon des requêtes parallèles feraient tourner le même jeton plusieurs fois
+    if (obtenirRefreshToken() && jetonExpire(obtenirAccessToken())) {
+      await rafraichirSession();
+    }
+    poserAutorisation();
     const response = await fetch(url, {
       ...fetchOptions,
       headers,
@@ -117,10 +97,10 @@ async function requete<T>(
     });
 
     // Gestion du rafraîchissement de token
-    if (response.status === 401 && refreshToken) {
-      const refreshed = await rafraichirTokens();
+    if (response.status === 401 && obtenirRefreshToken()) {
+      const refreshed = await rafraichirSession();
       if (refreshed) {
-        headers['Authorization'] = `Bearer ${accessToken}`;
+        poserAutorisation();
         const retryResponse = await fetch(url, { ...fetchOptions, headers, signal });
         return handleResponse<T>(retryResponse);
       }
@@ -183,33 +163,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
   }
 
   return data as T;
-}
-
-/**
- * Rafraîchit les tokens d'authentification
- */
-async function rafraichirTokens(): Promise<boolean> {
-  if (!refreshToken) return false;
-
-  try {
-    const response = await fetch(`${API_BASE}/auth/rafraichir`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    });
-
-    if (!response.ok) {
-      clearTokens(true);
-      return false;
-    }
-
-    const data = await response.json();
-    setTokens(data.accessToken, data.refreshToken);
-    return true;
-  } catch {
-    clearTokens(true);
-    return false;
-  }
 }
 
 // ============================================
@@ -432,7 +385,7 @@ export const auth = {
     try {
       await requete('/auth/deconnexion', {
         method: 'POST',
-        body: JSON.stringify({ refreshToken }),
+        body: JSON.stringify({ refreshToken: obtenirRefreshToken() }),
       });
     } finally {
       clearTokens();
@@ -559,6 +512,7 @@ export const sources = {
   async exporterOPML(): Promise<string> {
     const url = `${API_BASE}/sources/export/opml`;
     const headers: Record<string, string> = {};
+    const accessToken = obtenirAccessToken();
     if (accessToken) {
       headers['Authorization'] = `Bearer ${accessToken}`;
     }
@@ -616,6 +570,7 @@ export const articles = {
   /** Export des annotations : contenu brut (JSON ou CSV) à enregistrer côté navigateur */
   async exporterAnnotations(format: 'json' | 'csv'): Promise<string> {
     const headers: Record<string, string> = {};
+    const accessToken = obtenirAccessToken();
     if (accessToken) {
       headers['Authorization'] = `Bearer ${accessToken}`;
     }

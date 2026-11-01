@@ -34,7 +34,7 @@ const schemaEnvironnement = z.object({
   JWT_SECRET: z.string().min(32).default('dev-jwt-secret-change-in-production-32chars'),
   JWT_REFRESH_SECRET: z.string().min(32).default('dev-refresh-secret-change-in-production32'),
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
-  JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
+  JWT_REFRESH_EXPIRES_IN: z.string().default('90d'),
 
   // Scraping
   SCRAPING_USER_AGENT: z.string().default('Veilleur/1.0 (+https://github.com/yrbane/veilleur)'),

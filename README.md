@@ -80,6 +80,7 @@
 - Liste de lecture « à lire plus tard » et export de toutes les annotations en JSON ou CSV
 - Paramètres avancés par source
 - Paramètres en pleine largeur avec navigation latérale : compte, sécurité (mot de passe, 2FA), notifications, application et données
+- Session durable : on reste connecté d'une visite à l'autre (jeton de rafraîchissement glissant de 90 jours, partagé entre les onglets), la déconnexion n'arrive que sur refus explicite du serveur
 - Thème clair, sombre ou automatique en un clic dans l'en-tête, mémorisé dans le navigateur
 - Raccourci `/` vers la recherche, retour en haut du fil, navigation compacte sur mobile
 
