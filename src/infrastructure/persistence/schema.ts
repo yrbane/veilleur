@@ -102,6 +102,8 @@ export const refreshTokens = mysqlTable(
     dateCreation: timestamp('date_creation').notNull().defaultNow(),
     dateExpiration: timestamp('date_expiration').notNull(),
     estRevoque: boolean('est_revoque').default(false),
+    // Posée uniquement par une rotation : le jeton reste accepté quelques secondes (requêtes parallèles)
+    dateRotation: timestamp('date_rotation'),
   },
   table => ({
     idxToken: index('idx_refresh_token').on(table.token),

@@ -48,6 +48,14 @@ export interface DepotUtilisateurs {
 /**
  * Interface pour la gestion des refresh tokens
  */
+/** État d'un refresh token en base ; `dateRotation` n'est posée que par une rotation (jamais par une déconnexion) */
+export interface InfoRefreshToken {
+  utilisateurId: string;
+  estRevoque: boolean;
+  dateExpiration: Date;
+  dateRotation: Date | null;
+}
+
 export interface DepotRefreshTokens {
   /**
    * Crée un nouveau refresh token
@@ -58,6 +66,16 @@ export interface DepotRefreshTokens {
    * Trouve un refresh token valide
    */
   trouverTokenValide(token: string): Promise<{ utilisateurId: string } | null>;
+
+  /**
+   * Trouve un refresh token, révoqué ou non
+   */
+  trouverParToken(token: string): Promise<InfoRefreshToken | null>;
+
+  /**
+   * Révoque un refresh token au titre d'une rotation : il reste accepté pendant la fenêtre de grâce
+   */
+  marquerRotation(token: string): Promise<boolean>;
 
   /**
    * Révoque un refresh token

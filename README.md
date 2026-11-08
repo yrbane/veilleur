@@ -80,7 +80,8 @@
 - Liste de lecture « à lire plus tard » et export de toutes les annotations en JSON ou CSV
 - Paramètres avancés par source
 - Paramètres en pleine largeur avec navigation latérale : compte, sécurité (mot de passe, 2FA), notifications, application et données
-- Session durable : on reste connecté d'une visite à l'autre (jeton de rafraîchissement glissant de 90 jours, partagé entre les onglets), la déconnexion n'arrive que sur refus explicite du serveur
+- Session durable : on reste connecté d'une visite à l'autre (jeton de rafraîchissement glissant de 90 jours, partagé entre les onglets), la déconnexion n'arrive que sur refus explicite du serveur ; les requêtes parallèles d'un même client sont tolérées côté serveur (fenêtre de grâce de 30 s sur la rotation)
+- Mise à jour sans intervention : à chaque nouvelle version déployée, la page se recharge d'elle-même, même dans un onglet ou une appli installée laissés ouverts des jours
 - Thème clair, sombre ou automatique en un clic dans l'en-tête, mémorisé dans le navigateur
 - Raccourci `/` vers la recherche, retour en haut du fil, navigation compacte sur mobile
 

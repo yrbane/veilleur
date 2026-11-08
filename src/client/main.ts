@@ -15,6 +15,7 @@ import { $, $$, creerElement } from './utils/dom';
 import { icone, iconeHtml } from './utils/icones';
 import { appliquerTheme, themeEnregistre, themeSuivant, iconeTheme, libelleTheme, type Theme } from './utils/theme';
 import { estAuthentifie, auth, setOnDeconnexion } from './services/api';
+import { surveillerMiseAJour } from './utils/miseAJourApp';
 import { afficherPageAccueil } from './pages/PageAccueil';
 import { afficherPageSources } from './pages/PageSources';
 import { afficherPageConnexion, afficherPageInscription } from './pages/PageAuth';
@@ -320,14 +321,14 @@ async function initialiser(): Promise<void> {
 
   // Service worker (coque hors ligne, notifications push) : silencieux si indisponible
   ecouterInstallation();
+  // Nouvelle version déployée : la page se recharge d'elle-même, et un onglet laissé ouvert
+  // des jours vérifie la mise à jour quand on y revient
   void enregistrerServiceWorker().then((inscription) => {
-    inscription?.addEventListener('updatefound', () => {
-      const nouveau = inscription.installing;
-      nouveau?.addEventListener('statechange', () => {
-        if (nouveau.state === 'activated' && navigator.serviceWorker.controller) {
-          toast.info('Nouvelle version de Veilleur disponible : rechargez la page');
-        }
-      });
+    if (!inscription) return;
+    surveillerMiseAJour({
+      conteneur: navigator.serviceWorker,
+      inscription,
+      recharger: () => window.location.reload(),
     });
   });
 

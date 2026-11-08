@@ -4,6 +4,12 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.24.1 — 2026-11-08 · « Rotation tolérante »
+
+### Corrigé
+- Déconnexions au retour sur le site : un jeton de rafraîchissement tout juste tourné reste accepté 30 secondes (fenêtre de grâce), chaque requête parallèle d'un même client repart avec un jeu neuf au lieu d'un refus qui déconnectait. La grâce ne s'applique jamais à un jeton révoqué par déconnexion, désactivation du compte ou changement de mot de passe (migration 0013, colonne `refresh_tokens.date_rotation`).
+- Anciennes versions du client qui restaient actives pendant des jours dans un onglet ou l'application installée : la page se recharge d'elle-même quand un nouveau service worker prend le contrôle, et un onglet qui redevient visible vérifie la mise à jour (au plus toutes les 5 minutes). Le cache de la coque porte le numéro de version, l'ancienne coque est jetée à l'activation.
+
 ## 0.24.0 — 2026-11-01 · « Session durable »
 
 ### Ajouté

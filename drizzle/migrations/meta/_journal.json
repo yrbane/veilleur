@@ -92,6 +92,13 @@
       "when": 1793372400000,
       "tag": "0012_recherche_image",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "5",
+      "when": 1794156401724,
+      "tag": "0013_rotation_tolerante",
+      "breakpoints": true
     }
   ]
 }

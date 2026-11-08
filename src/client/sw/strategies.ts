@@ -2,7 +2,10 @@
  * Veilleur - Stratégies de cache du service worker (fonctions pures, testables)
  */
 
-export const NOM_CACHE = 'veilleur-coque-v1';
+declare const __VERSION_APP__: string | undefined;
+
+/** Un cache par version : l'activation d'un nouveau worker jette la coque de la précédente */
+export const NOM_CACHE = `veilleur-coque-${typeof __VERSION_APP__ === 'string' ? __VERSION_APP__ : 'dev'}`;
 
 /** Fichiers mis en cache dès l'installation : la coque de l'application */
 export const PRECACHE = ['/', '/manifest.webmanifest', '/favicon.svg', '/icones/icone-192.png'];

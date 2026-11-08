@@ -149,6 +149,13 @@ export class ErreurAuthentification extends Error {
 }
 
 /**
+ * Fenêtre pendant laquelle un refresh token tout juste tourné reste accepté :
+ * plusieurs requêtes d'un même client (onglets, chargement parallèle) peuvent
+ * le présenter en même temps, chacune repart alors avec un jeu neuf.
+ */
+export const GRACE_ROTATION_MS = 30_000;
+
+/**
  * Service d'authentification
  */
 export class ServiceAuthentification {
@@ -301,14 +308,26 @@ export class ServiceAuthentification {
     }
 
     // Vérifier le token dans la base
-    const tokenValide = await this.depotRefreshTokens.trouverTokenValide(payload.jti);
+    const info = await this.depotRefreshTokens.trouverParToken(payload.jti);
 
-    if (!tokenValide) {
+    if (!info) {
       throw new ErreurAuthentification('Token révoqué ou invalide', 'TOKEN_REVOQUE');
     }
+    if (info.dateExpiration < new Date()) {
+      throw new ErreurAuthentification('Le token a expiré', 'TOKEN_EXPIRE');
+    }
 
-    // Révoquer l'ancien token (rotation)
-    await this.depotRefreshTokens.revoquer(payload.jti);
+    if (info.estRevoque) {
+      // Déjà tourné : accepté seulement dans la fenêtre de grâce (requêtes parallèles),
+      // jamais s'il a été révoqué par une déconnexion ou une désactivation
+      const enGrace = info.dateRotation !== null && Date.now() - info.dateRotation.getTime() <= GRACE_ROTATION_MS;
+      if (!enGrace) {
+        throw new ErreurAuthentification('Token révoqué ou invalide', 'TOKEN_REVOQUE');
+      }
+    } else {
+      // Rotation : l'ancien jeton reste accepté quelques secondes
+      await this.depotRefreshTokens.marquerRotation(payload.jti);
+    }
 
     // Récupérer l'utilisateur
     const utilisateur = await this.depotUtilisateurs.trouverParId(payload.sub);

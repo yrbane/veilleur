@@ -3,7 +3,7 @@
  */
 
 import { eq, and, lt } from 'drizzle-orm';
-import type { DepotUtilisateurs, DepotRefreshTokens } from '@/domaine/ports/DepotUtilisateurs';
+import type { DepotUtilisateurs, DepotRefreshTokens, InfoRefreshToken } from '@/domaine/ports/DepotUtilisateurs';
 import type { Utilisateur, Preferences } from '@/domaine/entites/Utilisateur';
 import { obtenirBdd } from './connexion';
 import { utilisateurs, refreshTokens } from './schema';
@@ -281,6 +281,49 @@ export class DepotRefreshTokensMariaDB implements DepotRefreshTokens {
       return { utilisateurId: result.utilisateurId };
     } catch (erreur) {
       loggerBdd.error({ erreur }, 'Erreur lors de la recherche du refresh token');
+      throw erreur;
+    }
+  }
+
+  async trouverParToken(token: string): Promise<InfoRefreshToken | null> {
+    const db = obtenirBdd();
+
+    try {
+      const lignes = await db
+        .select({
+          utilisateurId: refreshTokens.utilisateurId,
+          estRevoque: refreshTokens.estRevoque,
+          dateExpiration: refreshTokens.dateExpiration,
+          dateRotation: refreshTokens.dateRotation,
+        })
+        .from(refreshTokens)
+        .where(eq(refreshTokens.token, token))
+        .limit(1);
+      const ligne = lignes[0];
+      if (!ligne) return null;
+      return {
+        utilisateurId: ligne.utilisateurId,
+        estRevoque: ligne.estRevoque === true,
+        dateExpiration: ligne.dateExpiration,
+        dateRotation: ligne.dateRotation ?? null,
+      };
+    } catch (erreur) {
+      loggerBdd.error({ erreur }, 'Erreur lors de la recherche du refresh token');
+      throw erreur;
+    }
+  }
+
+  async marquerRotation(token: string): Promise<boolean> {
+    const db = obtenirBdd();
+
+    try {
+      const resultat = await db
+        .update(refreshTokens)
+        .set({ estRevoque: true, dateRotation: new Date() })
+        .where(eq(refreshTokens.token, token));
+      return (resultat as unknown as { affectedRows: number }).affectedRows > 0;
+    } catch (erreur) {
+      loggerBdd.error({ erreur }, 'Erreur lors de la rotation du refresh token');
       throw erreur;
     }
   }
