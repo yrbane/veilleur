@@ -82,6 +82,8 @@
 - Paramètres en pleine largeur avec navigation latérale : compte, sécurité (mot de passe, 2FA), notifications, application et données
 - Session durable : on reste connecté d'une visite à l'autre (jeton de rafraîchissement glissant de 90 jours, partagé entre les onglets), la déconnexion n'arrive que sur refus explicite du serveur ; les requêtes parallèles d'un même client sont tolérées côté serveur (fenêtre de grâce de 30 s sur la rotation)
 - Mise à jour sans intervention : à chaque nouvelle version déployée, la page se recharge d'elle-même, même dans un onglet ou une appli installée laissés ouverts des jours
+- Mot de passe oublié : lien à usage unique reçu par courriel (valable une heure, seul son hachage est conservé), nouveau mot de passe puis connexion immédiate ; les sessions existantes sont révoquées. La réponse est la même que le compte existe ou non
+- Formulaires de connexion et d'inscription reconnus par les gestionnaires de mots de passe du navigateur (`autocomplete` identifiant / mot de passe courant / nouveau mot de passe), pour ne plus retaper son mot de passe
 - Thème clair, sombre ou automatique en un clic dans l'en-tête, mémorisé dans le navigateur
 - Raccourci `/` vers la recherche, retour en haut du fil, navigation compacte sur mobile
 

@@ -119,6 +119,29 @@ export const refreshTokens = mysqlTable(
 );
 
 /**
+ * Table des demandes de réinitialisation de mot de passe (mot de passe oublié)
+ * Seul le hachage SHA-256 du jeton reçu par courriel est conservé
+ */
+export const reinitialisationsMotDePasse = mysqlTable(
+  'reinitialisations_mot_de_passe',
+  {
+    id: varchar('id', { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    utilisateurId: varchar('utilisateur_id', { length: 36 }).notNull(),
+    tokenHash: char('token_hash', { length: 64 }).notNull().unique(),
+    dateCreation: timestamp('date_creation').notNull().defaultNow(),
+    dateExpiration: timestamp('date_expiration').notNull(),
+    // Posée à l'utilisation du lien ou à son invalidation par une nouvelle demande
+    dateUtilisation: timestamp('date_utilisation'),
+  },
+  table => ({
+    idxUtilisateur: index('idx_reinit_utilisateur').on(table.utilisateurId),
+    idxExpiration: index('idx_reinit_expiration').on(table.dateExpiration),
+  }),
+);
+
+/**
  * Table des sources
  */
 export const sources = mysqlTable(

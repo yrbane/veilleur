@@ -4,11 +4,12 @@
  */
 
 import * as jose from 'jose';
-import { randomBytes, scrypt as scryptCallback, timingSafeEqual, ScryptOptions } from 'crypto';
+import { randomBytes } from 'crypto';
 import type { DepotUtilisateurs, DepotRefreshTokens } from '@/domaine/ports/DepotUtilisateurs';
 import type { Utilisateur, UtilisateurPublic } from '@/domaine/entites/Utilisateur';
 import { versUtilisateurPublic } from '@/domaine/entites/Utilisateur';
 import { env } from '@/config/environnement';
+import { hasherMotDePasse, verifierMotDePasse, validerForceMotDePasse } from './motDePasse';
 import { ajouterABlacklist, estDansBlacklist } from '@/infrastructure/cache/blacklistJwt';
 import {
   verifierVerrouillage,
@@ -16,80 +17,8 @@ import {
   reinitialiserTentatives,
 } from '@/infrastructure/cache/verrouillageCompte';
 
-/**
- * Wrapper promisifié de scrypt avec support des options
- */
-function scryptAsync(
-  password: string,
-  salt: string,
-  keylen: number,
-  options?: ScryptOptions,
-): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    scryptCallback(password, salt, keylen, options ?? {}, (err, derivedKey) => {
-      if (err) reject(err);
-      else resolve(derivedKey);
-    });
-  });
-}
-
-/**
- * Paramètres de scrypt pour le hachage sécurisé
- * N=16384 (2^14), r=8, p=1 - recommandé par OWASP
- * keylen=64 octets pour une sécurité post-quantique
- */
-const SCRYPT_PARAMS = {
-  N: 16384,        // Coût CPU (mémoire = 128 * N * r octets)
-  r: 8,            // Taille de bloc
-  p: 1,            // Parallélisme
-  keylen: 64,      // Longueur de la clé dérivée
-  saltlen: 32,     // Longueur du sel (256 bits)
-};
-
-/**
- * Règles de validation du mot de passe
- */
-const REGLES_MOT_DE_PASSE = {
-  longueurMin: 8,
-  longueurMax: 128,
-  requiertMajuscule: true,
-  requiertMinuscule: true,
-  requiertChiffre: true,
-  requiertSpecial: true,
-};
-
-/**
- * Valide la force d'un mot de passe
- */
-export function validerForceMotDePasse(motDePasse: string): { valide: boolean; erreurs: string[] } {
-  const erreurs: string[] = [];
-
-  if (motDePasse.length < REGLES_MOT_DE_PASSE.longueurMin) {
-    erreurs.push(`Le mot de passe doit contenir au moins ${REGLES_MOT_DE_PASSE.longueurMin} caractères`);
-  }
-
-  if (motDePasse.length > REGLES_MOT_DE_PASSE.longueurMax) {
-    erreurs.push(`Le mot de passe ne doit pas dépasser ${REGLES_MOT_DE_PASSE.longueurMax} caractères`);
-  }
-
-  if (REGLES_MOT_DE_PASSE.requiertMajuscule && !/[A-Z]/.test(motDePasse)) {
-    erreurs.push('Le mot de passe doit contenir au moins une majuscule');
-  }
-
-  if (REGLES_MOT_DE_PASSE.requiertMinuscule && !/[a-z]/.test(motDePasse)) {
-    erreurs.push('Le mot de passe doit contenir au moins une minuscule');
-  }
-
-  if (REGLES_MOT_DE_PASSE.requiertChiffre && !/[0-9]/.test(motDePasse)) {
-    erreurs.push('Le mot de passe doit contenir au moins un chiffre');
-  }
-
-  if (REGLES_MOT_DE_PASSE.requiertSpecial && !/[!@#$%^&*(),.?":{}|<>_\-+=[\]\\/`~';]/.test(motDePasse)) {
-    erreurs.push('Le mot de passe doit contenir au moins un caractère spécial');
-  }
-
-  return { valide: erreurs.length === 0, erreurs };
-}
+/** Réexport : la validation vit dans `motDePasse` (partagée avec la réinitialisation) */
+export { validerForceMotDePasse };
 
 /**
  * Payload du token JWT d'accès
@@ -137,7 +66,8 @@ export class ErreurAuthentification extends Error {
       | 'TOTP_REQUIS'
       | 'TOTP_INVALIDE'
       | 'TOTP_DEJA_ACTIF'
-      | 'MOT_DE_PASSE_FAIBLE',
+      | 'MOT_DE_PASSE_FAIBLE'
+      | 'LIEN_INVALIDE',
     public readonly details?: {
       tentativesRestantes?: number;
       tempsRestant?: number;
@@ -193,7 +123,7 @@ export class ServiceAuthentification {
     }
 
     // Hasher le mot de passe avec paramètres sécurisés
-    const motDePasseHash = await this.hasherMotDePasse(motDePasse);
+    const motDePasseHash = await hasherMotDePasse(motDePasse);
 
     // Créer l'utilisateur
     const utilisateur = await this.depotUtilisateurs.creer({
@@ -212,7 +142,7 @@ export class ServiceAuthentification {
     });
 
     // Générer les tokens
-    return this.genererTokens(utilisateur);
+    return this.emettreTokens(utilisateur);
   }
 
   /**
@@ -256,7 +186,7 @@ export class ServiceAuthentification {
     }
 
     // Vérifier le mot de passe
-    const motDePasseValide = await this.verifierMotDePasse(motDePasse, utilisateur.motDePasseHash);
+    const motDePasseValide = await verifierMotDePasse(motDePasse, utilisateur.motDePasseHash);
 
     if (!motDePasseValide) {
       // Enregistrer l'échec
@@ -282,7 +212,7 @@ export class ServiceAuthentification {
     await this.depotUtilisateurs.mettreAJourDerniereConnexion(utilisateur.id);
 
     // Générer les tokens
-    return this.genererTokens(utilisateur);
+    return this.emettreTokens(utilisateur);
   }
 
   /**
@@ -337,7 +267,7 @@ export class ServiceAuthentification {
     }
 
     // Générer de nouveaux tokens
-    return this.genererTokens(utilisateur);
+    return this.emettreTokens(utilisateur);
   }
 
   /**
@@ -448,7 +378,7 @@ export class ServiceAuthentification {
     }
 
     // Vérifier l'ancien mot de passe
-    const motDePasseValide = await this.verifierMotDePasse(
+    const motDePasseValide = await verifierMotDePasse(
       ancienMotDePasse,
       utilisateur.motDePasseHash,
     );
@@ -458,7 +388,7 @@ export class ServiceAuthentification {
     }
 
     // Hasher et sauvegarder le nouveau mot de passe avec les paramètres sécurisés
-    const nouveauHash = await this.hasherMotDePasse(nouveauMotDePasse);
+    const nouveauHash = await hasherMotDePasse(nouveauMotDePasse);
     await this.depotUtilisateurs.mettreAJour(utilisateurId, { motDePasseHash: nouveauHash });
 
     // Révoquer tous les refresh tokens (force la reconnexion partout)
@@ -466,9 +396,9 @@ export class ServiceAuthentification {
   }
 
   /**
-   * Génère les tokens d'authentification
+   * Émet un jeu de jetons (accès + rafraîchissement) pour un utilisateur déjà authentifié
    */
-  private async genererTokens(utilisateur: Utilisateur): Promise<ResultatAuthentification> {
+  async emettreTokens(utilisateur: Utilisateur): Promise<ResultatAuthentification> {
     // Générer un JTI unique pour l'access token (permet la révocation)
     const accessJti = randomBytes(16).toString('hex');
 
@@ -510,72 +440,6 @@ export class ServiceAuthentification {
       refreshToken,
       expiresIn: this.parseExpiration(this.accessExpiresIn),
     };
-  }
-
-  /**
-   * Hash un mot de passe avec scrypt (paramètres OWASP)
-   * Format: version:N:r:p:sel:hash
-   */
-  private async hasherMotDePasse(motDePasse: string): Promise<string> {
-    const sel = randomBytes(SCRYPT_PARAMS.saltlen).toString('hex');
-    const hash = await scryptAsync(motDePasse, sel, SCRYPT_PARAMS.keylen, {
-      N: SCRYPT_PARAMS.N,
-      r: SCRYPT_PARAMS.r,
-      p: SCRYPT_PARAMS.p,
-    });
-    // Format versionné pour permettre les upgrades futurs
-    return `v2:${SCRYPT_PARAMS.N}:${SCRYPT_PARAMS.r}:${SCRYPT_PARAMS.p}:${sel}:${hash.toString('hex')}`;
-  }
-
-  /**
-   * Vérifie un mot de passe contre son hash
-   * Supporte l'ancien format (sel:hash) et le nouveau (v2:N:r:p:sel:hash)
-   */
-  private async verifierMotDePasse(motDePasse: string, hash: string): Promise<boolean> {
-    const parts = hash.split(':');
-
-    // Nouveau format v2: version:N:r:p:sel:hash
-    if (parts[0] === 'v2' && parts.length === 6) {
-      const [, nStr, rStr, pStr, sel, hashStocke] = parts;
-      const N = parseInt(nStr!, 10);
-      const r = parseInt(rStr!, 10);
-      const p = parseInt(pStr!, 10);
-
-      if (!sel || !hashStocke || isNaN(N) || isNaN(r) || isNaN(p)) {
-        return false;
-      }
-
-      const hashCalcule = await scryptAsync(motDePasse, sel, SCRYPT_PARAMS.keylen, {
-        N,
-        r,
-        p,
-      });
-      const hashStockeBuffer = Buffer.from(hashStocke, 'hex');
-
-      if (hashCalcule.length !== hashStockeBuffer.length) {
-        return false;
-      }
-
-      return timingSafeEqual(hashCalcule, hashStockeBuffer);
-    }
-
-    // Ancien format: sel:hash (rétrocompatibilité)
-    if (parts.length === 2) {
-      const [sel, hashStocke] = parts;
-      if (!sel || !hashStocke) {
-        return false;
-      }
-      const hashCalcule = await scryptAsync(motDePasse, sel, 64);
-      const hashStockeBuffer = Buffer.from(hashStocke, 'hex');
-
-      if (hashCalcule.length !== hashStockeBuffer.length) {
-        return false;
-      }
-
-      return timingSafeEqual(hashCalcule, hashStockeBuffer);
-    }
-
-    return false;
   }
 
   /**

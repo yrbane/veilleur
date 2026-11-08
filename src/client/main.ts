@@ -18,7 +18,12 @@ import { estAuthentifie, auth, setOnDeconnexion } from './services/api';
 import { surveillerMiseAJour } from './utils/miseAJourApp';
 import { afficherPageAccueil } from './pages/PageAccueil';
 import { afficherPageSources } from './pages/PageSources';
-import { afficherPageConnexion, afficherPageInscription } from './pages/PageAuth';
+import {
+  afficherPageConnexion,
+  afficherPageInscription,
+  afficherPageMotDePasseOublie,
+  afficherPageReinitialisation,
+} from './pages/PageAuth';
 import { afficherPageParametres } from './pages/PageParametres';
 import { afficherPageDecouverte } from './pages/PageDecouverte';
 import { afficherPageProgression } from './pages/PageProgression';
@@ -54,6 +59,14 @@ const routes: Route[] = [
   {
     pattern: /^\/inscription$/,
     handler: afficherPageInscription,
+  },
+  {
+    pattern: /^\/mot-de-passe-oublie$/,
+    handler: afficherPageMotDePasseOublie,
+  },
+  {
+    pattern: /^\/reinitialiser-mot-de-passe$/,
+    handler: (container) => afficherPageReinitialisation(container),
   },
   {
     pattern: /^\/parametres$/,

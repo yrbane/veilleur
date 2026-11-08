@@ -313,6 +313,38 @@
   text-decoration: underline;
 }
 
+/* Lien discret sous un champ (« Mot de passe oublié ? ») */
+.auth-lien-discret {
+  align-self: flex-end;
+  margin-top: var(--espace-1);
+  font-size: var(--taille-sm);
+  color: var(--couleur-texte-secondaire);
+}
+
+.auth-lien-discret:hover {
+  color: var(--couleur-primaire);
+  text-decoration: underline;
+}
+
+.auth-intro {
+  margin-bottom: var(--espace-4);
+  color: var(--couleur-texte-secondaire);
+  font-size: var(--taille-sm);
+  line-height: 1.5;
+}
+
+.auth-confirmation {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espace-3);
+}
+
+.auth-confirmation-icone {
+  font-size: 2.5rem;
+  color: var(--couleur-primaire);
+}
+
 .auth-separateur {
   display: flex;
   align-items: center;

@@ -4,6 +4,17 @@ Toutes les évolutions notables de Veilleur sont consignées ici. Le format suit
 [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le versionnage
 [SemVer](https://semver.org/lang/fr/).
 
+## 0.25.0 — 2026-11-08 · « Mot de passe oublié »
+
+### Ajouté
+- Parcours « Mot de passe oublié ? » depuis la connexion : saisie de l'adresse, courriel avec un lien à usage unique valable une heure (`APP_URL/reinitialiser-mot-de-passe?token=…`), page de choix d'un nouveau mot de passe, puis connexion immédiate sans ressaisie. Le serveur répond toujours 202 à la demande, que le compte existe ou non (anti-énumération), et ne conserve que le hachage SHA-256 du jeton (migration 0014, table `reinitialisations_mot_de_passe`). Une nouvelle demande invalide la précédente ; un lien utilisé, périmé ou visant un compte désactivé est refusé ; la réinitialisation révoque toutes les sessions et lève le verrouillage de connexion.
+- Routes `POST /api/v1/auth/mot-de-passe-oublie` (5 par quart d'heure et par adresse IP) et `POST /api/v1/auth/reinitialiser-mot-de-passe` (10 par quart d'heure), code d'erreur `LIEN_INVALIDE`.
+- Pages client `/mot-de-passe-oublie` et `/reinitialiser-mot-de-passe`, lien discret sous le champ mot de passe de la connexion.
+
+### Modifié
+- Champs e-mail des formulaires de connexion, d'inscription et de demande marqués `autocomplete="username"` (clavier e-mail, sans correcteur) : le gestionnaire de mots de passe du navigateur propose d'enregistrer puis de pré-remplir les identifiants. Règle du mot de passe affichée en clair sous les champs « nouveau mot de passe », identique à celle du serveur.
+- Hachage et validation des mots de passe extraits dans `domaine/services/motDePasse` (partagés par l'authentification et la réinitialisation) ; `ServiceAuthentification.emettreTokens` devient public pour connecter un utilisateur déjà vérifié. Codes `COMPTE_VERROUILLE` (429) et `MOT_DE_PASSE_FAIBLE` (400) désormais traduits en statut HTTP.
+
 ## 0.24.1 — 2026-11-08 · « Rotation tolérante »
 
 ### Corrigé

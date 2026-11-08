@@ -10,6 +10,7 @@ import { obtenirServiceAuth, verifierAuthentification } from '@/api/middlewares/
 import { ErreurAuthentification } from '@/domaine/services/ServiceAuthentification';
 import { loggerHttp } from '@/infrastructure/logging/logger';
 import * as ServiceTOTP from '@/domaine/services/ServiceTOTP';
+import { obtenirServiceReinitialisationMotDePasse } from '@/infrastructure/authentification/fabrique';
 
 /**
  * Schémas de validation
@@ -29,6 +30,15 @@ const schemaChangementMotDePasse = z.object({
     .min(10, 'Le mot de passe doit contenir au moins 10 caractères')
     .regex(/[A-Z]/, 'Le mot de passe doit contenir au moins une majuscule')
     .regex(/[0-9]/, 'Le mot de passe doit contenir au moins un chiffre'),
+});
+
+const schemaMotDePasseOublie = z.object({
+  email: z.string().trim().email('Email invalide'),
+});
+
+const schemaReinitialisation = z.object({
+  token: z.string().min(20, 'Lien invalide').max(128, 'Lien invalide'),
+  nouveauMotDePasse: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères').max(128),
 });
 
 const schemaMiseAJourProfil = z.object({
@@ -65,6 +75,9 @@ function gererErreurAuth(erreur: unknown, reply: FastifyReply): FastifyReply {
       TOTP_REQUIS: 403,
       TOTP_INVALIDE: 401,
       TOTP_DEJA_ACTIF: 409,
+      COMPTE_VERROUILLE: 429,
+      MOT_DE_PASSE_FAIBLE: 400,
+      LIEN_INVALIDE: 400,
     };
 
     return reply.status(statusCodes[erreur.code] ?? 400).send({
@@ -258,6 +271,84 @@ export async function routesAuth(fastify: FastifyInstance): Promise<void> {
       const donnees = schemaRafraichissement.parse(request.body);
       const resultat = await serviceAuth.rafraichirTokens(donnees.refreshToken);
 
+      return reply.send(resultat);
+    } catch (erreur) {
+      return gererErreurAuth(erreur, reply);
+    }
+  });
+
+  /**
+   * POST /api/v1/auth/mot-de-passe-oublie
+   * Envoie un lien de réinitialisation ; répond toujours 202 (anti-énumération)
+   */
+  fastify.post('/mot-de-passe-oublie', {
+    config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
+    schema: {
+      tags: ['Authentification'],
+      summary: 'Envoie un courriel de réinitialisation du mot de passe',
+      body: {
+        type: 'object',
+        required: ['email'],
+        properties: {
+          email: { type: 'string', format: 'email' },
+        },
+      },
+      response: {
+        202: {
+          type: 'object',
+          properties: {
+            message: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const donnees = schemaMotDePasseOublie.parse(request.body);
+      await obtenirServiceReinitialisationMotDePasse().demander(donnees.email);
+      loggerHttp.info({ email: donnees.email }, 'Demande de réinitialisation de mot de passe');
+      return reply.status(202).send({
+        message: 'Si un compte existe pour cette adresse, un courriel vient de lui être envoyé.',
+      });
+    } catch (erreur) {
+      return gererErreurAuth(erreur, reply);
+    }
+  });
+
+  /**
+   * POST /api/v1/auth/reinitialiser-mot-de-passe
+   * Applique le nouveau mot de passe depuis le lien reçu, révoque les sessions et connecte
+   */
+  fastify.post('/reinitialiser-mot-de-passe', {
+    config: { rateLimit: { max: 10, timeWindow: '15 minutes' } },
+    schema: {
+      tags: ['Authentification'],
+      summary: 'Réinitialise le mot de passe avec le jeton reçu par courriel',
+      body: {
+        type: 'object',
+        required: ['token', 'nouveauMotDePasse'],
+        properties: {
+          token: { type: 'string' },
+          nouveauMotDePasse: { type: 'string', minLength: 8 },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            utilisateur: { type: 'object' },
+            accessToken: { type: 'string' },
+            refreshToken: { type: 'string' },
+            expiresIn: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const donnees = schemaReinitialisation.parse(request.body);
+      const resultat = await obtenirServiceReinitialisationMotDePasse().reinitialiser(donnees.token, donnees.nouveauMotDePasse);
+      loggerHttp.info({ utilisateurId: resultat.utilisateur.id }, 'Mot de passe réinitialisé par lien');
       return reply.send(resultat);
     } catch (erreur) {
       return gererErreurAuth(erreur, reply);

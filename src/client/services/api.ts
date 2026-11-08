@@ -410,6 +410,24 @@ export const auth = {
     });
   },
 
+  /** Demande l'envoi d'un lien de réinitialisation ; le serveur répond pareil que le compte existe ou non */
+  async motDePasseOublie(email: string): Promise<void> {
+    await requete('/auth/mot-de-passe-oublie', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  /** Applique le nouveau mot de passe depuis le lien reçu et ouvre la session */
+  async reinitialiserMotDePasse(token: string, nouveauMotDePasse: string): Promise<ResultatAuth> {
+    const result = await requete<ResultatAuth>('/auth/reinitialiser-mot-de-passe', {
+      method: 'POST',
+      body: JSON.stringify({ token, nouveauMotDePasse }),
+    });
+    setTokens(result.accessToken, result.refreshToken);
+    return result;
+  },
+
   // Méthodes 2FA
   async statut2FA(): Promise<Statut2FA> {
     return requete<Statut2FA>('/auth/2fa/statut');
